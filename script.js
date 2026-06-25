@@ -199,7 +199,7 @@ const visualMarkup = item => {
 };
 
 const galleryMarkup = item => {
-  const gallery = Array.isArray(item.gallery) ? item.gallery.filter(validImage).slice(0, 4) : [];
+  const gallery = Array.isArray(item.gallery) ? item.gallery.filter(validImage).slice(0, 5) : [];
   if (!gallery.length) return "";
   return `<div class="public-gallery" aria-label="Example use-case gallery">${gallery.map((photo, index) => `<img src="${photo.data}" alt="${clean(photo.alt || `${item.name} gallery image ${index + 1}`)}" />`).join("")}</div>`;
 };

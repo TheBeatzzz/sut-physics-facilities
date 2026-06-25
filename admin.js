@@ -255,7 +255,7 @@ function openRecordDialog(mode = "manager", id = null) {
   $("#record-id").value = "";
   const item = id ? db.equipment.find(record => record.id === id) : null;
   pendingFeaturePhoto = item?.featurePhoto ? clone(item.featurePhoto) : null;
-  pendingGallery = Array.isArray(item?.gallery) ? clone(item.gallery) : [];
+  pendingGallery = Array.isArray(item?.gallery) ? clone(item.gallery).slice(0, 5) : [];
   $("#record-form-kicker").textContent = mode === "faculty" ? "Faculty contribution" : item ? "Edit equipment record" : "New registry record";
   $("#record-form-title").textContent = mode === "faculty" ? "Submit equipment information" : item ? "Edit equipment" : "Add equipment";
   $("#record-primary-action").textContent = mode === "faculty" ? "Submit for review" : "Save record";
@@ -371,7 +371,7 @@ $("#feature-photo-input").addEventListener("change", async event => {
   const file = event.target.files[0];
   if (!file) return;
   try {
-    pendingFeaturePhoto = await resizeImage(file);
+    pendingFeaturePhoto = await resizeImage(file, 1400, 0.8);
     pendingFeaturePhoto.alt = `${$("#record-form").elements.name.value || "Research equipment"} feature photo`;
     renderMediaPreviews();
   } catch {
@@ -381,15 +381,15 @@ $("#feature-photo-input").addEventListener("change", async event => {
 });
 
 $("#gallery-photo-input").addEventListener("change", async event => {
-  const available = Math.max(0, 6 - pendingGallery.length);
+  const available = Math.max(0, 5 - pendingGallery.length);
   const files = [...event.target.files].slice(0, available);
   if (!available) {
-    showToast("The gallery already contains the maximum of 6 photos");
+    showToast("The gallery already contains the maximum of 5 photos");
     event.target.value = "";
     return;
   }
   try {
-    const images = await Promise.all(files.map(resizeImage));
+    const images = await Promise.all(files.map(file => resizeImage(file, 640, 0.66)));
     const equipmentName = $("#record-form").elements.name.value || "Research equipment";
     images.forEach((photo, index) => { photo.alt = `${equipmentName} use-case photo ${pendingGallery.length + index + 1}`; });
     pendingGallery.push(...images);
