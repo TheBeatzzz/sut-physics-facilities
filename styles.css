@@ -138,7 +138,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .filter span { margin-left: 8px; color: var(--ink-soft); font: 9px var(--mono); }
 .filter:hover, .filter.is-active { color: var(--paper); background: var(--ink); }.filter.is-active span { color: var(--acid); }
 .equipment-grid { width: 100%; display: grid; grid-template-columns: repeat(3, calc((100% - 32px) / 3)); grid-auto-rows: auto; gap: 16px; align-items: start; justify-items: stretch; }
-.equipment-card { position: relative; width: 100%; min-width: 0; max-width: none; min-height: 650px; height: auto; justify-self: stretch; padding: 25px; display: grid; grid-template-rows: auto 240px 58px auto auto auto; background: var(--paper); overflow: hidden; transition: transform .25s ease, opacity .25s ease; }
+.equipment-card { position: relative; width: 100%; min-width: 0; max-width: none; height: fit-content; justify-self: stretch; padding: 25px; display: flex; flex-direction: column; background: var(--paper); overflow: visible; transition: transform .25s ease, opacity .25s ease; }
 .equipment-card[hidden] { display: none; }
 .equipment-card:hover { transform: translateY(-4px); }
 .card-top { display: flex; justify-content: space-between; font: 9px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
@@ -219,7 +219,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .spectrum { grid-template-columns: repeat(2, 1fr); }.spectrum-axis { display: none; }
   .spectrum-item { min-height: 360px; border-top: 1px solid var(--line); }
   .equipment-grid { grid-template-columns: repeat(2, calc((100% - 16px) / 2)); grid-auto-rows: auto; }
-  .equipment-card { min-height: 650px; height: auto; }
+  .equipment-card { height: fit-content; }
   .access { grid-template-columns: 1fr; }
   .contact-copy { margin-left: 12%; }.contact-orbit { opacity: .5; }
 }
@@ -238,7 +238,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .section-heading h2, .access h2 { font-size: 48px; }
   .spectrum { grid-template-columns: 1fr; margin-top: 58px; }.spectrum-item { min-height: 320px; }.spectrum-glyph { height: 140px; }
   .filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }.filter { flex: 0 0 auto; }
-  .equipment-grid { display: grid; grid-template-columns: 100%; grid-auto-rows: auto; }.equipment-card { width: 100%; min-height: 620px; height: auto; margin-bottom: 0; }
+  .equipment-grid { display: grid; grid-template-columns: 100%; grid-auto-rows: auto; }.equipment-card { width: 100%; height: fit-content; margin-bottom: 0; }
   .access-steps { margin-top: 18px; }
   .contact { min-height: 620px; padding-top: 70px; }.contact-copy { margin-left: 0; padding-top: 90px; }.contact h2 { font-size: 68px; }.contact-orbit { width: 460px; height: 460px; left: -280px; }
   .site-footer { align-items: flex-start; flex-direction: column; gap: 24px; }.site-footer p { order: 3; }
