@@ -122,6 +122,7 @@ const publicVisual = item => {
 const palette = ["#74dfce", "#8fc3ff", "#ff8b5b", "#d7ff3f", "#b59cff", "#ffc95c"];
 let publicFacilities = [];
 let registryAvailable = false;
+let registryEmptyFallback = false;
 
 const mapPublicEquipment = registry => {
   const visible = registry.equipment.filter(item => item.reviewStatus === "Verified" && item.publicReady === true);
@@ -157,11 +158,18 @@ const loadLocalPublicEquipment = () => {
 
 const loadPublicEquipment = async () => {
   registryAvailable = false;
+  registryEmptyFallback = false;
   if (window.SUTSupabase?.isConfigured?.()) {
     try {
       const registry = await window.SUTSupabase.loadRegistry({ publicOnly: true });
-      registryAvailable = true;
-      return mapPublicEquipment(registry);
+      const publicEquipment = mapPublicEquipment(registry);
+      if (publicEquipment.length) {
+        registryAvailable = true;
+        return publicEquipment;
+      }
+      registryEmptyFallback = true;
+      publicFacilities = [];
+      return fallbackEquipment;
     } catch (error) {
       console.warn("Supabase public registry unavailable; using local/prototype data.", error);
     }
@@ -245,7 +253,9 @@ const updatePublicSummary = () => {
   document.querySelector("#public-data-status").textContent = registryMode ? "Live registry" : "Prototype data";
   document.querySelector("#public-data-message").textContent = registryMode
     ? "Showing verified equipment approved for the public research profile."
-    : "Equipment names and figures below are illustrative. Replace them with verified institutional data.";
+    : registryEmptyFallback
+      ? "Supabase is connected, but no equipment has been approved for public display yet. Showing example records until the registry is populated."
+      : "Equipment names and figures below are illustrative. Replace them with verified institutional data.";
 };
 
 const renderEquipment = (filter = "all") => {
