@@ -79,6 +79,7 @@ const backend = window.SUTSupabase;
 const backendConfigured = Boolean(backend?.isConfigured?.());
 let backendReady = false;
 let currentSession = null;
+let lastRegistryError = null;
 let activeView = "overview";
 let recordMode = "manager";
 let toastTimer;
@@ -154,14 +155,15 @@ function hideAccessIssuePanel() {
   if (panel) panel.hidden = true;
 }
 
-function showAuthGate(message = "") {
+function showAuthGate(message = "", options = {}) {
+  const clearSession = options.clearSession !== false;
   $("#auth-gate").hidden = false;
   document.body.classList.add("auth-required");
   $("#auth-message").textContent = message || "Sign in with a pre-approved SUT faculty account to manage the shared registry.";
   hideAccessIssuePanel();
   db = { ...clone(sampleDatabase), equipment: [], facilities: [] };
   backendReady = false;
-  currentSession = null;
+  if (clearSession) currentSession = null;
   setRegistryMode();
   setUserChip();
   renderAll();
@@ -175,7 +177,8 @@ function hideAuthGate() {
 function showAccessIssue(message, email, emailConfirmed = false) {
   showAuthGate(emailConfirmed
     ? "Your email link was confirmed, but this account is not approved for registry administration yet."
-    : message || "This account is signed in but is not approved for registry administration yet.");
+    : message || "This account is signed in but is not approved for registry administration yet.",
+    { clearSession: false });
   const panel = $("#access-issue-panel");
   if (panel) {
     $("#access-issue-email").textContent = email || "this account";
@@ -189,6 +192,7 @@ async function loadSharedRegistry(options = {}) {
   try {
     db = await backend.loadRegistry({ publicOnly: false });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    lastRegistryError = null;
     backendReady = true;
     setRegistryMode();
     setUserChip();
@@ -196,6 +200,7 @@ async function loadSharedRegistry(options = {}) {
     renderAll();
     return true;
   } catch (error) {
+    lastRegistryError = error;
     if (options.showGate !== false) {
       showAuthGate(`${error.message || "Could not load the shared registry."} If you are signed in, confirm that your @sut.ac.th or @g.sut.ac.th email is active in the registry_admins allowlist.`);
     }
@@ -740,7 +745,14 @@ $("#auth-form").addEventListener("submit", async event => {
   try {
     const session = await backend.signIn(email, password);
     currentSession = session || await backend.getSession();
-    await loadSharedRegistry();
+    const loaded = await loadSharedRegistry({ showGate: false });
+    if (!loaded) {
+      showAccessIssue(
+        `${lastRegistryError?.message || "Password accepted, but Supabase blocked access to the internal registry."} Confirm this email is active in public.registry_admins and set active = true.`,
+        currentSession?.user?.email || email
+      );
+      return;
+    }
     showToast("Signed in to shared registry");
   } catch (error) {
     $("#auth-message").textContent = error.message || "Could not sign in. Check your account and Supabase settings.";
