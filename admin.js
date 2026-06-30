@@ -149,11 +149,6 @@ function setUserChip() {
   $("#user-chip").querySelector("small").textContent = backendReady ? "Supabase editor" : "Registry editor";
 }
 
-function hideMagicLinkPanel() {
-  const panel = $("#magic-link-panel");
-  if (panel) panel.hidden = true;
-}
-
 function hideAccessIssuePanel() {
   const panel = $("#access-issue-panel");
   if (panel) panel.hidden = true;
@@ -163,7 +158,6 @@ function showAuthGate(message = "") {
   $("#auth-gate").hidden = false;
   document.body.classList.add("auth-required");
   $("#auth-message").textContent = message || "Sign in with a pre-approved SUT faculty account to manage the shared registry.";
-  hideMagicLinkPanel();
   hideAccessIssuePanel();
   db = { ...clone(sampleDatabase), equipment: [], facilities: [] };
   backendReady = false;
@@ -522,27 +516,6 @@ function askConfirm(title, message) {
   });
 }
 
-function showMagicLinkDialog(email) {
-  const dialog = $("#magic-link-dialog");
-  const targetEmail = email || "your SUT email";
-  const panel = $("#magic-link-panel");
-  $("#magic-link-email").textContent = targetEmail;
-  if (panel) {
-    $("#magic-link-panel-message").textContent = `Check ${targetEmail} for a secure sign-in link from Supabase.`;
-    panel.hidden = false;
-  }
-  try {
-    if (dialog?.open) dialog.close();
-    if (dialog?.showModal) {
-      dialog.showModal();
-    } else {
-      throw new Error("Dialog element is not supported");
-    }
-  } catch {
-    window.alert(`Magic link sent to ${email}. Check your email, click the sign-in link, and return to this registry page.`);
-  }
-}
-
 function downloadFile(filename, type, content) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -759,18 +732,13 @@ $("#reset-data").addEventListener("click", async () => {
 $("#auth-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!backendConfigured) return;
-  hideMagicLinkPanel();
+  if (!event.currentTarget.reportValidity()) return;
   hideAccessIssuePanel();
   const email = $("#auth-email").value.trim();
   const password = $("#auth-password").value;
-  setBusy($("#auth-submit"), true, password ? "Signing in…" : "Sending link…");
+  setBusy($("#auth-submit"), true, "Signing in…");
   try {
     const session = await backend.signIn(email, password);
-    if (!session && !password) {
-      $("#auth-message").textContent = `Magic link sent to ${email}. Check your email, then return to this page.`;
-      showMagicLinkDialog(email);
-      return;
-    }
     currentSession = session || await backend.getSession();
     await loadSharedRegistry();
     showToast("Signed in to shared registry");
@@ -793,7 +761,7 @@ $("#sign-out").addEventListener("click", async () => {
 $("#access-sign-out").addEventListener("click", async () => {
   try {
     await backend.signOut();
-    showAuthGate("Signed out. You can request a new magic link with another approved email.");
+    showAuthGate("Signed out. You can sign in again with another approved email and password.");
   } catch (error) {
     showToast(error.message || "Could not sign out");
   }
@@ -862,7 +830,7 @@ async function boot() {
       currentSession.user?.email, Boolean(callbackSession));
     }
   } catch (error) {
-    showAuthGate(`Magic link sign-in could not be completed: ${error.message || "Could not connect to Supabase."}`);
+    showAuthGate(`Supabase sign-in could not be completed: ${error.message || "Could not connect to Supabase."}`);
   }
 }
 

@@ -257,17 +257,10 @@
     if (!allowedDomains.some(domain => normalizedEmail.endsWith(`@${domain}`))) {
       throw new Error(`Use an approved faculty email ending in ${allowedDomains.map(domain => `@${domain}`).join(" or ")}.`);
     }
-    if (password) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-      if (error) throw error;
-      return data.session;
-    }
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: { emailRedirectTo: window.location.href.split("#")[0] }
-    });
+    if (!password) throw new Error("Enter your password to sign in.");
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     if (error) throw error;
-    return null;
+    return data.session;
   };
 
   const signOut = async () => {

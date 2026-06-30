@@ -24,29 +24,20 @@
         <p>The public webpage can read only approved records. Editing, uploading photos, and reviewing faculty submissions require a pre-approved SUT faculty account.</p>
         <form id="auth-form" class="auth-form">
           <label>SUT email<input id="auth-email" type="email" autocomplete="email" placeholder="name@sut.ac.th or name@g.sut.ac.th" required /></label>
-          <label>Password <span>Optional for magic link</span><input id="auth-password" type="password" autocomplete="current-password" placeholder="Leave blank to send a magic link" /></label>
-          <button class="button button-primary" id="auth-submit" type="submit">Sign in / send magic link</button>
+          <label>Password<input id="auth-password" type="password" autocomplete="current-password" placeholder="Enter your Supabase password" required /></label>
+          <button class="button button-primary" id="auth-submit" type="submit">Sign in</button>
         </form>
-        <div id="magic-link-panel" class="magic-link-panel" hidden>
-          <strong>Magic link requested</strong>
-          <span id="magic-link-panel-message">Check your SUT email for a secure sign-in link.</span>
-          <ol>
-            <li>Open the message from Supabase.</li>
-            <li>Click the sign-in link in the same browser.</li>
-            <li>If access is denied, ask the registry admin to confirm your email is active in <code>registry_admins</code>.</li>
-          </ol>
-        </div>
         <div id="access-issue-panel" class="access-issue-panel" hidden>
           <strong>Email verified, but admin access is not approved yet</strong>
           <span>You signed in as <b id="access-issue-email">this account</b>, but Supabase did not allow this account to load the internal registry.</span>
           <ol>
             <li>Confirm this email is active in <code>public.registry_admins</code>.</li>
             <li>Confirm the email ends with <code>@sut.ac.th</code> or <code>@g.sut.ac.th</code>.</li>
-            <li>After approval, refresh this page or request a new magic link.</li>
+            <li>After approval, refresh this page and sign in again.</li>
           </ol>
           <button class="button button-secondary" id="access-sign-out" type="button">Sign out and use another email</button>
         </div>
-        <p class="auth-help" id="auth-message">Use a password if your Supabase account has one, or leave it blank to request an email magic link. Your SUT or g.sut.ac.th email must be on the approved faculty list.</p>
+        <p class="auth-help" id="auth-message">Use the password created in Supabase. Your SUT or g.sut.ac.th email must also be active in the approved faculty list.</p>
       </div>
     </section>
 
@@ -261,7 +252,7 @@
             <label class="span-2">New password <span aria-hidden="true">*</span><input id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters" /></label>
             <label class="span-2">Confirm new password <span aria-hidden="true">*</span><input id="confirm-password" name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Re-enter the new password" /></label>
           </div>
-          <p class="password-note">This changes the password for your currently signed-in Supabase account. You can still use magic-link login later if needed.</p>
+          <p class="password-note">This changes the password for your currently signed-in Supabase account.</p>
         </div>
         <div class="modal-foot"><p id="password-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="password-dialog">Cancel</button><button class="button button-primary" id="password-submit" type="submit">Update password</button></div></div>
       </form>
@@ -269,24 +260,6 @@
 
     <dialog id="confirm-dialog" class="confirm-dialog">
       <form method="dialog"><span class="confirm-icon">!</span><h2 id="confirm-title">Confirm action</h2><p id="confirm-message"></p><div><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-danger" id="confirm-action" value="confirm">Confirm</button></div></form>
-    </dialog>
-
-    <dialog id="magic-link-dialog" class="confirm-dialog magic-link-dialog">
-      <form method="dialog">
-        <span class="confirm-icon success">✓</span>
-        <h2>Check your email</h2>
-        <p>We sent a secure sign-in link to <strong id="magic-link-email">your SUT email</strong>.</p>
-        <ol class="instruction-list">
-          <li>Open the message from Supabase in the same browser you used to request the link.</li>
-          <li>Click the sign-in link before it expires.</li>
-          <li>Return to this registry page; approved faculty will be signed in automatically.</li>
-        </ol>
-        <div class="admin-instruction">
-          <strong>Admin checklist</strong>
-          <span>If the link arrives but returns to login or access is denied, confirm the email is active in the <code>registry_admins</code> table and that Supabase Authentication URL Configuration includes this exact admin page URL.</span>
-        </div>
-        <div><button class="button button-primary" value="confirm">OK, I will check email</button></div>
-      </form>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span><p></p></div>

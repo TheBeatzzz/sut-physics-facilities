@@ -31,9 +31,9 @@ In Supabase, open **Authentication → Providers → Email**.
 Recommended settings:
 
 - Enable Email provider.
-- Enable magic links if you want password-free faculty login.
-- Add the GitHub Pages URL to allowed redirect URLs:
-  `https://thebeatzzz.github.io/sut-physics-equipment-platform/`
+- Keep password sign-in enabled.
+- Add the GitHub Pages admin URL to allowed redirect URLs for password recovery/invite flows:
+  `https://thebeatzzz.github.io/sut-physics-equipment-platform/admin.html`
 
 If your faculty use a different email domain, edit both the `registry_admins_sut_email` constraint and the `public.is_sut_editor()` function in `supabase-schema.sql` before running it, or update them in SQL Editor.
 
@@ -66,10 +66,11 @@ Once the first admin is added, approved admins can also manage this table from S
 Recommended workflow:
 
 1. Add the faculty email to `registry_admins`.
-2. Let the faculty member request a magic link from `admin.html`.
-3. After they sign in, they can use **Change password** in the admin toolbar to set their own password.
+2. In **Supabase → Authentication → Users**, create or invite the faculty user with an initial password or password-recovery email.
+3. The faculty member signs in at `admin.html` with email and password.
+4. After sign-in, they can use **Change password** in the admin toolbar to set their own password.
 
-Do not distribute shared or known temporary passwords by email. The website only lets the currently signed-in faculty member update their own Supabase password.
+Do not distribute shared passwords. If you must create an initial password, ask the faculty member to change it immediately after first login. The website only lets the currently signed-in faculty member update their own Supabase password.
 
 ## 5. Add project credentials to the website
 
@@ -118,13 +119,13 @@ The admin page can see all records after sign-in.
 - anonymous visitors cannot edit records;
 - only authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage records and upload photos.
 
-## Magic-link troubleshooting
+## Password login troubleshooting
 
-If a faculty member receives the email but clicking it returns them to the login screen:
+If a faculty member cannot sign in:
 
-1. Confirm **Authentication → URL Configuration** contains the exact admin page URL they are using.
+1. Confirm the user exists in **Supabase → Authentication → Users**.
 2. Confirm their email is active in `public.registry_admins`.
-3. Ask them to open the link in the same browser where they requested it.
-4. Refresh the admin page once after the redirect.
+3. Confirm the email ends with `@sut.ac.th` or `@g.sut.ac.th`.
+4. If the password is unknown, send a password recovery/invite email from Supabase Dashboard or create a temporary password and ask them to change it immediately.
 
-The site explicitly exchanges Supabase's `?code=...` callback for a browser session before loading the registry.
+The site can still complete Supabase invite/recovery callbacks, but normal registry login is password-first.
