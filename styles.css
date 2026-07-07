@@ -52,7 +52,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .identity > span:last-child { display: flex; flex-direction: column; }
 .identity strong { font-size: 12px; letter-spacing: .02em; }
 .identity small { margin-top: 1px; color: var(--ink-soft); font: 9px var(--mono); text-transform: uppercase; }
-.identity-mark { position: relative; width: 32px; height: 32px; display: inline-block; }
+.identity-mark { position: relative; width: 42px; height: 42px; display: inline-block; flex: 0 0 auto; }
 .identity-mark i { position: absolute; inset: 6px; border: 1px solid currentColor; border-radius: 50%; }
 .identity-mark i:nth-child(2) { transform: rotate(60deg) scaleX(1.65); }
 .identity-mark i:nth-child(3) { transform: rotate(-60deg) scaleX(1.65); }
@@ -314,6 +314,53 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .identity strong { font-size: 24px; line-height: 1.1; }
 .identity small { margin-top: 5px; font-size: 18px; line-height: 1.2; }
 .identity { gap: 18px; }
+.identity .identity-institute {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font: 600 13px/1.35 var(--sans);
+  letter-spacing: .01em;
+  text-transform: none;
+}
+.site-header { align-items: flex-start; gap: 28px; }
+.site-header .identity {
+  max-width: min(760px, 58vw);
+  gap: 22px;
+}
+.site-header .identity strong {
+  font-size: 48px;
+  line-height: .96;
+  letter-spacing: -.035em;
+}
+.site-header .identity small:not(.identity-institute) {
+  margin-top: 9px;
+  font-size: 18px;
+  letter-spacing: .14em;
+}
+.site-header .identity .identity-institute { font-size: 15px; }
+.site-header .identity-mark {
+  width: 68px;
+  height: 68px;
+}
+.site-header .identity-mark i {
+  inset: 12px;
+  border-width: 1.5px;
+}
+
+@media (max-width: 900px) {
+  .site-header { align-items: center; }
+  .site-header .identity {
+    max-width: calc(100vw - 128px);
+    gap: 16px;
+  }
+  .site-header .identity strong { font-size: 34px; }
+  .site-header .identity small:not(.identity-institute) { font-size: 14px; }
+  .site-header .identity .identity-institute { font-size: 12px; }
+  .site-header .identity-mark {
+    width: 56px;
+    height: 56px;
+  }
+  .site-header .identity-mark i { inset: 10px; }
+}
 
 @media (max-width: 580px) {
   .prototype-note,
@@ -326,4 +373,21 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .access-steps p { font-size: 14px; }
   .identity strong { font-size: 20px; }
   .identity small { font-size: 14px; }
+  .identity .identity-institute { font-size: 11px; }
+  .site-header .identity {
+    max-width: calc(100vw - 98px);
+    gap: 12px;
+  }
+  .site-header .identity strong { font-size: 28px; }
+  .site-header .identity small:not(.identity-institute) {
+    margin-top: 5px;
+    font-size: 12px;
+    letter-spacing: .1em;
+  }
+  .site-header .identity .identity-institute { font-size: 10px; }
+  .site-header .identity-mark {
+    width: 46px;
+    height: 46px;
+  }
+  .site-header .identity-mark i { inset: 8px; }
 }
