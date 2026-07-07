@@ -98,6 +98,26 @@ const fallbackEquipment = [
   }
 ];
 
+const fallbackFacilities = [
+  { id: "FAC-01", name: "Advanced Microscopy & Biomedical Photonics Facility", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for confocal imaging, fluorescence lifetime, optical coherence tomography, and biomedical optical design.", color: "#8fd8c8" },
+  { id: "FAC-02", name: "Infrared & Optical Spectroscopy Facility", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for infrared spectroscopy, surface plasmon analysis, and optical reflectance and transmittance measurements.", color: "#9bc7ee" },
+  { id: "FAC-03", name: "Ultrafast Laser & Optical Data Systems Facility", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for short-pulse lasers, swept laser systems, and high-speed optical data acquisition.", color: "#f4c26d" },
+  { id: "FAC-04", name: "Advanced Materials Fabrication Facility", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for electrospinning, advanced 3D printing, and materials testing workflows.", color: "#e8a89a" },
+  { id: "FAC-05", name: "Optical Fiber & Integrated Photonics Facility", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for optical fiber sensors and photonics-on-chip system design.", color: "#b8d276" },
+  { id: "FAC-06", name: "Quantum Computing Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility for quantum computing research, design, simulation, and experimental activities.", color: "#c1b2df" },
+  { id: "FAC-07", name: "AI, Machine Vision & Medical Intelligence Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for deep learning, machine vision, and AI-assisted medical diagnosis system design and implementation.", color: "#7fc5b2" }
+];
+
+const fallbackFacilityByEquipment = {
+  "EQ-01": "FAC-01", "EQ-02": "FAC-01", "EQ-03": "FAC-01", "EQ-13": "FAC-01",
+  "EQ-04": "FAC-02", "EQ-05": "FAC-02", "EQ-09": "FAC-02", "EQ-15": "FAC-02",
+  "EQ-06": "FAC-03", "EQ-14": "FAC-03", "EQ-16": "FAC-03",
+  "EQ-07": "FAC-04", "EQ-08": "FAC-04",
+  "EQ-11": "FAC-05", "EQ-12": "FAC-05",
+  "EQ-10": "FAC-06",
+  "EQ-17": "FAC-07", "EQ-18": "FAC-07", "EQ-19": "FAC-07"
+};
+
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
 }[character]));
@@ -124,6 +144,19 @@ let publicFacilities = [];
 let registryAvailable = false;
 let registryEmptyFallback = false;
 
+const prepareFallbackEquipment = () => {
+  publicFacilities = fallbackFacilities.map(facility => ({ ...facility }));
+  return fallbackEquipment.map(item => {
+    const facilityId = fallbackFacilityByEquipment[item.id] || "";
+    const facility = publicFacilities.find(candidate => candidate.id === facilityId);
+    return {
+      ...item,
+      facilityId,
+      facilityName: facility?.name || "Physics Program facility"
+    };
+  });
+};
+
 const mapPublicEquipment = registry => {
   const visible = registry.equipment.filter(item => item.reviewStatus === "Verified" && item.publicReady === true);
   publicFacilities = registry.facilities;
@@ -146,13 +179,13 @@ const mapPublicEquipment = registry => {
 const loadLocalPublicEquipment = () => {
   try {
     const stored = localStorage.getItem(REGISTRY_STORAGE_KEY);
-    if (!stored) return fallbackEquipment;
+    if (!stored) return prepareFallbackEquipment();
     const registry = JSON.parse(stored);
-    if (!Array.isArray(registry.equipment) || !Array.isArray(registry.facilities)) return fallbackEquipment;
+    if (!Array.isArray(registry.equipment) || !Array.isArray(registry.facilities)) return prepareFallbackEquipment();
     registryAvailable = true;
     return mapPublicEquipment(registry);
   } catch {
-    return fallbackEquipment;
+    return prepareFallbackEquipment();
   }
 };
 
@@ -168,8 +201,7 @@ const loadPublicEquipment = async () => {
         return publicEquipment;
       }
       registryEmptyFallback = true;
-      publicFacilities = [];
-      return fallbackEquipment;
+      return prepareFallbackEquipment();
     } catch (error) {
       console.warn("Supabase public registry unavailable; using local/prototype data.", error);
     }
@@ -215,9 +247,11 @@ const iconFor = name => {
 };
 
 const grid = document.querySelector("#equipment-grid");
+const facilitiesGrid = document.querySelector("#facilities-grid");
 
 const imageSource = image => window.SUTSupabase?.photoSrc?.(image) || image?.url || image?.data || "";
 const validImage = image => imageSource(image).startsWith("data:image/") || /^https?:\/\//.test(imageSource(image)) ? image : null;
+const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(String(value || "")) ? value : fallback;
 
 const visualMarkup = item => {
   const feature = validImage(item.featurePhoto);
@@ -231,9 +265,68 @@ const galleryMarkup = item => {
   return `<div class="public-gallery" aria-label="Example use-case gallery">${gallery.map((photo, index) => `<img src="${imageSource(photo)}" alt="${clean(photo.alt || `${item.name} gallery image ${index + 1}`)}" />`).join("")}</div>`;
 };
 
+const publicFacilityCards = () => {
+  const knownFacilities = new Set(publicFacilities.map(facility => facility.id).filter(Boolean));
+  const cards = publicFacilities.map((facility, index) => {
+    const linked = equipment.filter(item => item.facilityId === facility.id);
+    if (!linked.length) return null;
+    const capabilities = [...new Set(linked.map(item => item.method || item.category).filter(Boolean))].slice(0, 4);
+    return { facility, linked, capabilities, color: safeColor(facility.color, palette[index % palette.length]) };
+  }).filter(Boolean);
+
+  const orphanGroups = equipment
+    .filter(item => item.facilityId && !knownFacilities.has(item.facilityId))
+    .reduce((groups, item) => {
+      groups[item.facilityId] ||= [];
+      groups[item.facilityId].push(item);
+      return groups;
+    }, {});
+
+  Object.entries(orphanGroups).forEach(([facilityId, linked], index) => {
+    const first = linked[0];
+    cards.push({
+      facility: {
+        id: facilityId,
+        name: first.facilityName || "Physics Program facility",
+        building: "",
+        room: "",
+        lead: "Responsible faculty contact",
+        description: "Public equipment records linked to this facility."
+      },
+      linked,
+      capabilities: [...new Set(linked.map(item => item.method || item.category).filter(Boolean))].slice(0, 4),
+      color: palette[(cards.length + index) % palette.length]
+    });
+  });
+
+  return cards;
+};
+
+const renderFacilitiesInfographic = () => {
+  const cards = publicFacilityCards();
+  facilitiesGrid.innerHTML = cards.length ? cards.map(({ facility, linked, capabilities, color }, index) => {
+    const location = [facility.building, facility.room].filter(Boolean).join(" · ") || "Location to verify";
+    return `
+      <article class="public-facility-card" style="--facility-bg:${color}">
+        <div class="facility-map-visual" aria-hidden="true"><span>${String(index + 1).padStart(2, "0")}</span><i></i><i></i><i></i></div>
+        <div class="facility-map-meta"><span>${clean(facility.id)}</span><span>${clean(location)}</span></div>
+        <h3>${clean(facility.name)}</h3>
+        <p>${clean(facility.description || "Facility information is being verified by the Physics Program.")}</p>
+        <div class="facility-capabilities">
+          ${capabilities.map(capability => `<span>${clean(capability)}</span>`).join("") || `<span>Capabilities to verify</span>`}
+        </div>
+        <div class="facility-map-foot">
+          <span><strong>${linked.length}</strong> public system${linked.length === 1 ? "" : "s"}</span>
+          <span>Lead<br /><b>${clean(facility.lead || "Not assigned")}</b></span>
+        </div>
+      </article>
+    `;
+  }).join("") : `<div class="public-empty"><h3>No public facilities yet</h3><p>Add a facility and link verified public equipment records to display it here.</p></div>`;
+};
+
 const updatePublicSummary = () => {
   const registryMode = registryAvailable;
-  const facilityCount = registryMode ? new Set(equipment.map(item => item.facilityId).filter(Boolean)).size : 7;
+  const facilityCount = publicFacilityCards().length;
   const counts = ["observe", "fabricate", "measure", "model"].reduce((result, category) => {
     result[category] = equipment.filter(item => item.category === category).length;
     return result;
@@ -357,6 +450,7 @@ window.addEventListener("storage", async event => {
   if (event.key !== REGISTRY_STORAGE_KEY) return;
   equipment = await loadPublicEquipment();
   updatePublicSummary();
+  renderFacilitiesInfographic();
   const activeFilter = document.querySelector(".filter.is-active")?.dataset.filter || "all";
   renderEquipment(activeFilter);
   populateInquiryEquipment();
@@ -365,6 +459,7 @@ window.addEventListener("storage", async event => {
 async function bootPublicPage() {
   equipment = await loadPublicEquipment();
   updatePublicSummary();
+  renderFacilitiesInfographic();
   renderEquipment();
   populateInquiryEquipment();
 }
