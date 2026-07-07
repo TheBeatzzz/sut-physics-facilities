@@ -20,8 +20,8 @@ alter table public.registry_admins
 alter table public.registry_admins
   add constraint registry_admins_sut_email
   check (
-    lower(email) like '%@sut.ac.th'
-    or lower(email) like '%@g.sut.ac.th'
+    lower(btrim(email)) like '%@sut.ac.th'
+    or lower(btrim(email)) like '%@g.sut.ac.th'
   );
 
 create table if not exists public.facilities (
@@ -105,14 +105,22 @@ security definer
 set search_path = public
 stable
 as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
   select exists (
     select 1
     from public.registry_admins
-    where lower(registry_admins.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    cross join current_identity
+    where lower(btrim(registry_admins.email)) = current_identity.email
       and registry_admins.active = true
       and (
-        lower(coalesce(auth.jwt() ->> 'email', '')) like '%@sut.ac.th'
-        or lower(coalesce(auth.jwt() ->> 'email', '')) like '%@g.sut.ac.th'
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
       )
   );
 $$;

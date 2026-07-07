@@ -129,3 +129,24 @@ If a faculty member cannot sign in:
 4. If the password is unknown, send a password recovery/invite email from Supabase Dashboard or create a temporary password and ask them to change it immediately.
 
 The site can still complete Supabase invite/recovery callbacks, but normal registry login is password-first.
+
+## RLS insert troubleshooting
+
+If saving a facility or equipment record shows an error like:
+
+```text
+new row violates row-level security policy for table "facilities"
+```
+
+the signed-in user is authenticated, but Supabase does not currently evaluate them as an active registry editor. In **Supabase → SQL Editor**, run:
+
+```sql
+insert into public.registry_admins (email, full_name, role, active)
+values ('panomsak@g.sut.ac.th', 'Panomsak Meemon', 'admin', true)
+on conflict (email) do update set
+  full_name = excluded.full_name,
+  role = excluded.role,
+  active = excluded.active;
+```
+
+Then rerun the latest `public.is_sut_editor()` definition from `supabase-schema.sql`, or rerun the full latest schema file. Sign out of the admin page and sign in again before retrying the save.
