@@ -49,6 +49,7 @@ create table if not exists public.faculty (
   activities jsonb not null default '[]'::jsonb,
   recognitions jsonb not null default '[]'::jsonb,
   profile_links jsonb not null default '{}'::jsonb,
+  facility_ids jsonb not null default '[]'::jsonb,
   color text,
   public_ready boolean not null default true,
   owner_email text,
@@ -56,6 +57,9 @@ create table if not exists public.faculty (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.faculty
+add column if not exists facility_ids jsonb not null default '[]'::jsonb;
 
 create table if not exists public.equipment (
   id text primary key,

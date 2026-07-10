@@ -37,6 +37,18 @@ const fallbackFacilities = [
   { id: "FAC-07", name: "AI, Machine Vision & Medical Intelligence Laboratory", color: "#7fc5b2" }
 ];
 
+const fallbackFacultyFacilityMap = {
+  "FACULTY-002": ["FAC-04"],
+  "FACULTY-009": ["FAC-05"],
+  "FACULTY-011": ["FAC-01", "FAC-03"],
+  "FACULTY-016": ["FAC-06"],
+  "FACULTY-022": ["FAC-07"]
+};
+const fallbackFacultyFacilities = id => {
+  const number = Number(String(id).replace(/\D/g, ""));
+  return fallbackFacultyFacilityMap[id] || (Number.isFinite(number) && number > 0 ? [`FAC-${String((number - 1) % 7 + 1).padStart(2, "0")}`] : []);
+};
+
 const fallbackEquipment = [
   { id: "EQ-01", name: "Photon Counting Scanning Confocal Microscopy", category: "Imaging", facilityId: "FAC-01", researchGroup: "Biomedical photonics" },
   { id: "EQ-04", name: "Fourier Transform Infrared Spectroscopy Lab", category: "Spectroscopy", facilityId: "FAC-02", researchGroup: "Optical spectroscopy" },
@@ -77,20 +89,24 @@ const publicCategory = item => {
   return "measure";
 };
 
-const normalizeFaculty = profile => ({
-  ...profile,
-  id: profile.id || `faculty-${slug(profile.name)}`,
-  name: facultyNameCorrections[profile.name] || profile.name || "Faculty profile to verify",
-  title: profile.title || "Title to verify",
-  email: profile.email || "",
-  bio: profile.bio || "",
-  researchInterests: list(profile.researchInterests),
-  highlights: list(profile.highlights),
-  activities: list(profile.activities),
-  recognitions: list(profile.recognitions),
-  profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
-  color: profile.color || ""
-});
+const normalizeFaculty = profile => {
+  const facilityIds = list(profile.facilityIds);
+  return {
+    ...profile,
+    id: profile.id || `faculty-${slug(profile.name)}`,
+    name: facultyNameCorrections[profile.name] || profile.name || "Faculty profile to verify",
+    title: profile.title || "Title to verify",
+    email: profile.email || "",
+    bio: profile.bio || "",
+    researchInterests: list(profile.researchInterests),
+    highlights: list(profile.highlights),
+    activities: list(profile.activities),
+    recognitions: list(profile.recognitions),
+    profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
+    facilityIds: facilityIds.length ? facilityIds : profile.sample ? fallbackFacultyFacilities(profile.id) : [],
+    color: profile.color || ""
+  };
+};
 
 const normalizeEquipment = item => ({
   ...item,
@@ -167,6 +183,15 @@ const linkedEquipment = profile => registry.equipment.filter(item => {
 
 const facilityById = id => registry.facilities.find(facility => facility.id === id);
 
+const associatedFacilityIds = profile => [...new Set([
+  ...list(profile.facilityIds),
+  ...linkedEquipment(profile).map(item => item.facilityId).filter(Boolean)
+])];
+
+const associatedFacilities = profile => associatedFacilityIds(profile)
+  .map(id => facilityById(id)?.name || id)
+  .filter(Boolean);
+
 const categoriesFor = profile => {
   const linked = linkedEquipment(profile).map(item => item.category);
   const interestText = profile.researchInterests.join(" ").toLowerCase();
@@ -192,6 +217,7 @@ const externalLinks = profile => Object.entries(profile.profileLinks || {})
 
 const renderProfileCard = (profile, index) => {
   const linked = linkedEquipment(profile);
+  const facilities = associatedFacilities(profile);
   const interests = profile.researchInterests.slice(0, 4);
   const color = safeColor(profile.color, palette[index % palette.length]);
   return `
@@ -207,6 +233,7 @@ const renderProfileCard = (profile, index) => {
       </div>
       <dl class="faculty-meta">
         <div><dt>Highlights</dt><dd>${profile.highlights.length}</dd></div>
+        <div><dt>Facilities</dt><dd>${facilities.length}</dd></div>
         <div><dt>Linked systems</dt><dd>${linked.length}</dd></div>
       </dl>
       <a class="faculty-email" href="faculty.html?id=${encodeURIComponent(profile.id)}">Open profile <span aria-hidden="true">→</span></a>
@@ -290,7 +317,7 @@ const listMarkup = (title, items) => `
 
 const renderProfilePage = profile => {
   const linked = linkedEquipment(profile);
-  const facilities = [...new Set(linked.map(item => facilityById(item.facilityId)?.name).filter(Boolean))];
+  const facilities = associatedFacilities(profile);
   const links = externalLinks(profile);
   document.title = `${profile.name} · Faculty Profile`;
   document.querySelector("#main").innerHTML = `
@@ -316,7 +343,7 @@ const renderProfilePage = profile => {
         <div><strong>${String(profile.researchInterests.length).padStart(2, "0")}</strong><span>research interests</span></div>
         <div><strong>${String(profile.highlights.length).padStart(2, "0")}</strong><span>highlights</span></div>
         <div><strong>${String(linked.length).padStart(2, "0")}</strong><span>linked systems</span></div>
-        <p>${clean(facilities.join(" · ") || "Facility relationships can be linked through equipment ownership or matching research interests.")}</p>
+        <p>${clean(facilities.length ? `Associated facilities: ${facilities.join(" · ")}` : "Associated facilities can be selected directly by the faculty member, even before equipment ownership is recorded.")}</p>
       </div>
     </section>
     <section class="profile-sections section-shell">

@@ -32,7 +32,19 @@ const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatu
   sample: true
 });
 
-const sampleFacultyProfile = (id, name, title, researchInterests, color, role = "") => ({
+const sampleFacultyFacilityMap = {
+  "FACULTY-002": ["FAC-04"],
+  "FACULTY-009": ["FAC-05"],
+  "FACULTY-011": ["FAC-01", "FAC-03"],
+  "FACULTY-016": ["FAC-06"],
+  "FACULTY-022": ["FAC-07"]
+};
+const sampleFacultyFacilities = id => {
+  const number = Number(String(id).replace(/\D/g, ""));
+  return sampleFacultyFacilityMap[id] || (Number.isFinite(number) && number > 0 ? [`FAC-${String((number - 1) % 7 + 1).padStart(2, "0")}`] : []);
+};
+
+const sampleFacultyProfile = (id, name, title, researchInterests, color, role = "", facilityIds = null) => ({
   id,
   name,
   title,
@@ -53,6 +65,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
     googleScholar: "",
     orcid: ""
   },
+  facilityIds: Array.isArray(facilityIds) ? facilityIds : sampleFacultyFacilities(id),
   color,
   publicReady: true,
   ownerEmail: "",
@@ -132,10 +145,14 @@ const facultyNameCorrections = {
   "Michale F. Smith": "Michael F. Smith",
   "Artitsupa Bootan": "Artitsupa Boontan"
 };
-const normalizeFacultyNames = profiles => profiles.map(profile => ({
-  ...profile,
-  name: facultyNameCorrections[profile.name] || profile.name
-}));
+const normalizeFacultyNames = profiles => profiles.map(profile => {
+  const facilityIds = normalizeList(profile.facilityIds);
+  return {
+    ...profile,
+    name: facultyNameCorrections[profile.name] || profile.name,
+    facilityIds: facilityIds.length ? facilityIds : profile.sample ? sampleFacultyFacilities(profile.id) : []
+  };
+});
 const isGenericSampleFaculty = profiles =>
   Array.isArray(profiles) &&
   profiles.length > 0 &&
@@ -467,6 +484,17 @@ function populateFacilityOptions() {
   filter.innerHTML = `<option value="all">All facilities</option>${options}`;
   if ([...filter.options].some(option => option.value === previous)) filter.value = previous;
   $("#record-facility").innerHTML = `<option value="">Select facility</option>${options}`;
+  populateFacultyFacilityOptions();
+}
+
+function populateFacultyFacilityOptions(selected = []) {
+  const target = $("#faculty-facility-options");
+  if (!target) return;
+  const selectedSet = new Set(normalizeList(selected));
+  target.innerHTML = db.facilities.length ? db.facilities.map(facility => {
+    const detail = [facility.building, facility.room].filter(Boolean).join(" · ") || "Location to verify";
+    return `<label><input type="checkbox" name="facilityIds" value="${clean(facility.id)}"${selectedSet.has(facility.id) ? " checked" : ""} /><span><strong>${clean(facility.name)}</strong><small>${clean(detail)}</small></span></label>`;
+  }).join("") : `<p>Add facilities first, then link them to each faculty profile.</p>`;
 }
 
 function filteredEquipment() {
@@ -506,12 +534,17 @@ function profileLinks(profile) {
   return profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {};
 }
 
+function facultyFacilities(profile) {
+  return normalizeList(profile.facilityIds).map(id => facilityFor(id)?.name).filter(Boolean);
+}
+
 function renderFacultyProfiles() {
   const grid = $("#faculty-profile-grid");
   if (!grid) return;
   grid.innerHTML = db.faculty.length ? db.faculty.map((profile, index) => {
     const links = profileLinks(profile);
     const linkCount = Object.values(links).filter(Boolean).length;
+    const facilityCount = facultyFacilities(profile).length;
     const equipmentCount = db.equipment.filter(item => {
       const emailMatch = profile.email && item.email && item.email.toLowerCase() === profile.email.toLowerCase();
       const nameMatch = profile.name && item.custodian && item.custodian.toLowerCase().includes(profile.name.toLowerCase());
@@ -524,6 +557,7 @@ function renderFacultyProfiles() {
       <p>${clean(profile.title || "Title to verify")}</p>
       <div class="faculty-admin-tags">${interests.map(item => `<span>${clean(item)}</span>`).join("") || `<span>Interests to add</span>`}</div>
       <div class="faculty-admin-foot">
+        <span><strong>${facilityCount}</strong> associated facilities</span>
         <span><strong>${equipmentCount}</strong> linked equipment</span>
         <span><strong>${linkCount}</strong> profile links</span>
         <button class="text-button" type="button" data-edit-faculty="${clean(profile.id)}" aria-label="Edit ${clean(profile.name)}">Edit <span>→</span></button>
@@ -579,6 +613,7 @@ function openFacultyDialog(id = null) {
     form.elements.publicReady.checked = true;
     form.elements.color.value = facilityPalette[db.faculty.length % facilityPalette.length];
   }
+  populateFacultyFacilityOptions(profile?.facilityIds || []);
   $("#faculty-dialog").showModal();
   setTimeout(() => form.elements.namedItem("name")?.focus(), 50);
 }
@@ -602,6 +637,7 @@ function facultyFromForm(form) {
     highlights: normalizeList(data.highlights),
     activities: normalizeList(data.activities),
     recognitions: normalizeList(data.recognitions),
+    facilityIds: [...form.querySelectorAll('input[name="facilityIds"]:checked')].map(input => input.value),
     profileLinks: {
       academic: data.academic,
       scopus: data.scopus,
