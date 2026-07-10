@@ -366,10 +366,25 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 56px;
 }
 .profile-link-grid a,
-.profile-link-grid span {
-  padding: 13px 15px; border: 1px solid var(--line); background: var(--paper);
+.profile-link-grid > span {
+  min-height: 46px; padding: 8px 13px; border: 1px solid var(--line); background: var(--paper);
   color: var(--ink); font-size: 12px; font-weight: 700; text-decoration: none;
 }
+.profile-link-grid a {
+  display: inline-grid; grid-template-columns: 24px auto 18px; align-items: center; gap: 9px;
+}
+.profile-platform-mark {
+  width: 24px; height: 24px; display: inline-grid; place-items: center; border: 1px solid rgba(23,37,31,.14);
+  background: #edf0e8; color: var(--ink); font: 800 8px/1 var(--sans); letter-spacing: 0; text-transform: none;
+}
+.profile-platform-academic { background: #17251f; color: white; }
+.profile-platform-scopus { background: #f36f21; color: white; }
+.profile-platform-researchgate { background: #00ccbb; color: #082521; }
+.profile-platform-googlescholar { background: #4285f4; color: white; }
+.profile-platform-orcid { border-radius: 50%; background: #a6ce39; color: white; }
+.profile-platform-label { min-width: 0; overflow-wrap: anywhere; }
+.profile-link-arrow { color: var(--ink-soft); font-size: 13px; line-height: 1; }
+.profile-link-grid a:hover .profile-link-arrow { color: var(--ink); transform: translate(1px, -1px); }
 .profile-equipment-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px;
 }

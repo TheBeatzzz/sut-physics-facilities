@@ -211,9 +211,17 @@ const linkLabels = {
   orcid: "ORCID"
 };
 
+const platformMarks = {
+  academic: "AP",
+  scopus: "S",
+  researchGate: "RG",
+  googleScholar: "G",
+  orcid: "iD"
+};
+
 const externalLinks = profile => Object.entries(profile.profileLinks || {})
   .filter(([, url]) => /^https?:\/\//.test(String(url || "")))
-  .map(([key, url]) => ({ label: linkLabels[key] || key, url }));
+  .map(([key, url]) => ({ key, label: linkLabels[key] || key, mark: platformMarks[key] || "↗", url }));
 
 const renderProfileCard = (profile, index) => {
   const linked = linkedEquipment(profile);
@@ -361,7 +369,7 @@ const renderProfilePage = profile => {
         </div>
       </div>
       <div class="profile-link-grid">
-        ${links.length ? links.map(link => `<a href="${clean(link.url)}" target="_blank" rel="noopener">${clean(link.label)} <span aria-hidden="true">↗</span></a>`).join("") : `<span>No academic profile links have been added yet.</span>`}
+        ${links.length ? links.map(link => `<a href="${clean(link.url)}" target="_blank" rel="noopener"><span class="profile-platform-mark profile-platform-${clean(slug(link.key))}" aria-hidden="true">${clean(link.mark)}</span><span class="profile-platform-label">${clean(link.label)}</span><span class="profile-link-arrow" aria-hidden="true">↗</span></a>`).join("") : `<span>No academic profile links have been added yet.</span>`}
       </div>
       <div class="profile-equipment-grid">
         ${linked.length ? linked.map(item => `<article><span>${clean(item.category)}</span><h3>${clean(item.name)}</h3><p>${clean(item.researchGroup || item.category)}</p></article>`).join("") : `<article><span>Equipment</span><h3>No linked equipment yet</h3><p>This faculty profile still appears in the directory without equipment ownership.</p></article>`}
