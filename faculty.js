@@ -177,10 +177,11 @@ const initialsFor = name => {
 };
 
 const linkedEquipment = profile => registry.equipment.filter(item => {
+  const facilityMatch = list(profile.facilityIds).includes(item.facilityId);
   const emailMatch = profile.email && item.email && item.email.toLowerCase() === profile.email.toLowerCase();
   const nameMatch = !isPlaceholder(profile.name) && item.custodian && item.custodian.toLowerCase().includes(profile.name.toLowerCase());
   const interestMatch = profile.researchInterests.some(interest => `${item.name} ${item.researchGroup} ${item.category}`.toLowerCase().includes(interest.toLowerCase()));
-  return emailMatch || nameMatch || interestMatch;
+  return facilityMatch || emailMatch || nameMatch || interestMatch;
 });
 
 const facilityById = id => registry.facilities.find(facility => facility.id === id);

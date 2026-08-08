@@ -720,6 +720,8 @@ function openRecordDialog(mode = "manager", id = null) {
       if (field.type === "checkbox") field.checked = Boolean(value); else field.value = value ?? "";
     });
     $("#record-id").value = item.id;
+  } else {
+    form.elements.publicReady.checked = mode !== "faculty";
   }
   const descriptionField = $("#equipment-description");
   descriptionField.value = descriptionField.value.slice(0, DESCRIPTION_LIMIT);
@@ -1058,11 +1060,12 @@ $("#submission-list").addEventListener("click", async event => {
     if (item) {
       const previousEquipment = clone(db.equipment);
       item.reviewStatus = "Verified";
+      item.publicReady = true;
       item.updatedAt = today();
       setBusy(approve, true, "Approving…");
       if (await persistEquipment(item, previousEquipment)) {
         renderAll();
-        showToast(item.publicReady ? "Submission approved and published to the public page" : "Submission approved and verified");
+        showToast("Submission approved and published to the public page");
       }
       setBusy(approve, false);
     }
