@@ -285,7 +285,7 @@ const galleryMarkup = item => {
 
 const publicFacilityCards = () => {
   const knownFacilities = new Set(publicFacilities.map(facility => facility.id).filter(Boolean));
-  const facilityEquipment = equipmentAtlasFallback && registryAvailable ? equipment.filter(item => item.fromRegistry) : equipment;
+  const facilityEquipment = equipment;
   const cards = publicFacilities.map((facility, index) => {
     const linked = facilityEquipment.filter(item => item.facilityId === facility.id);
     const capabilities = [...new Set(linked.map(item => item.method || item.category).filter(Boolean))].slice(0, 4);
