@@ -66,6 +66,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
     orcid: ""
   },
   facilityIds: Array.isArray(facilityIds) ? facilityIds : sampleFacultyFacilities(id),
+  profilePhoto: null,
   color,
   publicReady: true,
   ownerEmail: "",
@@ -183,6 +184,7 @@ let recordMode = "manager";
 let toastTimer;
 let pendingFeaturePhoto = null;
 let pendingGallery = [];
+let pendingFacultyPhoto = null;
 let lastFacilityError = null;
 let editingFacilityId = null;
 let lastFacultyError = null;
@@ -228,7 +230,7 @@ function setRegistryMode(message = "") {
     detail.textContent = message || (backendReady ? "Shared database active" : "Sign in required");
     $("#registry-mode-title").textContent = backendReady ? "Live shared registry" : "Faculty login required";
     $("#registry-mode-note").textContent = backendReady ? "Records are loaded from Supabase and shared across approved faculty accounts." : "Sign in with a pre-approved SUT faculty account to manage equipment and faculty profile data.";
-    $("#media-storage-note").innerHTML = "<strong>Supabase storage:</strong> photos upload to the shared equipment-photos bucket. The public page can display photos for approved equipment.";
+    $("#media-storage-note").innerHTML = "<strong>Supabase storage:</strong> equipment images and faculty profile pictures upload to the shared equipment-photos bucket.";
     $("#sign-out").hidden = !backendReady;
     $("#change-password").hidden = !backendReady;
     $("#reset-data").disabled = backendReady;
@@ -237,7 +239,7 @@ function setRegistryMode(message = "") {
     detail.textContent = "Saved in this browser only";
     $("#registry-mode-title").textContent = "Prototype dataset";
     $("#registry-mode-note").textContent = "Sample records are marked and must be replaced with verified program data.";
-    $("#media-storage-note").innerHTML = "<strong>Prototype note:</strong> photos are saved only in this browser. Configure Supabase to upload them to shared equipment storage.";
+    $("#media-storage-note").innerHTML = "<strong>Prototype note:</strong> photos are saved only in this browser. Configure Supabase to upload them to shared storage.";
     $("#sign-out").hidden = true;
     $("#change-password").hidden = true;
     $("#reset-data").disabled = false;
@@ -367,8 +369,11 @@ async function persistFaculty(profile) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     return true;
   } catch (error) {
-    lastFacultyError = error;
-    showToast(error.message || "Could not save faculty profile to Supabase");
+    const schemaMessage = /schema cache|facility_ids|profile_photo/i.test(String(error.message || ""))
+      ? "Supabase needs the latest faculty schema. Run supabase-schema.sql in SQL Editor, then try saving this profile again."
+      : "";
+    lastFacultyError = schemaMessage ? new Error(schemaMessage) : error;
+    showToast(schemaMessage || error.message || "Could not save faculty profile to Supabase");
     return false;
   }
 }
@@ -545,6 +550,7 @@ function renderFacultyProfiles() {
     const links = profileLinks(profile);
     const linkCount = Object.values(links).filter(Boolean).length;
     const facilityCount = facultyFacilities(profile).length;
+    const portrait = photoSrc(profile.profilePhoto);
     const equipmentCount = db.equipment.filter(item => {
       const emailMatch = profile.email && item.email && item.email.toLowerCase() === profile.email.toLowerCase();
       const nameMatch = profile.name && item.custodian && item.custodian.toLowerCase().includes(profile.name.toLowerCase());
@@ -552,7 +558,7 @@ function renderFacultyProfiles() {
     }).length;
     const interests = normalizeList(profile.researchInterests).slice(0, 4);
     return `<article class="faculty-admin-card" data-faculty-id="${clean(profile.id)}" style="--faculty-color:${profile.color || facilityPalette[index % facilityPalette.length]}">
-      <div class="faculty-admin-head"><span>${clean(initials(profile.name))}</span><small>${profile.publicReady === false ? "Hidden" : "Public"}</small></div>
+      <div class="faculty-admin-head"><span>${portrait ? `<img src="${clean(portrait)}" alt="" />` : clean(initials(profile.name))}</span><small>${profile.publicReady === false ? "Hidden" : "Public"}</small></div>
       <h2>${clean(profile.name)}</h2>
       <p>${clean(profile.title || "Title to verify")}</p>
       <div class="faculty-admin-tags">${interests.map(item => `<span>${clean(item)}</span>`).join("") || `<span>Interests to add</span>`}</div>
@@ -590,6 +596,7 @@ function openFacultyDialog(id = null) {
   const form = $("#faculty-form");
   const profile = id ? db.faculty.find(item => item.id === id) : null;
   editingFacultyId = profile?.id || null;
+  pendingFacultyPhoto = profile?.profilePhoto ? clone(profile.profilePhoto) : null;
   form.reset();
   setFacultyMessage();
   $("#faculty-form-title").textContent = profile ? "Edit faculty profile" : "Add faculty profile";
@@ -614,6 +621,7 @@ function openFacultyDialog(id = null) {
     form.elements.color.value = facilityPalette[db.faculty.length % facilityPalette.length];
   }
   populateFacultyFacilityOptions(profile?.facilityIds || []);
+  renderFacultyPhotoPreview();
   $("#faculty-dialog").showModal();
   setTimeout(() => form.elements.namedItem("name")?.focus(), 50);
 }
@@ -638,6 +646,10 @@ function facultyFromForm(form) {
     activities: normalizeList(data.activities),
     recognitions: normalizeList(data.recognitions),
     facilityIds: [...form.querySelectorAll('input[name="facilityIds"]:checked')].map(input => input.value),
+    profilePhoto: pendingFacultyPhoto ? {
+      ...pendingFacultyPhoto,
+      alt: $("#faculty-photo-alt").value.trim() || `${data.name || "Faculty member"} profile picture`
+    } : null,
     profileLinks: {
       academic: data.academic,
       scopus: data.scopus,
@@ -652,6 +664,23 @@ function facultyFromForm(form) {
     updatedAt: today(),
     sample: existing?.sample || false
   };
+}
+
+function renderFacultyPhotoPreview() {
+  const preview = $("#faculty-photo-preview");
+  const altLabel = $("#faculty-photo-alt-label");
+  if (!preview || !altLabel) return;
+  if (photoSrc(pendingFacultyPhoto)) {
+    preview.classList.remove("empty");
+    preview.innerHTML = `<img src="${photoSrc(pendingFacultyPhoto)}" alt="" /><button class="media-remove" type="button" data-remove-faculty-photo aria-label="Remove profile picture">×</button>`;
+    altLabel.hidden = false;
+    $("#faculty-photo-alt").value = pendingFacultyPhoto.alt || "";
+  } else {
+    preview.classList.add("empty");
+    preview.innerHTML = `<span>No profile picture selected</span>`;
+    altLabel.hidden = true;
+    $("#faculty-photo-alt").value = "";
+  }
 }
 
 function openFacilityDialog(id = null) {
@@ -869,10 +898,29 @@ $("#gallery-photo-input").addEventListener("change", async event => {
   event.target.value = "";
 });
 
+$("#faculty-photo-input").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    pendingFacultyPhoto = await resizeImage(file, 900, 0.82);
+    pendingFacultyPhoto.alt = `${$("#faculty-form").elements.name.value || "Faculty member"} profile picture`;
+    renderFacultyPhotoPreview();
+  } catch {
+    showToast("The faculty profile picture could not be processed");
+  }
+  event.target.value = "";
+});
+
 $("#feature-photo-preview").addEventListener("click", event => {
   if (!event.target.closest("[data-remove-feature]")) return;
   pendingFeaturePhoto = null;
   renderMediaPreviews();
+});
+
+$("#faculty-photo-preview").addEventListener("click", event => {
+  if (!event.target.closest("[data-remove-faculty-photo]")) return;
+  pendingFacultyPhoto = null;
+  renderFacultyPhotoPreview();
 });
 
 $("#gallery-photo-preview").addEventListener("click", event => {
@@ -980,6 +1028,7 @@ $("#faculty-form").addEventListener("submit", async event => {
       $("#faculty-dialog").close();
       event.currentTarget.reset();
       editingFacultyId = null;
+      pendingFacultyPhoto = null;
       renderAll();
       showToast(`${profile.name} ${db.faculty.some(item => item.id === profile.id) ? "profile saved" : "added to faculty profiles"}`);
     } else {

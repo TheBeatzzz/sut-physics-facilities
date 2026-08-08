@@ -188,7 +188,7 @@
             <section class="panel data-card"><span class="data-icon">↥</span><h2>Import a backup</h2><p>Restore a JSON file created by this platform. In Supabase mode, imported records are uploaded into the shared database.</p><label class="button button-secondary file-button">Choose JSON <input type="file" id="import-json" accept="application/json,.json" /></label></section>
             <section class="panel data-card"><span class="data-icon">19</span><h2>Seed example records</h2><p>Add the example Physics equipment and facility clusters to the active registry. Existing IDs are updated.</p><button class="button button-secondary" type="button" id="seed-sample-data">Seed examples</button></section>
           </div>
-          <section class="production-note"><div class="production-visual" aria-hidden="true"><i></i><i></i><i></i></div><div><p class="panel-kicker">Supabase backend</p><h2>Shared database, login, and managed image storage.</h2><p>When Supabase is configured, faculty sign in before managing records. The public page reads only verified public-ready equipment through database policies, while feature photos and galleries are stored in the equipment photo bucket.</p><ul><li>Faculty authentication</li><li>PostgreSQL equipment and facility tables</li><li>Public read policy for approved records only</li><li>Photo uploads through Supabase Storage</li></ul></div></section>
+          <section class="production-note"><div class="production-visual" aria-hidden="true"><i></i><i></i><i></i></div><div><p class="panel-kicker">Supabase backend</p><h2>Shared database, login, and managed image storage.</h2><p>When Supabase is configured, faculty sign in before managing records. The public page reads only verified public-ready equipment through database policies, while equipment images and faculty profile pictures are stored in the shared photo bucket.</p><ul><li>Faculty authentication</li><li>PostgreSQL equipment and facility tables</li><li>Public read policy for approved records only</li><li>Photo uploads through Supabase Storage</li></ul></div></section>
           <section class="danger-zone panel"><div><p class="panel-kicker">Data controls</p><h2>Reset sample database</h2><p>In prototype mode, remove browser edits and restore the original sample records. In Supabase mode, use import/export for shared data management.</p></div><button class="button button-danger" id="reset-data" type="button">Reset sample data</button></section>
         </section>
       </main>
@@ -275,6 +275,11 @@
             <label>Phone<input name="phone" placeholder="Office phone" /></label>
             <label>Profile color<input name="color" type="color" value="#8fd8c8" /></label>
             <label class="checkbox-label"><input type="checkbox" name="publicReady" checked /><span><strong>Show on public faculty page</strong><small>Uncheck to keep this profile internal.</small></span></label>
+            <div class="media-field faculty-photo-field span-2">
+              <div class="media-field-head"><div><strong>Profile picture</strong><small>Shown on the public faculty directory and profile page.</small></div><label class="media-upload">Choose photo<input id="faculty-photo-input" type="file" accept="image/jpeg,image/png,image/webp" /></label></div>
+              <div id="faculty-photo-preview" class="feature-photo-preview faculty-photo-preview empty"><span>No profile picture selected</span></div>
+              <label id="faculty-photo-alt-label" class="media-alt" hidden>Profile picture description<input id="faculty-photo-alt" type="text" placeholder="Describe the profile picture for people who cannot see it" /></label>
+            </div>
             <label class="span-2">Short biography<textarea name="bio" rows="4" placeholder="Brief research biography or profile introduction"></textarea></label>
           </div></div>
           <div class="form-section"><div class="form-section-title"><span>02</span><div><h3>Infographic content</h3><p>Enter one item per line. These lists drive the public profile infographic.</p></div></div><div class="form-grid">

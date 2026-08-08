@@ -62,6 +62,7 @@ const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
 }[character]));
 const list = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+const photoSrc = photo => photo?.url || photo?.data || "";
 const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(String(value || "")) ? value : fallback;
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 const facultyNameCorrections = {
@@ -104,6 +105,7 @@ const normalizeFaculty = profile => {
     recognitions: list(profile.recognitions),
     profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
     facilityIds: facilityIds.length ? facilityIds : profile.sample ? fallbackFacultyFacilities(profile.id) : [],
+    profilePhoto: profile.profilePhoto || null,
     color: profile.color || ""
   };
 };
@@ -228,10 +230,11 @@ const renderProfileCard = (profile, index) => {
   const facilities = associatedFacilities(profile);
   const interests = profile.researchInterests.slice(0, 4);
   const color = safeColor(profile.color, palette[index % palette.length]);
+  const portrait = photoSrc(profile.profilePhoto);
   return `
     <article class="faculty-card" data-categories="${clean([...categoriesFor(profile)].join(" "))}" style="--faculty-color:${color}">
       <div class="faculty-card-head">
-        <span class="faculty-avatar" aria-hidden="true">${clean(initialsFor(profile.name))}</span>
+        <span class="faculty-avatar">${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}</span>
         <span class="faculty-state">${profile.sample ? "Needs verification" : "Faculty profile"}</span>
       </div>
       <h3>${clean(profile.name)}</h3>
@@ -327,6 +330,7 @@ const renderProfilePage = profile => {
   const linked = linkedEquipment(profile);
   const facilities = associatedFacilities(profile);
   const links = externalLinks(profile);
+  const portrait = photoSrc(profile.profilePhoto);
   document.title = `${profile.name} · Faculty Profile`;
   document.querySelector("#main").innerHTML = `
     <section id="top" class="faculty-profile-hero" style="--faculty-color:${safeColor(profile.color, palette[0])}">
@@ -340,8 +344,8 @@ const renderProfilePage = profile => {
           <a class="text-link" href="faculty.html#directory">Back to faculty directory <span aria-hidden="true">→</span></a>
         </div>
       </div>
-      <div class="profile-orbit" aria-hidden="true">
-        <span>${clean(initialsFor(profile.name))}</span>
+      <div class="profile-orbit${portrait ? " has-photo" : ""}">
+        ${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}
         <i></i><i></i><i></i>
       </div>
     </section>

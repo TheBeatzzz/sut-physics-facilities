@@ -50,6 +50,7 @@ create table if not exists public.faculty (
   recognitions jsonb not null default '[]'::jsonb,
   profile_links jsonb not null default '{}'::jsonb,
   facility_ids jsonb not null default '[]'::jsonb,
+  profile_photo jsonb,
   color text,
   public_ready boolean not null default true,
   owner_email text,
@@ -60,6 +61,9 @@ create table if not exists public.faculty (
 
 alter table if exists public.faculty
 add column if not exists facility_ids jsonb not null default '[]'::jsonb;
+
+alter table if exists public.faculty
+add column if not exists profile_photo jsonb;
 
 create table if not exists public.equipment (
   id text primary key,
@@ -288,3 +292,5 @@ create policy "SUT editors can delete equipment photos"
 on storage.objects for delete
 to authenticated
 using (bucket_id = 'equipment-photos' and public.is_sut_editor());
+
+notify pgrst, 'reload schema';

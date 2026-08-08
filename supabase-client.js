@@ -123,6 +123,7 @@
     recognitions: asArray(row.recognitions),
     profileLinks: row.profile_links && typeof row.profile_links === "object" ? row.profile_links : {},
     facilityIds: asArray(row.facility_ids),
+    profilePhoto: row.profile_photo || null,
     color: row.color || "",
     publicReady: row.public_ready !== false,
     ownerEmail: row.owner_email || "",
@@ -145,6 +146,7 @@
     recognitions: asArray(profile.recognitions).filter(Boolean),
     profile_links: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
     facility_ids: asArray(profile.facilityIds).filter(Boolean),
+    profile_photo: profile.profilePhoto || null,
     color: profile.color || null,
     public_ready: profile.publicReady !== false,
     owner_email: profile.ownerEmail || profile.email || null,
@@ -188,6 +190,11 @@
     ...record,
     featurePhoto: record.featurePhoto ? await uploadPhoto(record.id, record.featurePhoto, "feature", 0) : null,
     gallery: await Promise.all((Array.isArray(record.gallery) ? record.gallery.slice(0, 5) : []).map((photo, index) => uploadPhoto(record.id, photo, "gallery", index + 1)))
+  });
+
+  const uploadFacultyMedia = async profile => ({
+    ...profile,
+    profilePhoto: profile.profilePhoto ? await uploadPhoto(`faculty/${profile.id}`, profile.profilePhoto, "profile", 0) : null
   });
 
   const loadRegistry = async ({ publicOnly = false } = {}) => {
@@ -258,9 +265,10 @@
 
   const saveFaculty = async profile => {
     const supabase = getClient();
+    const withMedia = await uploadFacultyMedia(profile);
     const { data, error } = await supabase
       .from("faculty")
-      .upsert(snakeFaculty(profile), { onConflict: "id" })
+      .upsert(snakeFaculty(withMedia), { onConflict: "id" })
       .select()
       .single();
     if (error) throw error;

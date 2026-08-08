@@ -3,7 +3,7 @@
 This site can run in two modes:
 
 - Prototype mode: uses browser `localStorage`; no shared database.
-- Supabase mode: uses faculty login, shared PostgreSQL tables, and Supabase Storage for equipment photos.
+- Supabase mode: uses faculty login, shared PostgreSQL tables, and Supabase Storage for equipment and faculty profile photos.
 
 ## 1. Create the Supabase project
 
@@ -16,7 +16,7 @@ The SQL creates:
 - `registry_admins` approved-faculty allowlist table
 - `facilities` table
 - `equipment` table
-- `equipment-photos` storage bucket
+- `equipment-photos` storage bucket for equipment images and faculty profile pictures
 - Row Level Security policies
 
 By default, edit access is limited to authenticated users who are both:
@@ -120,6 +120,18 @@ The admin page can see all records after sign-in.
 - anonymous visitors can read public facility profile rows;
 - anonymous visitors cannot edit records;
 - only authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage records and upload photos.
+
+If the website reports that `facility_ids` or `profile_photo` cannot be found in the faculty schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
+
+```sql
+alter table if exists public.faculty
+add column if not exists facility_ids jsonb not null default '[]'::jsonb;
+
+alter table if exists public.faculty
+add column if not exists profile_photo jsonb;
+
+notify pgrst, 'reload schema';
+```
 
 ## Password login troubleshooting
 
