@@ -161,6 +161,20 @@ const prepareFallbackEquipment = ({ keepFacilities = false } = {}) => {
   });
 };
 
+const equipmentKey = item => String(item.name || item.id || "").trim().toLowerCase().replace(/\s+/g, " ");
+const mergeWithFallbackEquipment = (publicEquipment, options = {}) => {
+  const fallback = prepareFallbackEquipment(options);
+  const seen = new Set(publicEquipment.map(equipmentKey).filter(Boolean));
+  const fallbackOnly = fallback.filter(item => {
+    const key = equipmentKey(item);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  equipmentAtlasFallback = fallbackOnly.length > 0;
+  return [...publicEquipment, ...fallbackOnly];
+};
+
 const mapPublicEquipment = registry => {
   const visible = registry.equipment.filter(item => item.reviewStatus === "Verified" && item.publicReady === true);
   publicFacilities = registry.facilities;
@@ -189,7 +203,7 @@ const loadLocalPublicEquipment = () => {
     const localPublicEquipment = mapPublicEquipment(registry);
     if (localPublicEquipment.length) {
       registryAvailable = true;
-      return localPublicEquipment;
+      return mergeWithFallbackEquipment(localPublicEquipment, { keepFacilities: registry.facilities.length > 0 });
     }
     registryEmptyFallback = true;
     equipmentAtlasFallback = true;
@@ -209,7 +223,7 @@ const loadPublicEquipment = async () => {
       const publicEquipment = mapPublicEquipment(registry);
       if (publicEquipment.length) {
         registryAvailable = true;
-        return publicEquipment;
+        return mergeWithFallbackEquipment(publicEquipment, { keepFacilities: registry.facilities.length > 0 });
       }
       if (registry.facilities.length) {
         registryAvailable = true;
@@ -360,6 +374,7 @@ const renderFacilitiesInfographic = () => {
 
 const updatePublicSummary = () => {
   const registryMode = registryAvailable;
+  const liveEquipmentCount = equipment.filter(item => item.fromRegistry).length;
   const facilityCount = publicFacilityCards().length;
   const counts = ["observe", "fabricate", "measure", "model"].reduce((result, category) => {
     result[category] = equipment.filter(item => item.category === category).length;
@@ -367,9 +382,9 @@ const updatePublicSummary = () => {
   }, { all: equipment.length });
 
   document.querySelector("#hero-equipment-count").textContent = String(equipment.length).padStart(2, "0");
-  document.querySelector("#hero-equipment-label").innerHTML = registryMode && !equipmentAtlasFallback ? "verified<br />systems" : "example<br />systems";
+  document.querySelector("#hero-equipment-label").innerHTML = registryMode ? equipmentAtlasFallback ? "atlas<br />systems" : "verified<br />systems" : "example<br />systems";
   document.querySelector("#snapshot-equipment-count").textContent = String(equipment.length).padStart(2, "0");
-  document.querySelector("#snapshot-equipment-label").textContent = registryMode && !equipmentAtlasFallback ? "public records" : "example records";
+  document.querySelector("#snapshot-equipment-label").textContent = registryMode ? equipmentAtlasFallback ? "public + examples" : "public records" : "example records";
   document.querySelector("#snapshot-facility-count").textContent = String(facilityCount).padStart(2, "0");
   document.querySelector("#snapshot-capability-count").textContent = String(Object.values(counts).slice(1).filter(Boolean).length).padStart(2, "0");
   Object.entries(counts).forEach(([category, count]) => {
@@ -380,7 +395,9 @@ const updatePublicSummary = () => {
   document.querySelector("#public-data-status").textContent = registryMode ? "Live registry" : "Prototype data";
   document.querySelector("#public-data-message").textContent = registryMode
     ? equipmentAtlasFallback
-      ? "Showing live facilities from Supabase and example equipment until verified public equipment records are available."
+      ? liveEquipmentCount
+        ? `Showing ${liveEquipmentCount} verified public equipment record${liveEquipmentCount === 1 ? "" : "s"} alongside example fallback equipment.`
+        : "Showing live facilities from Supabase and example equipment until verified public equipment records are available."
       : equipment.length
       ? "Showing live facilities and verified equipment approved for the public research profile."
       : "Showing live facilities from Supabase. Equipment records will appear after they are verified and marked public."
