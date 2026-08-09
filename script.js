@@ -294,7 +294,11 @@ const visualMarkup = item => {
 const galleryMarkup = item => {
   const gallery = Array.isArray(item.gallery) ? item.gallery.filter(validImage).slice(0, 5) : [];
   if (!gallery.length) return `<div class="public-gallery is-empty" aria-hidden="true"></div>`;
-  return `<div class="public-gallery" aria-label="Example use-case gallery">${gallery.map((photo, index) => `<img src="${imageSource(photo)}" alt="${clean(photo.alt || `${item.name} gallery image ${index + 1}`)}" />`).join("")}</div>`;
+  return `<div class="public-gallery" aria-label="Example use-case gallery">${gallery.map((photo, index) => {
+    const src = imageSource(photo);
+    const alt = photo.alt || `${item.name} gallery image ${index + 1}`;
+    return `<button type="button" data-gallery-src="${clean(src)}" data-gallery-alt="${clean(alt)}" data-gallery-title="${clean(item.name)}" aria-label="Open ${clean(alt)} full size"><img src="${clean(src)}" alt="${clean(alt)}" /></button>`;
+  }).join("")}</div>`;
 };
 
 const publicFacilityCards = () => {
@@ -439,6 +443,10 @@ const inquiryForm = document.querySelector("#inquiry-form");
 const inquiryEquipment = document.querySelector("#inquiry-equipment");
 const inquiryRecipient = document.querySelector("#inquiry-recipient");
 const prepareInquiry = document.querySelector("#prepare-inquiry");
+const galleryDialog = document.querySelector("#gallery-dialog");
+const galleryDialogImage = document.querySelector("#gallery-dialog-image");
+const galleryDialogCaption = document.querySelector("#gallery-dialog-caption");
+const galleryDialogTitle = document.querySelector("#gallery-dialog-title");
 
 const validContactEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
@@ -488,6 +496,19 @@ const openInquiry = () => {
   setTimeout(() => inquiryEquipment.focus(), 30);
 };
 
+const openGalleryImage = button => {
+  const src = button.dataset.gallerySrc || "";
+  const alt = button.dataset.galleryAlt || "Equipment gallery image";
+  const title = button.dataset.galleryTitle || "Full-size image";
+  if (!src) return;
+  galleryDialogImage.src = src;
+  galleryDialogImage.alt = alt;
+  galleryDialogTitle.textContent = title;
+  galleryDialogCaption.textContent = alt;
+  galleryDialog.showModal();
+  setTimeout(() => document.querySelector("#close-gallery").focus(), 30);
+};
+
 menuButton.addEventListener("click", () => {
   const open = menuButton.getAttribute("aria-expanded") === "true";
   menuButton.setAttribute("aria-expanded", String(!open));
@@ -499,6 +520,12 @@ navigation.addEventListener("click", event => {
     menuButton.setAttribute("aria-expanded", "false");
     navigation.classList.remove("is-open");
   }
+});
+
+grid.addEventListener("click", event => {
+  const button = event.target.closest("[data-gallery-src]");
+  if (!button) return;
+  openGalleryImage(button);
 });
 
 window.addEventListener("storage", async event => {
@@ -521,9 +548,13 @@ async function bootPublicPage() {
 
 document.querySelector("#open-inquiry").addEventListener("click", openInquiry);
 document.querySelector("#close-inquiry").addEventListener("click", () => inquiryDialog.close());
+document.querySelector("#close-gallery").addEventListener("click", () => galleryDialog.close());
 inquiryEquipment.addEventListener("change", updateInquiryRecipient);
 inquiryDialog.addEventListener("click", event => {
   if (event.target === inquiryDialog) inquiryDialog.close();
+});
+galleryDialog.addEventListener("click", event => {
+  if (event.target === galleryDialog) galleryDialog.close();
 });
 
 inquiryForm.addEventListener("submit", event => {
