@@ -195,6 +195,7 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const nameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 const facilityFor = id => db.facilities.find(item => item.id === id);
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
 const photoSrc = photo => backend?.photoSrc?.(photo) || photo?.url || photo?.data || "";
@@ -207,6 +208,41 @@ const save = () => {
     return false;
   }
 };
+
+const atlasSeedId = id => `ATLAS-${id}`;
+const atlasFacilityIdFor = sourceFacility => {
+  const existing = db.facilities.find(item => item.id === sourceFacility.id || item.id === atlasSeedId(sourceFacility.id) || nameKey(item.name) === nameKey(sourceFacility.name));
+  return existing?.id || atlasSeedId(sourceFacility.id);
+};
+const atlasSeedFacilities = () => sampleDatabase.facilities
+  .filter(sourceFacility => !db.facilities.some(item => item.id === sourceFacility.id || item.id === atlasSeedId(sourceFacility.id) || nameKey(item.name) === nameKey(sourceFacility.name)))
+  .map(sourceFacility => ({
+    ...clone(sourceFacility),
+    id: atlasSeedId(sourceFacility.id),
+    lead: "",
+    description: `${sourceFacility.description} Faculty associations can be assigned later.`
+  }));
+const atlasSeedEquipment = () => sampleDatabase.equipment
+  .map(sourceRecord => {
+    const sourceFacility = sampleDatabase.facilities.find(facility => facility.id === sourceRecord.facilityId);
+    const number = String(sourceRecord.id).replace(/\D/g, "").padStart(3, "0");
+    return {
+      ...clone(sourceRecord),
+      id: atlasSeedId(sourceRecord.id),
+      assetCode: `ATLAS-${number}`,
+      facilityId: sourceFacility ? atlasFacilityIdFor(sourceFacility) : "",
+      custodian: "",
+      email: "",
+      reviewStatus: "Verified",
+      publicReady: true,
+      submitterName: "Equipment Atlas fallback",
+      submitterEmail: "",
+      submitterNotes: "Seeded from the fallback Equipment Atlas. Assign faculty ownership and verify final metadata later.",
+      updatedAt: today(),
+      sample: true
+    };
+  })
+  .filter(sourceRecord => !db.equipment.some(item => item.id === sourceRecord.id || nameKey(item.name) === nameKey(sourceRecord.name)));
 
 function setBusy(button, busy, label = "Saving…") {
   if (!button) return;
@@ -1106,6 +1142,35 @@ $("#import-json").addEventListener("change", async event => {
     }
   } catch { showToast("Could not import: file is not a valid registry backup"); }
   event.target.value = "";
+});
+
+$("#seed-atlas-equipment").addEventListener("click", async event => {
+  const facilities = atlasSeedFacilities();
+  const records = atlasSeedEquipment();
+  const confirmed = await askConfirm(
+    "Seed fallback atlas equipment?",
+    `Add ${records.length} missing Equipment Atlas record${records.length === 1 ? "" : "s"} and ${facilities.length} missing facility cluster${facilities.length === 1 ? "" : "s"} to ${backendReady ? "Supabase" : "this browser"} without creating faculty profiles or custodians?`
+  );
+  if (!confirmed) return;
+  setBusy(event.currentTarget, true, "Seeding…");
+  try {
+    if (backendReady) {
+      for (const facility of facilities) await backend.saveFacility(facility);
+      for (const record of records) await backend.saveEquipment(record);
+      await loadSharedRegistry();
+    } else {
+      db.facilities = [...db.facilities, ...facilities];
+      db.equipment = [...db.equipment, ...records];
+      save();
+      renderAll();
+    }
+    showView("equipment");
+    showToast(records.length ? `${records.length} fallback equipment record${records.length === 1 ? "" : "s"} seeded` : "All fallback equipment already exists");
+  } catch (error) {
+    showToast(error.message || "Could not seed fallback equipment");
+  } finally {
+    setBusy(event.currentTarget, false);
+  }
 });
 
 $("#seed-sample-data").addEventListener("click", async event => {
