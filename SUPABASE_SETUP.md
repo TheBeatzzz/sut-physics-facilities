@@ -151,6 +151,8 @@ If a faculty member cannot sign in:
 
 The site can still complete Supabase invite/recovery callbacks, but normal registry login is password-first.
 
+If Supabase shows `email rate limit exceeded` while sending invites or recovery emails, wait for the Auth email quota to reset before sending another email. Supabase's built-in email provider has a low project-wide sending limit; for repeated faculty onboarding, either configure a custom SMTP provider in Supabase Auth or create the user with a temporary password and ask them to change it after first sign-in.
+
 ## RLS insert troubleshooting
 
 If saving a facility or equipment record shows an error like:

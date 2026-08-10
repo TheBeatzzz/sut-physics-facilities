@@ -65,6 +65,8 @@ const list = value => Array.isArray(value) ? value.filter(Boolean) : String(valu
 const photoSrc = photo => photo?.url || photo?.data || "";
 const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(String(value || "")) ? value : fallback;
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+const keyFor = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+const profileKey = profile => keyFor(profile.id || profile.name);
 const facultyNameCorrections = {
   "Worawat Meewassana": "Worawat Meevassana",
   "Prayoon Songsirittikul": "Prayoon Songsiriritthikul",
@@ -75,6 +77,16 @@ const facultyNameCorrections = {
 const isPlaceholder = value => {
   const text = String(value || "").trim().toLowerCase();
   return !text || text.includes("to verify") || text.includes("not assigned") || text.includes("faculty owner");
+};
+const isPlaceholderContent = value => {
+  const text = String(value || "").trim().toLowerCase();
+  return !text ||
+    text.includes("to verify") ||
+    text.includes("to update") ||
+    text.includes("dummy faculty profile") ||
+    text.includes("replace with verified") ||
+    text.includes("recognition or appointment") ||
+    text.includes("research highlight");
 };
 const slug = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -110,6 +122,74 @@ const normalizeFaculty = profile => {
   };
 };
 
+const sameListContent = (left, right) => {
+  const leftKeys = list(left).map(keyFor).filter(Boolean).sort();
+  const rightKeys = list(right).map(keyFor).filter(Boolean).sort();
+  return leftKeys.length === rightKeys.length && leftKeys.every((key, index) => key === rightKeys[index]);
+};
+const hasRealListContent = values => list(values).some(item => !isPlaceholderContent(item) && keyFor(item) !== "physics program faculty");
+const hasRealProfileLinks = profile => Object.values(profile.profileLinks || {}).some(url => /^https?:\/\//.test(String(url || "")));
+const hasUpdatedFacultyInfo = (profile, fallbackProfile = null) => {
+  if (!profile) return false;
+  const listUpdated = key => hasRealListContent(profile[key]) && (!fallbackProfile || !sameListContent(profile[key], fallbackProfile[key]));
+  return Boolean(
+    validEmail(profile.email) ||
+    photoSrc(profile.profilePhoto) ||
+    hasRealProfileLinks(profile) ||
+    (profile.bio && !isPlaceholderContent(profile.bio) && (!fallbackProfile || keyFor(profile.bio) !== keyFor(fallbackProfile.bio))) ||
+    listUpdated("researchInterests") ||
+    listUpdated("highlights") ||
+    listUpdated("activities") ||
+    listUpdated("recognitions") ||
+    (Array.isArray(profile.facilityIds) && profile.facilityIds.length && !sameListContent(profile.facilityIds, fallbackProfile?.facilityIds || []))
+  );
+};
+
+const mergeFacultyProfile = (fallbackProfile, liveProfile) => {
+  if (!liveProfile) return fallbackProfile;
+  const liveUpdated = hasUpdatedFacultyInfo(liveProfile, fallbackProfile);
+  if (!fallbackProfile || liveUpdated) {
+    return {
+      ...fallbackProfile,
+      ...liveProfile,
+      id: liveProfile.id || fallbackProfile?.id,
+      name: liveProfile.name || fallbackProfile?.name,
+      title: liveProfile.title || fallbackProfile?.title || "Title to verify",
+      bio: liveProfile.bio && !isPlaceholderContent(liveProfile.bio) ? liveProfile.bio : fallbackProfile?.bio || liveProfile.bio || "",
+      researchInterests: hasRealListContent(liveProfile.researchInterests) ? liveProfile.researchInterests : fallbackProfile?.researchInterests || liveProfile.researchInterests || [],
+      highlights: hasRealListContent(liveProfile.highlights) ? liveProfile.highlights : fallbackProfile?.highlights || liveProfile.highlights || [],
+      activities: hasRealListContent(liveProfile.activities) ? liveProfile.activities : fallbackProfile?.activities || liveProfile.activities || [],
+      recognitions: hasRealListContent(liveProfile.recognitions) ? liveProfile.recognitions : fallbackProfile?.recognitions || liveProfile.recognitions || [],
+      facilityIds: liveProfile.facilityIds.length ? liveProfile.facilityIds : fallbackProfile?.facilityIds || [],
+      profileLinks: hasRealProfileLinks(liveProfile) ? liveProfile.profileLinks : fallbackProfile?.profileLinks || {},
+      profilePhoto: liveProfile.profilePhoto || fallbackProfile?.profilePhoto || null,
+      color: liveProfile.color || fallbackProfile?.color || "",
+      sample: !liveUpdated && (liveProfile.sample || fallbackProfile?.sample || false)
+    };
+  }
+  return fallbackProfile;
+};
+
+const mergeFacultyWithFallback = liveFaculty => {
+  const fallback = fallbackFaculty.map(normalizeFaculty);
+  const live = liveFaculty.map(normalizeFaculty);
+  const byId = new Map(live.map(profile => [profileKey(profile), profile]));
+  const byName = new Map(live.map(profile => [keyFor(profile.name), profile]));
+  const merged = fallback.map(profile => mergeFacultyProfile(profile, byId.get(profileKey(profile)) || byName.get(keyFor(profile.name))));
+  const fallbackKeys = new Set(merged.flatMap(profile => [profileKey(profile), keyFor(profile.name)]));
+  const additions = live.filter(profile => !fallbackKeys.has(profileKey(profile)) && !fallbackKeys.has(keyFor(profile.name)));
+  return [...merged, ...additions];
+};
+
+const mergeFacilitiesWithFallback = liveFacilities => {
+  const live = Array.isArray(liveFacilities) ? liveFacilities : [];
+  const byId = new Map(live.map(facility => [facility.id, facility]));
+  const byName = new Map(live.map(facility => [keyFor(facility.name), facility]));
+  const merged = fallbackFacilities.map(facility => byId.get(facility.id) || byName.get(keyFor(facility.name)) || { ...facility });
+  const mergedKeys = new Set(merged.flatMap(facility => [facility.id, keyFor(facility.name)]));
+  return [...merged, ...live.filter(facility => !mergedKeys.has(facility.id) && !mergedKeys.has(keyFor(facility.name)))];
+};
+
 const normalizeEquipment = item => ({
   ...item,
   id: item.id || "",
@@ -129,9 +209,6 @@ const prepareFallbackRegistry = () => {
   };
 };
 
-const shouldUseDummyFaculty = profiles =>
-  !profiles.length || profiles.every(profile => profile.sample && isPlaceholder(profile.name));
-
 const loadLocalRegistry = () => {
   try {
     const stored = localStorage.getItem(REGISTRY_STORAGE_KEY);
@@ -143,8 +220,13 @@ const loadLocalRegistry = () => {
       .map(normalizeEquipment);
     const facilities = Array.isArray(parsed.facilities) ? parsed.facilities : [];
     if (!publicFaculty.length && !publicEquipment.length && !facilities.length) return prepareFallbackRegistry();
-    fallbackMode = shouldUseDummyFaculty(publicFaculty);
-    return { faculty: fallbackMode ? fallbackFaculty.map(normalizeFaculty) : publicFaculty, facilities, equipment: publicEquipment };
+    const faculty = mergeFacultyWithFallback(publicFaculty);
+    fallbackMode = faculty.some(profile => profile.sample);
+    return {
+      faculty,
+      facilities: mergeFacilitiesWithFallback(facilities),
+      equipment: publicEquipment.length ? publicEquipment : fallbackEquipment.map(normalizeEquipment)
+    };
   } catch {
     return prepareFallbackRegistry();
   }
@@ -161,8 +243,13 @@ const loadFacultyRegistry = async () => {
       const facilities = Array.isArray(loaded.facilities) ? loaded.facilities : [];
       if (faculty.length || equipment.length || facilities.length) {
         registryAvailable = true;
-        fallbackMode = shouldUseDummyFaculty(faculty);
-        return { faculty: fallbackMode ? fallbackFaculty.map(normalizeFaculty) : faculty, facilities, equipment };
+        const mergedFaculty = mergeFacultyWithFallback(faculty);
+        fallbackMode = mergedFaculty.some(profile => profile.sample);
+        return {
+          faculty: mergedFaculty,
+          facilities: mergeFacilitiesWithFallback(facilities),
+          equipment: equipment.length ? equipment : fallbackEquipment.map(normalizeEquipment)
+        };
       }
     } catch (error) {
       console.warn("Supabase faculty registry unavailable; using local/prototype data.", error);
@@ -313,10 +400,13 @@ const updateSummary = () => {
     if (target) target.textContent = String(count).padStart(2, "0");
   });
 
+  const liveFacultyCount = registry.faculty.filter(profile => !profile.sample).length;
   document.querySelector("#faculty-data-status").textContent = registryAvailable ? "Live registry" : "Prototype data";
   document.querySelector("#faculty-data-message").textContent = fallbackMode
-    ? "Showing placeholder faculty profiles until verified faculty records are added."
-    : "Showing public faculty profiles from the shared registry.";
+    ? liveFacultyCount
+      ? `Showing ${liveFacultyCount} updated public faculty profile${liveFacultyCount === 1 ? "" : "s"} with fallback placeholders for members who have not updated yet.`
+      : "Showing placeholder faculty profiles until verified faculty records are added."
+    : "Showing updated public faculty profiles from the shared registry.";
   document.querySelector("#faculty-status-summary").textContent = `${facultyCount} faculty profile${facultyCount === 1 ? "" : "s"} with ${areaCount} research interest area${areaCount === 1 ? "" : "s"} and ${linkedSystems} linked public system${linkedSystems === 1 ? "" : "s"}.`;
 };
 
