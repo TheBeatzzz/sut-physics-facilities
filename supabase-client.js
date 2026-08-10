@@ -296,6 +296,15 @@
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   };
 
+  const friendlyAuthError = (message, code = "") => {
+    const text = String(message || "");
+    const reason = String(code || "");
+    if (/otp_expired|expired/i.test(`${reason} ${text}`)) {
+      return "This Supabase invite or recovery link has expired. Ask the admin to send a fresh invite, then open the new link promptly.";
+    }
+    return text || "Supabase could not complete this email link.";
+  };
+
   const completeAuthFromUrl = async () => {
     const supabase = getClient();
     if (!supabase) return null;
@@ -303,8 +312,9 @@
     const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
     const authError = url.searchParams.get("error_description") || url.searchParams.get("error") || hash.get("error_description") || hash.get("error");
     if (authError) {
+      const authCode = url.searchParams.get("error_code") || hash.get("error_code") || "";
       clearAuthUrl();
-      throw new Error(authError);
+      throw new Error(friendlyAuthError(authError, authCode));
     }
     if (url.searchParams.has("code")) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);

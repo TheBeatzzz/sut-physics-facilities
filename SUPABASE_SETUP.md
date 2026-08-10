@@ -26,14 +26,21 @@ By default, edit access is limited to authenticated users who are both:
 
 ## 2. Configure authentication
 
-In Supabase, open **Authentication → Providers → Email**.
+In Supabase, open **Authentication → URL Configuration**.
 
-Recommended settings:
+Recommended URL settings:
+
+- Set **Site URL** to the published admin page, not `localhost`:
+  `https://thebeatzzz.github.io/sut-physics-facilities/admin.html`
+- Add the same GitHub Pages admin URL to **Redirect URLs** for password recovery and invite flows:
+  `https://thebeatzzz.github.io/sut-physics-facilities/admin.html`
+
+Then open **Authentication → Providers → Email**:
 
 - Enable Email provider.
 - Keep password sign-in enabled.
-- Add the GitHub Pages admin URL to allowed redirect URLs for password recovery/invite flows:
-  `https://thebeatzzz.github.io/sut-physics-facilities/admin.html`
+
+If an invite link opens `localhost:3000` or shows `otp_expired`, update the URL Configuration above and send a fresh invite. Supabase invite links are one-time/short-lived and expired links cannot be reused.
 
 If your faculty use a different email domain, edit both the `registry_admins_sut_email` constraint and the `public.is_sut_editor()` function in `supabase-schema.sql` before running it, or update them in SQL Editor.
 
