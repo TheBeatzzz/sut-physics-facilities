@@ -189,6 +189,8 @@ let lastFacilityError = null;
 let editingFacilityId = null;
 let lastFacultyError = null;
 let editingFacultyId = null;
+let visitorEvents = [];
+let visitorStatsError = "";
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -303,6 +305,8 @@ function showAuthGate(message = "", options = {}) {
   hideAccessIssuePanel();
   db = { ...clone(sampleDatabase), faculty: [], equipment: [], facilities: [] };
   backendReady = false;
+  visitorEvents = [];
+  visitorStatsError = "";
   if (clearSession) currentSession = null;
   setRegistryMode();
   setUserChip();
@@ -337,6 +341,7 @@ async function loadSharedRegistry(options = {}) {
     setRegistryMode();
     setUserChip();
     hideAuthGate();
+    await loadVisitorAnalytics();
     renderAll();
     return true;
   } catch (error) {
@@ -345,6 +350,19 @@ async function loadSharedRegistry(options = {}) {
       showAuthGate(`${error.message || "Could not load the shared registry."} If you are signed in, confirm that your @sut.ac.th or @g.sut.ac.th email is active in the registry_admins allowlist.`);
     }
     return false;
+  }
+}
+
+async function loadVisitorAnalytics() {
+  visitorEvents = [];
+  visitorStatsError = "";
+  if (!backendReady || !backend?.loadVisitorStats) return;
+  try {
+    visitorEvents = await backend.loadVisitorStats({ days: 90, limit: 2500 });
+  } catch (error) {
+    visitorStatsError = /visitor_events|schema cache|PGRST|42P01/i.test(String(error.message || ""))
+      ? "Run the latest supabase-schema.sql to create visitor_events, then refresh this page."
+      : error.message || "Could not load visitor statistics.";
   }
 }
 
@@ -486,9 +504,93 @@ function renderOverview() {
 
   const recent = [...db.equipment].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
   $("#recent-table").innerHTML = recent.map(item => `<tr><td>${nameCell(item)}</td><td>${clean(facilityFor(item.facilityId)?.name || "Unassigned")}</td><td>${clean(item.custodian || "Not assigned")}</td><td>${statusPill(item.status)}</td><td>${formatDate(item.updatedAt)}</td></tr>`).join("");
+  renderVisitorAnalytics();
 }
 
 function percentage(value, total) { return total ? Math.round((value / total) * 100) : 0; }
+function groupCount(items, getKey) {
+  const counts = new Map();
+  items.forEach(item => {
+    const key = getKey(item) || "Unknown";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+function sameSiteReferrer(referrer, pageHost = window.location.host) {
+  try {
+    return referrer && new URL(referrer).host === pageHost;
+  } catch {
+    return false;
+  }
+}
+function referrerLabel(event) {
+  const referrer = event.pageReferrer;
+  if (!referrer || sameSiteReferrer(referrer, event.pageHost)) return "Direct or internal";
+  try {
+    return new URL(referrer).host.replace(/^www\./, "");
+  } catch {
+    return "Unknown";
+  }
+}
+function deviceLabel(event) {
+  const width = Number(event.viewportWidth || event.screenWidth || 0);
+  if (width && width < 720) return "Mobile";
+  if (width && width < 1100) return "Tablet";
+  return "Desktop";
+}
+function pageLabel(path) {
+  const cleanPath = String(path || "/").replace(/^\/sut-physics-facilities/, "") || "/";
+  if (cleanPath === "/" || cleanPath.endsWith("/index.html")) return "Facilities overview";
+  if (cleanPath.includes("faculty.html?id=")) return "Faculty profile";
+  if (cleanPath.includes("faculty.html")) return "Faculty directory";
+  return cleanPath;
+}
+function visitorRows(rows, empty = "No data yet") {
+  return rows.length
+    ? rows.slice(0, 5).map(([label, count]) => `<div class="visitor-row"><span>${clean(label)}</span><strong>${count}</strong></div>`).join("")
+    : `<p class="visitor-empty">${clean(empty)}</p>`;
+}
+function renderVisitorAnalytics() {
+  const status = $("#visitor-status");
+  const summary = $("#visitor-summary-grid");
+  const pages = $("#visitor-page-list");
+  const devices = $("#visitor-device-list");
+  const referrers = $("#visitor-referrer-list");
+  if (!status || !summary || !pages || !devices || !referrers) return;
+  if (!backendConfigured) {
+    status.textContent = "Supabase not configured";
+    summary.innerHTML = `<p class="visitor-empty">Configure Supabase to collect visitor statistics.</p>`;
+    pages.innerHTML = devices.innerHTML = referrers.innerHTML = `<p class="visitor-empty">No analytics source.</p>`;
+    return;
+  }
+  if (!backendReady) {
+    status.textContent = "Sign in required";
+    summary.innerHTML = `<p class="visitor-empty">Visitor statistics appear after an approved admin signs in.</p>`;
+    pages.innerHTML = devices.innerHTML = referrers.innerHTML = `<p class="visitor-empty">Waiting for registry access.</p>`;
+    return;
+  }
+  if (visitorStatsError) {
+    status.textContent = "Analytics unavailable";
+    summary.innerHTML = `<p class="visitor-empty">${clean(visitorStatsError)}</p>`;
+    pages.innerHTML = devices.innerHTML = referrers.innerHTML = `<p class="visitor-empty">No visitor table available.</p>`;
+    return;
+  }
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const lastSeven = visitorEvents.filter(event => new Date(event.createdAt).getTime() >= now - 7 * dayMs);
+  const todayEvents = visitorEvents.filter(event => new Date(event.createdAt).toISOString().slice(0, 10) === today());
+  const uniqueSessions = new Set(visitorEvents.map(event => event.sessionId).filter(Boolean)).size;
+  status.textContent = visitorEvents.length ? `Last 90 days · ${visitorEvents.length} events` : "No visits recorded yet";
+  summary.innerHTML = [
+    ["Total views", visitorEvents.length],
+    ["Unique sessions", uniqueSessions],
+    ["Last 7 days", lastSeven.length],
+    ["Today", todayEvents.length]
+  ].map(([label, value]) => `<article class="visitor-stat"><span>${clean(label)}</span><strong>${value}</strong></article>`).join("");
+  pages.innerHTML = visitorRows(groupCount(visitorEvents, event => pageLabel(event.pagePath)));
+  devices.innerHTML = visitorRows(groupCount(visitorEvents, deviceLabel));
+  referrers.innerHTML = visitorRows(groupCount(visitorEvents, referrerLabel));
+}
 function researchIcon(item) {
   const text = `${item.name} ${item.category}`.toLowerCase();
   const svg = path => `<svg aria-hidden="true" viewBox="0 0 24 24">${path}</svg>`;

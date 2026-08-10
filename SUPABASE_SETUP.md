@@ -16,6 +16,7 @@ The SQL creates:
 - `registry_admins` approved-faculty allowlist table
 - `facilities` table
 - `equipment` table
+- `visitor_events` table for anonymous website visitor statistics
 - `equipment-photos` storage bucket for equipment images and faculty profile pictures
 - Row Level Security policies
 
@@ -118,6 +119,22 @@ The public page shows only equipment where:
 Facilities are public profile records: if a facility exists in the `facilities` table, the public Facilities Map can display it even before equipment has been linked or approved.
 
 The admin page can see all records after sign-in.
+
+## 8. Visitor statistics
+
+The public `index.html` and `faculty.html` pages record anonymous page views when Supabase is configured and the latest schema has been run.
+
+The analytics record stores:
+
+- anonymous browser session ID
+- page path and title
+- referrer host
+- browser language, screen size, viewport size, and timezone
+- optional UTM campaign fields
+
+It does not ask visitors for names, emails, or form data. Anonymous visitors can insert page-view events only; only approved registry editors can read visitor statistics in the admin overview.
+
+If the admin overview says visitor analytics are unavailable, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor and refresh the admin page.
 
 ## Security note
 

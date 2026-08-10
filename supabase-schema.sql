@@ -108,6 +108,36 @@ create index if not exists faculty_public_idx
 create index if not exists faculty_owner_email_idx
   on public.faculty (lower(owner_email));
 
+create table if not exists public.visitor_events (
+  id uuid primary key default gen_random_uuid(),
+  event_name text not null default 'page_view' check (event_name in ('page_view')),
+  session_id text not null,
+  page_path text not null,
+  page_title text,
+  page_referrer text,
+  page_host text,
+  user_agent text,
+  language text,
+  screen_width integer,
+  screen_height integer,
+  viewport_width integer,
+  viewport_height integer,
+  timezone text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists visitor_events_created_idx
+  on public.visitor_events (created_at desc);
+
+create index if not exists visitor_events_page_idx
+  on public.visitor_events (page_path);
+
+create index if not exists visitor_events_session_idx
+  on public.visitor_events (session_id);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -172,6 +202,7 @@ alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
 alter table public.equipment enable row level security;
+alter table public.visitor_events enable row level security;
 
 drop policy if exists "Approved admins can read admin list" on public.registry_admins;
 create policy "Approved admins can read admin list"
@@ -252,6 +283,28 @@ with check (public.is_sut_editor());
 drop policy if exists "SUT editors can delete equipment" on public.equipment;
 create policy "SUT editors can delete equipment"
 on public.equipment for delete
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "Public can insert visitor analytics" on public.visitor_events;
+create policy "Public can insert visitor analytics"
+on public.visitor_events for insert
+to anon, authenticated
+with check (
+  event_name = 'page_view'
+  and length(session_id) between 8 and 120
+  and length(page_path) between 1 and 500
+);
+
+drop policy if exists "SUT editors can read visitor analytics" on public.visitor_events;
+create policy "SUT editors can read visitor analytics"
+on public.visitor_events for select
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "SUT editors can delete visitor analytics" on public.visitor_events;
+create policy "SUT editors can delete visitor analytics"
+on public.visitor_events for delete
 to authenticated
 using (public.is_sut_editor());
 

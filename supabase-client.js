@@ -153,6 +153,46 @@
     sample: Boolean(profile.sample)
   });
 
+  const camelVisitorEvent = row => ({
+    id: row.id,
+    eventName: row.event_name || "page_view",
+    sessionId: row.session_id || "",
+    pagePath: row.page_path || "",
+    pageTitle: row.page_title || "",
+    pageReferrer: row.page_referrer || "",
+    pageHost: row.page_host || "",
+    userAgent: row.user_agent || "",
+    language: row.language || "",
+    screenWidth: row.screen_width || 0,
+    screenHeight: row.screen_height || 0,
+    viewportWidth: row.viewport_width || 0,
+    viewportHeight: row.viewport_height || 0,
+    timezone: row.timezone || "",
+    utmSource: row.utm_source || "",
+    utmMedium: row.utm_medium || "",
+    utmCampaign: row.utm_campaign || "",
+    createdAt: row.created_at || ""
+  });
+
+  const snakeVisitorEvent = event => ({
+    event_name: event.eventName || "page_view",
+    session_id: event.sessionId,
+    page_path: String(event.pagePath || "").slice(0, 500),
+    page_title: String(event.pageTitle || "").slice(0, 180),
+    page_referrer: String(event.pageReferrer || "").slice(0, 500) || null,
+    page_host: String(event.pageHost || "").slice(0, 180),
+    user_agent: String(event.userAgent || "").slice(0, 500),
+    language: String(event.language || "").slice(0, 80),
+    screen_width: Number(event.screenWidth) || null,
+    screen_height: Number(event.screenHeight) || null,
+    viewport_width: Number(event.viewportWidth) || null,
+    viewport_height: Number(event.viewportHeight) || null,
+    timezone: String(event.timezone || "").slice(0, 120),
+    utm_source: String(event.utmSource || "").slice(0, 120) || null,
+    utm_medium: String(event.utmMedium || "").slice(0, 120) || null,
+    utm_campaign: String(event.utmCampaign || "").slice(0, 180) || null
+  });
+
   const dataUrlToBlob = dataUrl => {
     const [header, base64] = String(dataUrl).split(",");
     const contentType = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
@@ -281,6 +321,28 @@
     if (error) throw error;
   };
 
+  const trackVisit = async event => {
+    const supabase = getClient();
+    if (!supabase) return null;
+    const { error } = await supabase.from("visitor_events").insert(snakeVisitorEvent(event));
+    if (error) throw error;
+    return true;
+  };
+
+  const loadVisitorStats = async ({ days = 90, limit = 2000 } = {}) => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const since = new Date(Date.now() - Number(days || 90) * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from("visitor_events")
+      .select("*")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(Number(limit || 2000));
+    if (error) throw error;
+    return (data || []).map(camelVisitorEvent);
+  };
+
   const getSession = async () => {
     const supabase = getClient();
     if (!supabase) return null;
@@ -378,6 +440,8 @@
     saveFacility,
     saveFaculty,
     deleteFaculty,
+    trackVisit,
+    loadVisitorStats,
     photoSrc
   };
 })();

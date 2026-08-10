@@ -129,6 +129,28 @@
             </section>
           </div>
 
+          <section class="panel visitor-panel" aria-labelledby="visitor-title">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">Website analytics</p><h2 id="visitor-title">Visitor statistics</h2></div>
+              <span class="data-date" id="visitor-status">Waiting for Supabase</span>
+            </div>
+            <div class="visitor-summary-grid" id="visitor-summary-grid"></div>
+            <div class="visitor-breakdown-grid">
+              <div>
+                <p class="panel-kicker">Popular pages</p>
+                <div id="visitor-page-list" class="visitor-list"></div>
+              </div>
+              <div>
+                <p class="panel-kicker">Devices</p>
+                <div id="visitor-device-list" class="visitor-list"></div>
+              </div>
+              <div>
+                <p class="panel-kicker">Referrers</p>
+                <div id="visitor-referrer-list" class="visitor-list"></div>
+              </div>
+            </div>
+          </section>
+
           <section class="panel recent-panel" aria-labelledby="recent-title">
             <div class="panel-heading"><div><p class="panel-kicker">Latest changes</p><h2 id="recent-title">Recently updated</h2></div><button class="text-button" type="button" data-view-jump="equipment">Open registry <span>→</span></button></div>
             <div class="table-wrap"><table><thead><tr><th>Equipment</th><th>Facility</th><th>Custodian</th><th>Status</th><th>Updated</th></tr></thead><tbody id="recent-table"></tbody></table></div>

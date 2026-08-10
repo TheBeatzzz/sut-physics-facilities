@@ -155,6 +155,34 @@ const hasUpdatedFacultyInfo = (profile, fallbackProfile = null) => {
     (Array.isArray(profile.facilityIds) && profile.facilityIds.length && !sameListContent(profile.facilityIds, fallbackProfile?.facilityIds || []))
   );
 };
+const facultyDedupeKey = profile => canonicalFacultyName(profile.name) || keyFor(profile.email) || profileKey(profile);
+const facultyContentScore = profile => [
+  profile.sample ? 0 : 100,
+  hasUpdatedFacultyInfo(profile) ? 50 : 0,
+  photoSrc(profile.profilePhoto) ? 20 : 0,
+  validEmail(profile.email) ? 12 : 0,
+  hasRealProfileLinks(profile) ? 10 : 0,
+  list(profile.researchInterests).filter(item => !isPlaceholderContent(item)).length,
+  list(profile.highlights).filter(item => !isPlaceholderContent(item)).length,
+  list(profile.activities).filter(item => !isPlaceholderContent(item)).length,
+  list(profile.recognitions).filter(item => !isPlaceholderContent(item)).length,
+  list(profile.facilityIds).length
+].reduce((total, value) => total + value, 0);
+const dedupeFacultyProfiles = profiles => {
+  const result = [];
+  const indexByKey = new Map();
+  profiles.forEach(profile => {
+    const key = facultyDedupeKey(profile);
+    if (!key || !indexByKey.has(key)) {
+      indexByKey.set(key, result.length);
+      result.push(profile);
+      return;
+    }
+    const existingIndex = indexByKey.get(key);
+    if (facultyContentScore(profile) > facultyContentScore(result[existingIndex])) result[existingIndex] = profile;
+  });
+  return result;
+};
 
 const mergeFacultyProfile = (fallbackProfile, liveProfile) => {
   if (!liveProfile) return fallbackProfile;
@@ -186,7 +214,8 @@ const mergeFacultyWithFallback = liveFaculty => {
   const live = liveFaculty.map(normalizeFaculty);
   const byIdentity = new Map();
   live.forEach(profile => facultyIdentityKeys(profile).forEach(key => {
-    if (!byIdentity.has(key)) byIdentity.set(key, profile);
+    const existing = byIdentity.get(key);
+    if (!existing || facultyContentScore(profile) > facultyContentScore(existing)) byIdentity.set(key, profile);
   }));
   const merged = fallback.map(profile => {
     const liveProfile = facultyIdentityKeys(profile).map(key => byIdentity.get(key)).find(Boolean);
@@ -194,7 +223,7 @@ const mergeFacultyWithFallback = liveFaculty => {
   });
   const fallbackKeys = new Set(merged.flatMap(facultyIdentityKeys));
   const additions = live.filter(profile => !facultyIdentityKeys(profile).some(key => fallbackKeys.has(key)));
-  return [...merged, ...additions];
+  return dedupeFacultyProfiles([...merged, ...additions]);
 };
 
 const mergeFacilitiesWithFallback = liveFacilities => {
@@ -518,7 +547,8 @@ const bindInteractions = () => {
 };
 
 const bootFacultyPage = async () => {
-  registry = await loadFacultyRegistry();
+  const loadedRegistry = await loadFacultyRegistry();
+  registry = { ...loadedRegistry, faculty: dedupeFacultyProfiles(loadedRegistry.faculty || []) };
   const profileId = new URLSearchParams(window.location.search).get("id");
   bindInteractions();
   if (profileId) {
