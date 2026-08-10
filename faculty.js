@@ -74,6 +74,17 @@ const facultyNameCorrections = {
   "Michale F. Smith": "Michael F. Smith",
   "Artitsupa Bootan": "Artitsupa Boontan"
 };
+const canonicalFacultyName = value => keyFor(String(facultyNameCorrections[value] || value || "")
+  .replace(/\b(distinguished|associate|assistant)\s+professor\b/gi, " ")
+  .replace(/\b(assoc|asst)\.?\s*prof\.?\b/gi, " ")
+  .replace(/\bprofessor\b|\bprof\.?\b|\bdr\.?\b|\blecturer\b/gi, " ")
+  .replace(/\b(dean|vice dean|head)\b/gi, " ")
+  .replace(/[^a-z0-9]+/gi, " "));
+const facultyIdentityKeys = profile => [...new Set([
+  profileKey(profile),
+  keyFor(profile.name),
+  canonicalFacultyName(profile.name)
+].filter(Boolean))];
 const isPlaceholder = value => {
   const text = String(value || "").trim().toLowerCase();
   return !text || text.includes("to verify") || text.includes("not assigned") || text.includes("faculty owner");
@@ -173,11 +184,16 @@ const mergeFacultyProfile = (fallbackProfile, liveProfile) => {
 const mergeFacultyWithFallback = liveFaculty => {
   const fallback = fallbackFaculty.map(normalizeFaculty);
   const live = liveFaculty.map(normalizeFaculty);
-  const byId = new Map(live.map(profile => [profileKey(profile), profile]));
-  const byName = new Map(live.map(profile => [keyFor(profile.name), profile]));
-  const merged = fallback.map(profile => mergeFacultyProfile(profile, byId.get(profileKey(profile)) || byName.get(keyFor(profile.name))));
-  const fallbackKeys = new Set(merged.flatMap(profile => [profileKey(profile), keyFor(profile.name)]));
-  const additions = live.filter(profile => !fallbackKeys.has(profileKey(profile)) && !fallbackKeys.has(keyFor(profile.name)));
+  const byIdentity = new Map();
+  live.forEach(profile => facultyIdentityKeys(profile).forEach(key => {
+    if (!byIdentity.has(key)) byIdentity.set(key, profile);
+  }));
+  const merged = fallback.map(profile => {
+    const liveProfile = facultyIdentityKeys(profile).map(key => byIdentity.get(key)).find(Boolean);
+    return mergeFacultyProfile(profile, liveProfile);
+  });
+  const fallbackKeys = new Set(merged.flatMap(facultyIdentityKeys));
+  const additions = live.filter(profile => !facultyIdentityKeys(profile).some(key => fallbackKeys.has(key)));
   return [...merged, ...additions];
 };
 
