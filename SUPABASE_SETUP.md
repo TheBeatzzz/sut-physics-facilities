@@ -153,7 +153,9 @@ supabase functions deploy refresh-scopus-metrics
 
 Then open `admin.html`, sign in, go to **Data & export**, and click **Refresh Scopus metrics**.
 
-The Elsevier API key is never stored in GitHub Pages JavaScript. The public faculty profile displays metrics only after the Edge Function saves them to the faculty record, with the Scopus Author ID and last updated date.
+The Elsevier API key is never stored in GitHub Pages JavaScript. The public faculty profile displays refreshed Scopus metrics when the Edge Function saves them to the faculty record, with the Scopus Author ID and last updated date.
+
+Faculty members can also enter a fallback h-index and citation count in the faculty profile form. Those faculty-provided values appear on the public profile only when refreshed Scopus metrics are not available.
 
 ## Security note
 

@@ -68,6 +68,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
   facilityIds: Array.isArray(facilityIds) ? facilityIds : sampleFacultyFacilities(id),
   profilePhoto: null,
   scopusMetrics: null,
+  manualMetrics: null,
   color,
   publicReady: true,
   ownerEmail: "",
@@ -200,6 +201,22 @@ const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "
 const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const nameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 const metricNumber = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "";
+const metricValue = value => {
+  if (String(value || "").trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.floor(number) : null;
+};
+const hasMetric = value => Number.isFinite(Number(value));
+const hasMetrics = metrics => Boolean(metrics && typeof metrics === "object" && (
+  hasMetric(metrics.hIndex) ||
+  hasMetric(metrics.citationCount) ||
+  hasMetric(metrics.documentCount)
+));
+const metricFallback = profile => {
+  if (hasMetrics(profile.scopusMetrics)) return { metrics: profile.scopusMetrics, source: "Scopus" };
+  if (hasMetrics(profile.manualMetrics)) return { metrics: profile.manualMetrics, source: "Manual" };
+  return { metrics: {}, source: "NA" };
+};
 const extractScopusAuthorId = value => {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -437,7 +454,7 @@ async function persistFaculty(profile) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     return true;
   } catch (error) {
-    const schemaMessage = /schema cache|facility_ids|profile_photo|scopus_metrics/i.test(String(error.message || ""))
+    const schemaMessage = /schema cache|facility_ids|profile_photo|scopus_metrics|manual_metrics/i.test(String(error.message || ""))
       ? "Supabase needs the latest faculty schema. Run supabase-schema.sql in SQL Editor, then try saving this profile again."
       : "";
     lastFacultyError = schemaMessage ? new Error(schemaMessage) : error;
@@ -704,8 +721,9 @@ function renderFacultyProfiles() {
     const facilityCount = facultyFacilities(profile).length;
     const portrait = photoSrc(profile.profilePhoto);
     const scopusId = profile.scopusMetrics?.scopusAuthorId || extractScopusAuthorId(links.scopus);
-    const scopusHIndex = metricNumber(profile.scopusMetrics?.hIndex);
-    const scopusCitations = metricNumber(profile.scopusMetrics?.citationCount);
+    const { metrics, source: metricSource } = metricFallback(profile);
+    const hIndex = metricNumber(metrics.hIndex);
+    const citations = metricNumber(metrics.citationCount);
     const equipmentCount = db.equipment.filter(item => {
       const emailMatch = profile.email && item.email && item.email.toLowerCase() === profile.email.toLowerCase();
       const nameMatch = profile.name && item.custodian && item.custodian.toLowerCase().includes(profile.name.toLowerCase());
@@ -721,8 +739,9 @@ function renderFacultyProfiles() {
         <span><strong>${facilityCount}</strong> associated facilities</span>
         <span><strong>${equipmentCount}</strong> linked equipment</span>
         <span><strong>${linkCount}</strong> profile links</span>
-        <span><strong>${clean(scopusHIndex || "NA")}</strong> Scopus h-index</span>
-        <span><strong>${clean(scopusCitations || "NA")}</strong> Scopus citations</span>
+        <span><strong>${clean(hIndex || "NA")}</strong> h-index</span>
+        <span><strong>${clean(citations || "NA")}</strong> citations</span>
+        <span><strong>${clean(metricSource)}</strong> metric source</span>
         <span><strong>${clean(scopusId ? "ID" : "NA")}</strong> ${clean(scopusId || "No Scopus ID")}</span>
         <button class="text-button" type="button" data-edit-faculty="${clean(profile.id)}" aria-label="Edit ${clean(profile.name)}">Edit <span>→</span></button>
       </div>
@@ -773,6 +792,11 @@ function openFacultyDialog(id = null) {
       const field = form.elements.namedItem(key);
       if (field) field.value = links[key] || "";
     });
+    const manualMetrics = profile.manualMetrics || {};
+    const manualHIndex = form.elements.namedItem("manualHIndex");
+    const manualCitationCount = form.elements.namedItem("manualCitationCount");
+    if (manualHIndex) manualHIndex.value = hasMetric(manualMetrics.hIndex) ? manualMetrics.hIndex : "";
+    if (manualCitationCount) manualCitationCount.value = hasMetric(manualMetrics.citationCount) ? manualMetrics.citationCount : "";
     form.elements.publicReady.checked = profile.publicReady !== false;
   } else {
     form.elements.publicReady.checked = true;
@@ -790,6 +814,14 @@ function facultyFromForm(form) {
   const existing = editingFacultyId ? db.faculty.find(item => item.id === editingFacultyId) : null;
   const numericIds = db.faculty.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
   const id = existing?.id || `FACULTY-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
+  const manualHIndex = metricValue(data.manualHIndex);
+  const manualCitationCount = metricValue(data.manualCitationCount);
+  const manualMetrics = manualHIndex !== null || manualCitationCount !== null ? {
+    hIndex: manualHIndex,
+    citationCount: manualCitationCount,
+    source: "Faculty provided",
+    updatedAt: new Date().toISOString()
+  } : null;
   return {
     ...existing,
     id,
@@ -815,6 +847,7 @@ function facultyFromForm(form) {
       googleScholar: data.googleScholar,
       orcid: data.orcid
     },
+    manualMetrics,
     color: data.color || existing?.color || facilityPalette[db.faculty.length % facilityPalette.length],
     publicReady: form.elements.publicReady.checked,
     ownerEmail: data.ownerEmail || data.email,

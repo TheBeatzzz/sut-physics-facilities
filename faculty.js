@@ -141,6 +141,7 @@ const normalizeFaculty = profile => {
     recognitions: list(profile.recognitions),
     profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
     scopusMetrics: profile.scopusMetrics && typeof profile.scopusMetrics === "object" ? profile.scopusMetrics : null,
+    manualMetrics: profile.manualMetrics && typeof profile.manualMetrics === "object" ? profile.manualMetrics : null,
     facilityIds: facilityIds.length ? facilityIds : profile.sample ? fallbackFacultyFacilities(profile.id) : [],
     profilePhoto: profile.profilePhoto || null,
     color: profile.color || ""
@@ -154,6 +155,10 @@ const sameListContent = (left, right) => {
 };
 const hasRealListContent = values => list(values).some(item => !isPlaceholderContent(item) && keyFor(item) !== "physics program faculty");
 const hasRealProfileLinks = profile => Object.values(profile.profileLinks || {}).some(url => /^https?:\/\//.test(String(url || "")));
+const hasManualMetrics = profile => {
+  const metrics = profile?.manualMetrics || {};
+  return Number.isFinite(Number(metrics.hIndex)) || Number.isFinite(Number(metrics.citationCount));
+};
 const hasUpdatedFacultyInfo = (profile, fallbackProfile = null) => {
   if (!profile) return false;
   const listUpdated = key => hasRealListContent(profile[key]) && (!fallbackProfile || !sameListContent(profile[key], fallbackProfile[key]));
@@ -161,6 +166,7 @@ const hasUpdatedFacultyInfo = (profile, fallbackProfile = null) => {
     validEmail(profile.email) ||
     photoSrc(profile.profilePhoto) ||
     hasRealProfileLinks(profile) ||
+    hasManualMetrics(profile) ||
     (profile.bio && !isPlaceholderContent(profile.bio) && (!fallbackProfile || keyFor(profile.bio) !== keyFor(fallbackProfile.bio))) ||
     listUpdated("researchInterests") ||
     listUpdated("highlights") ||
@@ -379,24 +385,31 @@ const hasScopusMetrics = profile => {
   const metrics = profile.scopusMetrics || {};
   return Number.isFinite(Number(metrics.hIndex)) || Number.isFinite(Number(metrics.citationCount)) || Number.isFinite(Number(metrics.documentCount));
 };
+const profileMetricsFor = profile => {
+  if (hasScopusMetrics(profile)) return { metrics: profile.scopusMetrics || {}, source: "scopus" };
+  if (hasManualMetrics(profile)) return { metrics: profile.manualMetrics || {}, source: "manual" };
+  return null;
+};
 const scopusMetricsMarkup = profile => {
-  if (!hasScopusMetrics(profile)) return "";
-  const metrics = profile.scopusMetrics || {};
+  const profileMetrics = profileMetricsFor(profile);
+  if (!profileMetrics) return "";
+  const { metrics, source } = profileMetrics;
   const updated = metrics.updatedAt ? new Date(metrics.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+  const isScopus = source === "scopus";
   return `
-    <section class="profile-metrics section-shell" aria-labelledby="scopus-metrics-title">
+    <section class="profile-metrics section-shell" aria-labelledby="citation-metrics-title">
       <div class="section-heading">
-        <p class="section-index">Scopus metrics</p>
+        <p class="section-index">${isScopus ? "Scopus metrics" : "Faculty-provided metrics"}</p>
         <div>
-          <h2 id="scopus-metrics-title">Citation profile<br />from Scopus.</h2>
-          <p>Metrics are refreshed from the Scopus Author ID found in the faculty member's Scopus profile link.</p>
+          <h2 id="citation-metrics-title">Citation profile<br />${isScopus ? "from Scopus." : "fallback values."}</h2>
+          <p>${isScopus ? "Metrics are refreshed from the Scopus Author ID found in the faculty member's Scopus profile link." : "These values were entered by the faculty member and are shown when refreshed Scopus data is not available."}</p>
         </div>
       </div>
       <div class="profile-metric-grid">
         <article><span>H-index</span><strong>${clean(numberText(metrics.hIndex) || "NA")}</strong></article>
         <article><span>Citations</span><strong>${clean(numberText(metrics.citationCount) || "NA")}</strong></article>
-        <article><span>Documents</span><strong>${clean(numberText(metrics.documentCount) || "NA")}</strong></article>
-        <p>${clean(`Scopus Author ID: ${scopusAuthorIdFor(profile) || "not detected"}${updated ? ` · Updated ${updated}` : ""}`)}</p>
+        ${isScopus ? `<article><span>Documents</span><strong>${clean(numberText(metrics.documentCount) || "NA")}</strong></article>` : ""}
+        <p>${clean(isScopus ? `Scopus Author ID: ${scopusAuthorIdFor(profile) || "not detected"}${updated ? ` · Updated ${updated}` : ""}` : `Faculty-provided fallback${updated ? ` · Updated ${updated}` : ""}`)}</p>
       </div>
     </section>
   `;
