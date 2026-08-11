@@ -93,6 +93,7 @@
     building: row.building || "",
     room: row.room || "",
     lead: row.lead || "",
+    ownerEmail: row.owner_email || "",
     description: row.description || "",
     color: row.color || ""
   });
@@ -103,6 +104,7 @@
     building: facility.building || null,
     room: facility.room || null,
     lead: facility.lead || null,
+    owner_email: facility.ownerEmail || null,
     description: facility.description || null,
     color: facility.color || null
   });

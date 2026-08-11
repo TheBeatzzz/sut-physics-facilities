@@ -30,6 +30,7 @@ create table if not exists public.facilities (
   building text,
   room text,
   lead text,
+  owner_email text,
   description text,
   color text,
   created_at timestamptz not null default now(),
@@ -73,6 +74,9 @@ add column if not exists scopus_metrics jsonb;
 alter table if exists public.faculty
 add column if not exists manual_metrics jsonb;
 
+alter table if exists public.facilities
+add column if not exists owner_email text;
+
 create table if not exists public.equipment (
   id text primary key,
   name text not null,
@@ -115,6 +119,9 @@ create index if not exists faculty_public_idx
 
 create index if not exists faculty_owner_email_idx
   on public.faculty (lower(owner_email));
+
+create index if not exists facilities_owner_email_idx
+  on public.facilities (lower(owner_email));
 
 create table if not exists public.visitor_events (
   id uuid primary key default gen_random_uuid(),
@@ -206,6 +213,44 @@ $$;
 revoke all on function public.is_sut_editor() from public;
 grant execute on function public.is_sut_editor() to anon, authenticated;
 
+drop function if exists public.is_registered_sut_faculty();
+
+create or replace function public.is_facility_owner(target_owner_email text, target_lead text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+      and (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_lead, ''))) = lower(btrim(coalesce(faculty.name, '')))
+      )
+  );
+$$;
+
+revoke all on function public.is_facility_owner(text, text) from public;
+grant execute on function public.is_facility_owner(text, text) to anon, authenticated;
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
@@ -228,7 +273,7 @@ with check (public.is_sut_editor());
 drop policy if exists "Public can read facilities" on public.facilities;
 create policy "Public can read facilities"
 on public.facilities for select
-to anon
+to anon, authenticated
 using (true);
 
 drop policy if exists "SUT editors can read all facilities" on public.facilities;
@@ -243,6 +288,19 @@ on public.facilities for all
 to authenticated
 using (public.is_sut_editor())
 with check (public.is_sut_editor());
+
+drop policy if exists "Registered SUT faculty can insert facilities" on public.facilities;
+create policy "Registered SUT faculty can insert facilities"
+on public.facilities for insert
+to authenticated
+with check (public.is_sut_editor() or public.is_facility_owner(owner_email, lead));
+
+drop policy if exists "Registered SUT faculty can update owned facilities" on public.facilities;
+create policy "Registered SUT faculty can update owned facilities"
+on public.facilities for update
+to authenticated
+using (public.is_facility_owner(owner_email, lead))
+with check (public.is_facility_owner(owner_email, lead));
 
 drop policy if exists "Public can read public faculty profiles" on public.faculty;
 create policy "Public can read public faculty profiles"

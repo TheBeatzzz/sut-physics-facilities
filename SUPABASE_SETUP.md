@@ -199,7 +199,18 @@ If saving a facility or equipment record shows an error like:
 new row violates row-level security policy for table "facilities"
 ```
 
-the signed-in user is authenticated, but Supabase does not currently evaluate them as an active registry editor. In **Supabase → SQL Editor**, run:
+the signed-in user is authenticated, but Supabase does not currently evaluate them as someone allowed to create that record.
+
+For facilities, rerun the latest [`supabase-schema.sql`](supabase-schema.sql). The current policy lets active registry editors create and manage facilities, and lets registered faculty profile owners create a missing facility when their sign-in email matches `faculty.owner_email` or `faculty.email`.
+
+Faculty can also edit facilities they own. The ownership check passes when either:
+
+- `facilities.owner_email` matches the signed-in faculty email; or
+- `facilities.lead` exactly matches the faculty profile `name` for the signed-in faculty member.
+
+When faculty save a facility from the admin page, the site stores their sign-in email as `facilities.owner_email` if the facility does not already have an owner email.
+
+For equipment records, or if the faculty member should manage all registry data, add the person as an active registry editor in **Supabase → SQL Editor**:
 
 ```sql
 insert into public.registry_admins (email, full_name, role, active)
@@ -210,4 +221,4 @@ on conflict (email) do update set
   active = excluded.active;
 ```
 
-Then rerun the latest `public.is_sut_editor()` definition from `supabase-schema.sql`, or rerun the full latest schema file. Sign out of the admin page and sign in again before retrying the save.
+Then sign out of the admin page and sign in again before retrying the save.

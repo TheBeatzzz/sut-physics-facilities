@@ -197,6 +197,7 @@ let visitorStatsError = "";
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const today = () => new Date().toISOString().slice(0, 10);
+const signedInEmail = () => String(currentSession?.user?.email || "").trim().toLowerCase();
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const nameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -433,8 +434,11 @@ async function persistFacility(facility) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     return true;
   } catch (error) {
-    lastFacilityError = error;
-    showToast(error.message || "Could not save facility to Supabase");
+    const rlsMessage = /row-level security|violates.*policy|facilities/i.test(String(error.message || ""))
+      ? "Supabase blocked this facility save. Ask an admin to rerun the latest supabase-schema.sql and confirm your faculty profile owner email matches your sign-in email. For existing facilities, the facility lead should match your faculty profile name or the facility owner email should match your sign-in email."
+      : "";
+    lastFacilityError = rlsMessage ? new Error(rlsMessage) : error;
+    showToast(rlsMessage || error.message || "Could not save facility to Supabase");
     return false;
   }
 }
@@ -1172,7 +1176,13 @@ $("#facility-form").addEventListener("submit", async event => {
     const existing = editingFacilityId ? db.facilities.find(item => item.id === editingFacilityId) : null;
     const numericIds = db.facilities.map(item => Number(item.id.replace(/\D/g,""))).filter(Number.isFinite);
     const id = existing?.id || `FAC-${String(Math.max(0, ...numericIds) + 1).padStart(2,"0")}`;
-    const facility = { ...existing, ...data, id, color: data.color || existing?.color || facilityPalette[db.facilities.length % facilityPalette.length] };
+    const facility = {
+      ...existing,
+      ...data,
+      id,
+      ownerEmail: existing?.ownerEmail || signedInEmail(),
+      color: data.color || existing?.color || facilityPalette[db.facilities.length % facilityPalette.length]
+    };
     if (await persistFacility(facility)) {
       $("#facility-dialog").close();
       form.reset();
