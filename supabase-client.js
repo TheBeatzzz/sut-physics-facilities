@@ -122,6 +122,7 @@
     activities: asArray(row.activities),
     recognitions: asArray(row.recognitions),
     profileLinks: row.profile_links && typeof row.profile_links === "object" ? row.profile_links : {},
+    scopusMetrics: row.scopus_metrics && typeof row.scopus_metrics === "object" ? row.scopus_metrics : null,
     facilityIds: asArray(row.facility_ids),
     profilePhoto: row.profile_photo || null,
     color: row.color || "",
@@ -145,6 +146,7 @@
     activities: asArray(profile.activities).filter(Boolean),
     recognitions: asArray(profile.recognitions).filter(Boolean),
     profile_links: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
+    scopus_metrics: profile.scopusMetrics && typeof profile.scopusMetrics === "object" ? profile.scopusMetrics : null,
     facility_ids: asArray(profile.facilityIds).filter(Boolean),
     profile_photo: profile.profilePhoto || null,
     color: profile.color || null,
@@ -343,6 +345,16 @@
     return (data || []).map(camelVisitorEvent);
   };
 
+  const refreshScopusMetrics = async (facultyId = null) => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const { data, error } = await supabase.functions.invoke("refresh-scopus-metrics", {
+      body: facultyId ? { facultyId } : {}
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const getSession = async () => {
     const supabase = getClient();
     if (!supabase) return null;
@@ -442,6 +454,7 @@
     deleteFaculty,
     trackVisit,
     loadVisitorStats,
+    refreshScopusMetrics,
     photoSrc
   };
 })();

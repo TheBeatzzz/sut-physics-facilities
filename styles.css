@@ -377,6 +377,19 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 }
 .profile-panel ul { margin: 24px 0 0; padding: 0; display: grid; gap: 14px; list-style: none; }
 .profile-panel li { padding-top: 12px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 13px; line-height: 1.55; }
+.profile-metrics { padding-top: 0; }
+.profile-metric-grid {
+  margin-top: 42px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 14px; align-items: stretch;
+}
+.profile-metric-grid article {
+  min-height: 150px; padding: 22px; border: 1px solid var(--line); background: color-mix(in srgb, var(--faculty-color) 16%, var(--paper));
+}
+.profile-metric-grid article span { color: var(--ink-soft); font: 9px var(--mono); text-transform: uppercase; }
+.profile-metric-grid article strong { display: block; margin-top: 28px; font: 400 clamp(38px, 4vw, 58px)/1 var(--serif); }
+.profile-metric-grid > p {
+  min-height: 150px; margin: 0; padding: 22px; display: flex; align-items: end;
+  border: 1px solid var(--line); background: var(--ink); color: var(--paper); font: 12px/1.6 var(--mono);
+}
 .profile-link-grid {
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 56px;
 }
@@ -436,7 +449,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .expertise-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .faculty-profile-hero { min-height: auto; grid-template-columns: 1fr; gap: 70px; padding-top: 75px; }
   .profile-orbit { justify-self: center; width: min(88vw, 560px); }
-  .profile-sections, .profile-equipment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-sections, .profile-equipment-grid, .profile-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 580px) {
@@ -460,7 +473,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .faculty-profile-hero { padding-top: 58px; padding-bottom: 60px; gap: 50px; }
   .faculty-profile-hero h1 { font-size: clamp(52px, 16vw, 76px); }
   .profile-actions { align-items: stretch; flex-direction: column; gap: 18px; }
-  .profile-sections, .profile-equipment-grid { grid-template-columns: 1fr; }
+  .profile-sections, .profile-equipment-grid, .profile-metric-grid { grid-template-columns: 1fr; }
   .public-facility-grid { grid-template-columns: 1fr; margin-top: 42px; }
   .public-facility-card { min-height: 390px; }
   .filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }.filter { flex: 0 0 auto; }

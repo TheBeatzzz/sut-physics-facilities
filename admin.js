@@ -67,6 +67,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
   },
   facilityIds: Array.isArray(facilityIds) ? facilityIds : sampleFacultyFacilities(id),
   profilePhoto: null,
+  scopusMetrics: null,
   color,
   publicReady: true,
   ownerEmail: "",
@@ -198,6 +199,19 @@ const today = () => new Date().toISOString().slice(0, 10);
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const nameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+const metricNumber = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "";
+const extractScopusAuthorId = value => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  try {
+    const url = new URL(text);
+    const direct = url.searchParams.get("authorId") || url.searchParams.get("author_id") || url.searchParams.get("authid");
+    if (direct && /^\d{6,20}$/.test(direct)) return direct;
+  } catch {}
+  const decoded = decodeURIComponent(text);
+  const match = decoded.match(/(?:authorId|author_id|authid)[=/:%?&]+(\d{6,20})/i) || decoded.match(/\b(\d{8,20})\b/);
+  return match ? match[1] : "";
+};
 const facilityFor = id => db.facilities.find(item => item.id === id);
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
 const photoSrc = photo => backend?.photoSrc?.(photo) || photo?.url || photo?.data || "";
@@ -423,7 +437,7 @@ async function persistFaculty(profile) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     return true;
   } catch (error) {
-    const schemaMessage = /schema cache|facility_ids|profile_photo/i.test(String(error.message || ""))
+    const schemaMessage = /schema cache|facility_ids|profile_photo|scopus_metrics/i.test(String(error.message || ""))
       ? "Supabase needs the latest faculty schema. Run supabase-schema.sql in SQL Editor, then try saving this profile again."
       : "";
     lastFacultyError = schemaMessage ? new Error(schemaMessage) : error;
@@ -689,6 +703,9 @@ function renderFacultyProfiles() {
     const linkCount = Object.values(links).filter(Boolean).length;
     const facilityCount = facultyFacilities(profile).length;
     const portrait = photoSrc(profile.profilePhoto);
+    const scopusId = profile.scopusMetrics?.scopusAuthorId || extractScopusAuthorId(links.scopus);
+    const scopusHIndex = metricNumber(profile.scopusMetrics?.hIndex);
+    const scopusCitations = metricNumber(profile.scopusMetrics?.citationCount);
     const equipmentCount = db.equipment.filter(item => {
       const emailMatch = profile.email && item.email && item.email.toLowerCase() === profile.email.toLowerCase();
       const nameMatch = profile.name && item.custodian && item.custodian.toLowerCase().includes(profile.name.toLowerCase());
@@ -704,6 +721,9 @@ function renderFacultyProfiles() {
         <span><strong>${facilityCount}</strong> associated facilities</span>
         <span><strong>${equipmentCount}</strong> linked equipment</span>
         <span><strong>${linkCount}</strong> profile links</span>
+        <span><strong>${clean(scopusHIndex || "NA")}</strong> Scopus h-index</span>
+        <span><strong>${clean(scopusCitations || "NA")}</strong> Scopus citations</span>
+        <span><strong>${clean(scopusId ? "ID" : "NA")}</strong> ${clean(scopusId || "No Scopus ID")}</span>
         <button class="text-button" type="button" data-edit-faculty="${clean(profile.id)}" aria-label="Edit ${clean(profile.name)}">Edit <span>→</span></button>
       </div>
     </article>`;
@@ -1270,6 +1290,38 @@ $("#seed-atlas-equipment").addEventListener("click", async event => {
     showToast(records.length ? `${records.length} fallback equipment record${records.length === 1 ? "" : "s"} seeded` : "All fallback equipment already exists");
   } catch (error) {
     showToast(error.message || "Could not seed fallback equipment");
+  } finally {
+    setBusy(event.currentTarget, false);
+  }
+});
+
+$("#refresh-scopus-metrics").addEventListener("click", async event => {
+  if (!backendReady) {
+    showToast("Sign in to Supabase before refreshing Scopus metrics");
+    return;
+  }
+  if (!backend?.refreshScopusMetrics) {
+    showToast("Scopus refresh support is not available in this build");
+    return;
+  }
+  const profilesWithScopus = db.faculty.filter(profile => extractScopusAuthorId(profile.profileLinks?.scopus));
+  const confirmed = await askConfirm(
+    "Refresh Scopus metrics?",
+    `Update h-index, citation count, and document count for ${profilesWithScopus.length} faculty profile${profilesWithScopus.length === 1 ? "" : "s"} with Scopus Author IDs?`
+  );
+  if (!confirmed) return;
+  setBusy(event.currentTarget, true, "Refreshing…");
+  try {
+    const result = await backend.refreshScopusMetrics();
+    await loadSharedRegistry();
+    const updated = Number(result?.updated || 0);
+    const skipped = Number(result?.skipped || 0);
+    showToast(`Scopus metrics refreshed for ${updated} profile${updated === 1 ? "" : "s"}${skipped ? `; ${skipped} skipped` : ""}`);
+  } catch (error) {
+    const message = /FunctionsHttpError|404|refresh-scopus-metrics/i.test(String(error.message || ""))
+      ? "Deploy the refresh-scopus-metrics Edge Function and set ELSEVIER_API_KEY first."
+      : error.message || "Could not refresh Scopus metrics";
+    showToast(message);
   } finally {
     setBusy(event.currentTarget, false);
   }

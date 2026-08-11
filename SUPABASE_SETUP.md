@@ -136,6 +136,25 @@ It does not ask visitors for names, emails, or form data. Anonymous visitors can
 
 If the admin overview says visitor analytics are unavailable, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor and refresh the admin page.
 
+## 9. Scopus metrics refresh
+
+Faculty members only need to paste their Scopus author profile link in the faculty form. The website extracts the Scopus Author ID from URLs such as:
+
+```text
+https://www.scopus.com/authid/detail.uri?authorId=12345678900
+```
+
+To refresh h-index, citation count, and document count automatically, deploy the Supabase Edge Function and store the Elsevier API key as a secret:
+
+```bash
+supabase secrets set ELSEVIER_API_KEY=your-elsevier-api-key
+supabase functions deploy refresh-scopus-metrics
+```
+
+Then open `admin.html`, sign in, go to **Data & export**, and click **Refresh Scopus metrics**.
+
+The Elsevier API key is never stored in GitHub Pages JavaScript. The public faculty profile displays metrics only after the Edge Function saves them to the faculty record, with the Scopus Author ID and last updated date.
+
 ## Security note
 
 `admin.html` is still a public file on GitHub Pages. That is normal for a static site. The protection is in Supabase:

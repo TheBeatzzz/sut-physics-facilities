@@ -66,7 +66,20 @@ const photoSrc = photo => photo?.url || photo?.data || "";
 const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(String(value || "")) ? value : fallback;
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 const keyFor = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+const numberText = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "";
 const profileKey = profile => keyFor(profile.id || profile.name);
+const extractScopusAuthorId = value => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  try {
+    const url = new URL(text);
+    const direct = url.searchParams.get("authorId") || url.searchParams.get("author_id") || url.searchParams.get("authid");
+    if (direct && /^\d{6,20}$/.test(direct)) return direct;
+  } catch {}
+  const decoded = decodeURIComponent(text);
+  const match = decoded.match(/(?:authorId|author_id|authid)[=/:%?&]+(\d{6,20})/i) || decoded.match(/\b(\d{8,20})\b/);
+  return match ? match[1] : "";
+};
 const facultyNameCorrections = {
   "Worawat Meewassana": "Worawat Meevassana",
   "Prayoon Songsirittikul": "Prayoon Songsiriritthikul",
@@ -127,6 +140,7 @@ const normalizeFaculty = profile => {
     activities: list(profile.activities),
     recognitions: list(profile.recognitions),
     profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
+    scopusMetrics: profile.scopusMetrics && typeof profile.scopusMetrics === "object" ? profile.scopusMetrics : null,
     facilityIds: facilityIds.length ? facilityIds : profile.sample ? fallbackFacultyFacilities(profile.id) : [],
     profilePhoto: profile.profilePhoto || null,
     color: profile.color || ""
@@ -358,6 +372,34 @@ const externalLinks = profile => Object.entries(profile.profileLinks || {})
   .filter(([, url]) => /^https?:\/\//.test(String(url || "")))
   .map(([key, url]) => ({ key, label: linkLabels[key] || key, mark: platformMarks[key] || "↗", url }));
 
+const scopusAuthorIdFor = profile => profile.scopusMetrics?.scopusAuthorId || extractScopusAuthorId(profile.profileLinks?.scopus);
+const hasScopusMetrics = profile => {
+  const metrics = profile.scopusMetrics || {};
+  return Number.isFinite(Number(metrics.hIndex)) || Number.isFinite(Number(metrics.citationCount)) || Number.isFinite(Number(metrics.documentCount));
+};
+const scopusMetricsMarkup = profile => {
+  if (!hasScopusMetrics(profile)) return "";
+  const metrics = profile.scopusMetrics || {};
+  const updated = metrics.updatedAt ? new Date(metrics.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+  return `
+    <section class="profile-metrics section-shell" aria-labelledby="scopus-metrics-title">
+      <div class="section-heading">
+        <p class="section-index">Scopus metrics</p>
+        <div>
+          <h2 id="scopus-metrics-title">Citation profile<br />from Scopus.</h2>
+          <p>Metrics are refreshed from the Scopus Author ID found in the faculty member's Scopus profile link.</p>
+        </div>
+      </div>
+      <div class="profile-metric-grid">
+        <article><span>H-index</span><strong>${clean(numberText(metrics.hIndex) || "NA")}</strong></article>
+        <article><span>Citations</span><strong>${clean(numberText(metrics.citationCount) || "NA")}</strong></article>
+        <article><span>Documents</span><strong>${clean(numberText(metrics.documentCount) || "NA")}</strong></article>
+        <p>${clean(`Scopus Author ID: ${scopusAuthorIdFor(profile) || "not detected"}${updated ? ` · Updated ${updated}` : ""}`)}</p>
+      </div>
+    </section>
+  `;
+};
+
 const renderProfileCard = (profile, index) => {
   const linked = linkedEquipment(profile);
   const facilities = associatedFacilities(profile);
@@ -500,6 +542,7 @@ const renderProfilePage = profile => {
       ${listMarkup("Activities", profile.activities)}
       ${listMarkup("Recognitions", profile.recognitions)}
     </section>
+    ${scopusMetricsMarkup(profile)}
     <section class="faculty-expertise section-shell">
       <div class="section-heading">
         <p class="section-index">Academic links</p>

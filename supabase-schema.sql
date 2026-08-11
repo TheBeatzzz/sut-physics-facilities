@@ -49,6 +49,7 @@ create table if not exists public.faculty (
   activities jsonb not null default '[]'::jsonb,
   recognitions jsonb not null default '[]'::jsonb,
   profile_links jsonb not null default '{}'::jsonb,
+  scopus_metrics jsonb,
   facility_ids jsonb not null default '[]'::jsonb,
   profile_photo jsonb,
   color text,
@@ -64,6 +65,9 @@ add column if not exists facility_ids jsonb not null default '[]'::jsonb;
 
 alter table if exists public.faculty
 add column if not exists profile_photo jsonb;
+
+alter table if exists public.faculty
+add column if not exists scopus_metrics jsonb;
 
 create table if not exists public.equipment (
   id text primary key,
