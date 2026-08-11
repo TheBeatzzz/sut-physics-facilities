@@ -21,23 +21,24 @@
       <div class="auth-card">
         <p class="eyebrow">Faculty-only registry</p>
         <h1 id="auth-title">Sign in to manage shared equipment records.</h1>
-        <p>The public webpage can read only approved records. Editing, uploading photos, and reviewing faculty submissions require a pre-approved SUT faculty account.</p>
+        <p>The public webpage can read only approved records. Faculty can maintain their own profiles, facilities, equipment, and photos after signing in with their registered SUT account.</p>
         <form id="auth-form" class="auth-form">
           <label>SUT email<input id="auth-email" type="email" autocomplete="email" placeholder="name@sut.ac.th or name@g.sut.ac.th" required /></label>
           <label>Password<input id="auth-password" type="password" autocomplete="current-password" placeholder="Enter your Supabase password" required /></label>
           <button class="button button-primary" id="auth-submit" type="submit">Sign in</button>
         </form>
         <div id="access-issue-panel" class="access-issue-panel" hidden>
-          <strong>Email verified, but admin access is not approved yet</strong>
+          <strong>Email verified, but registry access is not connected yet</strong>
           <span>You signed in as <b id="access-issue-email">this account</b>, but Supabase did not allow this account to load the internal registry.</span>
           <ol>
-            <li>Confirm this email is active in <code>public.registry_admins</code>.</li>
+            <li>Confirm this email matches <code>faculty.owner_email</code> or <code>faculty.email</code>.</li>
+            <li>For manager access, confirm this email is active in <code>public.registry_admins</code>.</li>
             <li>Confirm the email ends with <code>@sut.ac.th</code> or <code>@g.sut.ac.th</code>.</li>
-            <li>After approval, refresh this page and sign in again.</li>
+            <li>After updating Supabase, refresh this page and sign in again.</li>
           </ol>
           <button class="button button-secondary" id="access-sign-out" type="button">Sign out and use another email</button>
         </div>
-        <p class="auth-help" id="auth-message">Use the password created in Supabase. Your SUT or g.sut.ac.th email must also be active in the approved faculty list.</p>
+        <p class="auth-help" id="auth-message">Use the password created in Supabase. Your SUT or g.sut.ac.th email must match your faculty profile email or be active in the registry manager list.</p>
       </div>
     </section>
 

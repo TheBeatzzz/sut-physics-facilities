@@ -20,10 +20,12 @@ The SQL creates:
 - `equipment-photos` storage bucket for equipment images and faculty profile pictures
 - Row Level Security policies
 
-By default, edit access is limited to authenticated users who are both:
+By default, broad manager access is limited to authenticated users who are both:
 
 - using an email ending with `@sut.ac.th` or `@g.sut.ac.th`;
 - listed as active in `registry_admins`.
+
+Registered faculty profile owners can also manage their own faculty profile, facilities, equipment records, and related photos without being full registry managers. Their sign-in email must match `faculty.owner_email` or `faculty.email`.
 
 ## 2. Configure authentication
 
@@ -45,7 +47,7 @@ If an invite link opens `localhost:3000` or shows `otp_expired`, update the URL 
 
 If your faculty use a different email domain, edit both the `registry_admins_sut_email` constraint and the `public.is_sut_editor()` function in `supabase-schema.sql` before running it, or update them in SQL Editor.
 
-## 3. Add approved faculty admins
+## 3. Add registry managers
 
 After running the schema, insert the first approved registry manager directly in Supabase SQL Editor:
 
@@ -58,7 +60,7 @@ on conflict (email) do update set
   active = excluded.active;
 ```
 
-Add one row per approved faculty member. Only active emails in this table can manage equipment records.
+Add one row per approved manager. Only active emails in this table can manage every record in the registry. Ordinary faculty can still manage records they own when their sign-in email matches their faculty profile.
 
 Both regular SUT email and Google-hosted SUT email are accepted, for example:
 
@@ -73,10 +75,11 @@ Once the first admin is added, approved admins can also manage this table from S
 
 Recommended workflow:
 
-1. Add the faculty email to `registry_admins`.
-2. In **Supabase → Authentication → Users**, create or invite the faculty user with an initial password or password-recovery email.
-3. The faculty member signs in at `admin.html` with email and password.
-4. After sign-in, they can use **Change password** in the admin toolbar to set their own password.
+1. Confirm the faculty member has a faculty profile with `faculty.owner_email` or `faculty.email` matching their sign-in email.
+2. Add the faculty email to `registry_admins` only if they should manage all registry records.
+3. In **Supabase → Authentication → Users**, create or invite the faculty user with an initial password or password-recovery email.
+4. The faculty member signs in at `admin.html` with email and password.
+5. After sign-in, they can use **Change password** in the admin toolbar to set their own password.
 
 Do not distribute shared passwords. If you must create an initial password, ask the faculty member to change it immediately after first login. The website only lets the currently signed-in faculty member update their own Supabase password.
 
@@ -103,7 +106,7 @@ Do not put the service-role key in this website.
 After publishing the config:
 
 1. Open `admin.html`.
-2. Sign in with a pre-approved SUT faculty email.
+2. Sign in with a registry manager email.
 3. Go to **Data & export**.
 4. Click **Seed examples**.
 
@@ -164,7 +167,8 @@ Faculty members can also enter a fallback h-index and citation count in the facu
 - anonymous visitors cannot read draft/internal equipment rows;
 - anonymous visitors can read public facility profile rows;
 - anonymous visitors cannot edit records;
-- only authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage records and upload photos.
+- signed-in faculty can manage rows they own;
+- authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage all records and upload photos.
 
 If the website reports that `facility_ids` or `profile_photo` cannot be found in the faculty schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
 
@@ -183,9 +187,10 @@ notify pgrst, 'reload schema';
 If a faculty member cannot sign in:
 
 1. Confirm the user exists in **Supabase → Authentication → Users**.
-2. Confirm their email is active in `public.registry_admins`.
-3. Confirm the email ends with `@sut.ac.th` or `@g.sut.ac.th`.
-4. If the password is unknown, send a password recovery/invite email from Supabase Dashboard or create a temporary password and ask them to change it immediately.
+2. Confirm the email ends with `@sut.ac.th` or `@g.sut.ac.th`.
+3. Confirm their faculty profile has the same email in `faculty.owner_email` or `faculty.email`.
+4. If they need manager access to all records, confirm their email is active in `public.registry_admins`.
+5. If the password is unknown, send a password recovery/invite email from Supabase Dashboard or create a temporary password and ask them to change it immediately.
 
 The site can still complete Supabase invite/recovery callbacks, but normal registry login is password-first.
 
@@ -203,14 +208,23 @@ the signed-in user is authenticated, but Supabase does not currently evaluate th
 
 For facilities, rerun the latest [`supabase-schema.sql`](supabase-schema.sql). The current policy lets active registry editors create and manage facilities, and lets registered faculty profile owners create a missing facility when their sign-in email matches `faculty.owner_email` or `faculty.email`.
 
-Faculty can also edit facilities they own. The ownership check passes when either:
+Faculty can also edit or delete facilities they own. The ownership check passes when either:
 
 - `facilities.owner_email` matches the signed-in faculty email; or
 - `facilities.lead` exactly matches the faculty profile `name` for the signed-in faculty member.
 
 When faculty save a facility from the admin page, the site stores their sign-in email as `facilities.owner_email` if the facility does not already have an owner email.
 
-For equipment records, or if the faculty member should manage all registry data, add the person as an active registry editor in **Supabase → SQL Editor**:
+Faculty can manage equipment they own. The ownership check passes when one of these fields matches the signed-in faculty member:
+
+- `equipment.owner_email`;
+- `equipment.email`;
+- `equipment.submitter_email`;
+- `equipment.custodian`, when it exactly matches the faculty profile `name`.
+
+When faculty save equipment from the admin page, the site stores their sign-in email as `equipment.owner_email` if the record does not already have an owner email.
+
+If the faculty member should manage all registry data, add the person as an active registry editor in **Supabase → SQL Editor**:
 
 ```sql
 insert into public.registry_admins (email, full_name, role, active)

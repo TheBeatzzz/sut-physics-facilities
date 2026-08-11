@@ -50,6 +50,7 @@
     reviewStatus: row.review_status || "Draft",
     submitterName: row.submitter_name || "",
     submitterEmail: row.submitter_email || "",
+    ownerEmail: row.owner_email || "",
     submitterNotes: row.submitter_notes || "",
     featurePhoto: row.feature_photo || null,
     gallery: Array.isArray(row.gallery) ? row.gallery : [],
@@ -81,6 +82,7 @@
     review_status: record.reviewStatus || "Draft",
     submitter_name: record.submitterName || null,
     submitter_email: record.submitterEmail || null,
+    owner_email: record.ownerEmail || null,
     submitter_notes: record.submitterNotes || null,
     feature_photo: record.featurePhoto || null,
     gallery: Array.isArray(record.gallery) ? record.gallery.slice(0, 5) : [],
@@ -309,6 +311,12 @@
     return camelFacility(data);
   };
 
+  const deleteFacility = async id => {
+    const supabase = getClient();
+    const { error } = await supabase.from("facilities").delete().eq("id", id);
+    if (error) throw error;
+  };
+
   const saveFaculty = async profile => {
     const supabase = getClient();
     const withMedia = await uploadFacultyMedia(profile);
@@ -454,6 +462,7 @@
     saveEquipment,
     deleteEquipment,
     saveFacility,
+    deleteFacility,
     saveFaculty,
     deleteFaculty,
     trackVisit,

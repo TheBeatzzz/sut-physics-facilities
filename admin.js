@@ -24,6 +24,7 @@ const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatu
   reviewStatus,
   submitterName: reviewStatus === "Verified" ? "Example dataset" : "Example faculty submission",
   submitterEmail: "",
+  ownerEmail: "",
   submitterNotes: "Replace example metadata with verified institutional information.",
   featurePhoto: null,
   gallery: [],
@@ -198,6 +199,13 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const today = () => new Date().toISOString().slice(0, 10);
 const signedInEmail = () => String(currentSession?.user?.email || "").trim().toLowerCase();
+const currentFacultyProfile = () => {
+  const email = signedInEmail();
+  if (!email) return null;
+  return db.faculty.find(profile =>
+    [profile.ownerEmail, profile.email].some(value => String(value || "").trim().toLowerCase() === email)
+  ) || null;
+};
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const slug = value => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const nameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -299,7 +307,7 @@ function setRegistryMode(message = "") {
     title.textContent = backendReady ? "Supabase registry" : "Supabase login";
     detail.textContent = message || (backendReady ? "Shared database active" : "Sign in required");
     $("#registry-mode-title").textContent = backendReady ? "Live shared registry" : "Faculty login required";
-    $("#registry-mode-note").textContent = backendReady ? "Records are loaded from Supabase and shared across approved faculty accounts." : "Sign in with a pre-approved SUT faculty account to manage equipment and faculty profile data.";
+    $("#registry-mode-note").textContent = backendReady ? "Records are loaded from Supabase and shared across registered faculty accounts." : "Sign in with a registered SUT faculty account to manage your profile, facilities, and equipment.";
     $("#media-storage-note").innerHTML = "<strong>Supabase storage:</strong> equipment images and faculty profile pictures upload to the shared equipment-photos bucket.";
     $("#sign-out").hidden = !backendReady;
     $("#change-password").hidden = !backendReady;
@@ -321,7 +329,7 @@ function setUserChip() {
   const initials = email ? email.slice(0, 2).toUpperCase() : "PM";
   $("#user-chip").querySelector("span").textContent = initials;
   $("#user-chip").querySelector("strong").textContent = email || "Program manager";
-  $("#user-chip").querySelector("small").textContent = backendReady ? "Supabase editor" : "Registry editor";
+  $("#user-chip").querySelector("small").textContent = backendReady ? "Supabase account" : "Registry editor";
 }
 
 function hideAccessIssuePanel() {
@@ -333,7 +341,7 @@ function showAuthGate(message = "", options = {}) {
   const clearSession = options.clearSession !== false;
   $("#auth-gate").hidden = false;
   document.body.classList.add("auth-required");
-  $("#auth-message").textContent = message || "Sign in with a pre-approved SUT faculty account to manage the shared registry.";
+  $("#auth-message").textContent = message || "Sign in with a registered SUT faculty account to manage the shared registry.";
   hideAccessIssuePanel();
   db = { ...clone(sampleDatabase), faculty: [], equipment: [], facilities: [] };
   backendReady = false;
@@ -352,15 +360,15 @@ function hideAuthGate() {
 
 function showAccessIssue(message, email, emailConfirmed = false) {
   showAuthGate(emailConfirmed
-    ? "Your email link was confirmed, but this account is not approved for registry administration yet."
-    : message || "This account is signed in but is not approved for registry administration yet.",
+    ? "Your email link was confirmed, but this account is not connected to a faculty profile or registry manager role yet."
+    : message || "This account is signed in but is not connected to a faculty profile or registry manager role yet.",
     { clearSession: false });
   const panel = $("#access-issue-panel");
   if (panel) {
     $("#access-issue-email").textContent = email || "this account";
     panel.hidden = false;
   }
-  $("#auth-message").textContent = `${message || "Supabase blocked access to the internal registry."} Ask an existing admin to add ${email || "this email"} to public.registry_admins and set active = true.`;
+  $("#auth-message").textContent = `${message || "Supabase blocked access to the internal registry."} Confirm ${email || "this email"} matches faculty.owner_email or faculty.email, or ask an admin to add it to public.registry_admins with active = true for manager access.`;
 }
 
 async function loadSharedRegistry(options = {}) {
@@ -379,7 +387,7 @@ async function loadSharedRegistry(options = {}) {
   } catch (error) {
     lastRegistryError = error;
     if (options.showGate !== false) {
-      showAuthGate(`${error.message || "Could not load the shared registry."} If you are signed in, confirm that your @sut.ac.th or @g.sut.ac.th email is active in the registry_admins allowlist.`);
+      showAuthGate(`${error.message || "Could not load the shared registry."} If you are signed in, confirm that your @sut.ac.th or @g.sut.ac.th email matches your faculty profile owner email or is active in the registry_admins allowlist.`);
     }
     return false;
   }
@@ -414,7 +422,10 @@ async function persistEquipment(record, previousEquipment) {
   } catch (error) {
     db.equipment = previousEquipment;
     renderAll();
-    showToast(error.message || "Could not save to Supabase");
+    const rlsMessage = /row-level security|violates.*policy|equipment|storage/i.test(String(error.message || ""))
+      ? "Supabase blocked this equipment save. Ask an admin to rerun the latest supabase-schema.sql and confirm your faculty profile owner email matches your sign-in email. For existing equipment, the owner email, equipment email, submitter email, or custodian should match your faculty profile."
+      : "";
+    showToast(rlsMessage || error.message || "Could not save to Supabase");
     return false;
   }
 }
@@ -762,7 +773,7 @@ function initials(name) {
 function renderFacilities() {
   $("#facility-grid").innerHTML = db.facilities.map((facility, index) => {
     const count = db.equipment.filter(item => item.facilityId === facility.id).length;
-    return `<article class="facility-card" data-facility-id="${clean(facility.id)}"><div class="facility-visual" style="--facility-color:${facility.color || facilityPalette[index % facilityPalette.length]}"></div><div class="facility-card-meta"><span>${clean(facility.id)}</span><span>${clean(facility.building || "Building not set")} · ${clean(facility.room || "Room not set")}</span></div><h2>${clean(facility.name)}</h2><p>${clean(facility.description || "No facility description has been added.")}</p><div class="facility-card-foot"><span><strong>${count}</strong> equipment record${count === 1 ? "" : "s"}</span><span>Lead<br /><b>${clean(facility.lead || "Not assigned")}</b></span><button class="text-button" type="button" data-edit-facility="${clean(facility.id)}" aria-label="Edit ${clean(facility.name)}">Edit <span>→</span></button></div></article>`;
+    return `<article class="facility-card" data-facility-id="${clean(facility.id)}"><div class="facility-visual" style="--facility-color:${facility.color || facilityPalette[index % facilityPalette.length]}"></div><div class="facility-card-meta"><span>${clean(facility.id)}</span><span>${clean(facility.building || "Building not set")} · ${clean(facility.room || "Room not set")}</span></div><h2>${clean(facility.name)}</h2><p>${clean(facility.description || "No facility description has been added.")}</p><div class="facility-card-foot"><span><strong>${count}</strong> equipment record${count === 1 ? "" : "s"}</span><span>Lead<br /><b>${clean(facility.lead || "Not assigned")}</b></span><button class="text-button" type="button" data-edit-facility="${clean(facility.id)}" aria-label="Edit ${clean(facility.name)}">Edit <span>→</span></button><button class="text-button" type="button" data-delete-facility="${clean(facility.id)}" aria-label="Delete ${clean(facility.name)}">Delete <span>×</span></button></div></article>`;
   }).join("");
 }
 
@@ -917,6 +928,16 @@ function openRecordDialog(mode = "manager", id = null) {
     $("#record-id").value = item.id;
   } else {
     form.elements.publicReady.checked = mode !== "faculty";
+    const faculty = currentFacultyProfile();
+    const email = signedInEmail();
+    const submitterName = form.elements.namedItem("submitterName");
+    const submitterEmail = form.elements.namedItem("submitterEmail");
+    const custodian = form.elements.namedItem("custodian");
+    const recordEmail = form.elements.namedItem("email");
+    if (submitterName && faculty?.name) submitterName.value = faculty.name;
+    if (submitterEmail && email) submitterEmail.value = email;
+    if (custodian && faculty?.name) custodian.value = faculty.name;
+    if (recordEmail && email) recordEmail.value = email;
   }
   const descriptionField = $("#equipment-description");
   descriptionField.value = descriptionField.value.slice(0, DESCRIPTION_LIMIT);
@@ -933,8 +954,11 @@ function recordFromForm(form, saveMode) {
   const numericIds = db.equipment.map(item => Number(item.id.replace(/\D/g,""))).filter(Number.isFinite);
   const id = existing?.id || `EQ-${String(Math.max(0, ...numericIds) + 1).padStart(3,"0")}`;
   const reviewStatus = saveMode === "draft" ? "Draft" : recordMode === "faculty" ? "Submitted" : existing?.reviewStatus === "Verified" ? "Verified" : "Verified";
+  const email = signedInEmail();
+  if (!data.submitterEmail && email) data.submitterEmail = email;
+  if (!data.email && email) data.email = email;
   if (pendingFeaturePhoto) pendingFeaturePhoto.alt = $("#feature-photo-alt").value.trim();
-  return { ...existing, ...data, id, publicReady: form.elements.publicReady.checked, featurePhoto: pendingFeaturePhoto, gallery: pendingGallery, reviewStatus, createdAt: existing?.createdAt || today(), updatedAt: today(), sample: existing?.sample || false };
+  return { ...existing, ...data, id, ownerEmail: existing?.ownerEmail || email, publicReady: form.elements.publicReady.checked, featurePhoto: pendingFeaturePhoto, gallery: pendingGallery, reviewStatus, createdAt: existing?.createdAt || today(), updatedAt: today(), sample: existing?.sample || false };
 }
 
 function updateDescriptionCounter() {
@@ -1008,6 +1032,37 @@ async function deleteRecord(id) {
     save();
   }
   renderAll(); showToast("Equipment record deleted");
+}
+
+async function deleteFacility(id) {
+  const facility = db.facilities.find(item => item.id === id);
+  if (!facility) return;
+  const linkedEquipmentCount = db.equipment.filter(item => item.facilityId === id).length;
+  const confirmed = await askConfirm(
+    "Delete facility?",
+    `“${facility.name}” will be removed from ${backendReady ? "the shared Supabase registry" : "this browser database"}.${linkedEquipmentCount ? ` ${linkedEquipmentCount} linked equipment record${linkedEquipmentCount === 1 ? "" : "s"} will become unassigned.` : ""}`
+  );
+  if (!confirmed) return;
+  const previousFacilities = clone(db.facilities);
+  const previousEquipment = clone(db.equipment);
+  db.facilities = db.facilities.filter(item => item.id !== id);
+  db.equipment = db.equipment.map(item => item.facilityId === id ? { ...item, facilityId: "" } : item);
+  if (backendReady) {
+    try {
+      await backend.deleteFacility(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch (error) {
+      db.facilities = previousFacilities;
+      db.equipment = previousEquipment;
+      renderAll();
+      showToast(error.message || "Could not delete facility from Supabase");
+      return;
+    }
+  } else {
+    save();
+  }
+  renderAll();
+  showToast("Facility deleted");
 }
 
 function askConfirm(title, message) {
@@ -1201,6 +1256,12 @@ $("#facility-form").addEventListener("submit", async event => {
 });
 
 $("#facility-grid").addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-facility]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteFacility(deleteButton.dataset.deleteFacility);
+    return;
+  }
   const editButton = event.target.closest("[data-edit-facility]");
   const card = event.target.closest("[data-facility-id]");
   const id = editButton?.dataset.editFacility || card?.dataset.facilityId;
@@ -1417,7 +1478,7 @@ $("#auth-form").addEventListener("submit", async event => {
     const loaded = await loadSharedRegistry({ showGate: false });
     if (!loaded) {
       showAccessIssue(
-        `${lastRegistryError?.message || "Password accepted, but Supabase blocked access to the internal registry."} Confirm this email is active in public.registry_admins and set active = true.`,
+        `${lastRegistryError?.message || "Password accepted, but Supabase blocked access to the internal registry."} Confirm this email matches a faculty profile owner email, or add it to public.registry_admins with active = true for manager access.`,
         currentSession?.user?.email || email
       );
       return;
@@ -1442,7 +1503,7 @@ $("#sign-out").addEventListener("click", async () => {
 $("#access-sign-out").addEventListener("click", async () => {
   try {
     await backend.signOut();
-    showAuthGate("Signed out. You can sign in again with another approved email and password.");
+    showAuthGate("Signed out. You can sign in again with another registered faculty or manager email and password.");
   } catch (error) {
     showToast(error.message || "Could not sign out");
   }

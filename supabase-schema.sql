@@ -100,6 +100,7 @@ create table if not exists public.equipment (
   review_status text not null default 'Draft' check (review_status in ('Draft', 'Submitted', 'Verified')),
   submitter_name text,
   submitter_email text,
+  owner_email text,
   submitter_notes text,
   feature_photo jsonb,
   gallery jsonb not null default '[]'::jsonb,
@@ -107,6 +108,9 @@ create table if not exists public.equipment (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.equipment
+add column if not exists owner_email text;
 
 create index if not exists equipment_public_idx
   on public.equipment (review_status, public_ready);
@@ -122,6 +126,9 @@ create index if not exists faculty_owner_email_idx
 
 create index if not exists facilities_owner_email_idx
   on public.facilities (lower(owner_email));
+
+create index if not exists equipment_owner_email_idx
+  on public.equipment (lower(owner_email));
 
 create table if not exists public.visitor_events (
   id uuid primary key default gen_random_uuid(),
@@ -251,6 +258,75 @@ $$;
 revoke all on function public.is_facility_owner(text, text) from public;
 grant execute on function public.is_facility_owner(text, text) to anon, authenticated;
 
+create or replace function public.is_faculty_profile_owner(target_owner_email text, target_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from current_identity
+    where (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_faculty_profile_owner(text, text) from public;
+grant execute on function public.is_faculty_profile_owner(text, text) to anon, authenticated;
+
+create or replace function public.is_equipment_owner(target_owner_email text, target_email text, target_submitter_email text, target_custodian text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+      and (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_submitter_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_custodian, ''))) = lower(btrim(coalesce(faculty.name, '')))
+      )
+  );
+$$;
+
+revoke all on function public.is_equipment_owner(text, text, text, text) from public;
+grant execute on function public.is_equipment_owner(text, text, text, text) to anon, authenticated;
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
@@ -302,10 +378,16 @@ to authenticated
 using (public.is_facility_owner(owner_email, lead))
 with check (public.is_facility_owner(owner_email, lead));
 
+drop policy if exists "Registered SUT faculty can delete owned facilities" on public.facilities;
+create policy "Registered SUT faculty can delete owned facilities"
+on public.facilities for delete
+to authenticated
+using (public.is_facility_owner(owner_email, lead));
+
 drop policy if exists "Public can read public faculty profiles" on public.faculty;
 create policy "Public can read public faculty profiles"
 on public.faculty for select
-to anon
+to anon, authenticated
 using (public_ready = true);
 
 drop policy if exists "SUT editors can read all faculty profiles" on public.faculty;
@@ -321,10 +403,29 @@ to authenticated
 using (public.is_sut_editor())
 with check (public.is_sut_editor());
 
+drop policy if exists "Faculty can read own faculty profile" on public.faculty;
+create policy "Faculty can read own faculty profile"
+on public.faculty for select
+to authenticated
+using (public.is_faculty_profile_owner(owner_email, email));
+
+drop policy if exists "Faculty can insert own faculty profile" on public.faculty;
+create policy "Faculty can insert own faculty profile"
+on public.faculty for insert
+to authenticated
+with check (public.is_faculty_profile_owner(owner_email, email));
+
+drop policy if exists "Faculty can update own faculty profile" on public.faculty;
+create policy "Faculty can update own faculty profile"
+on public.faculty for update
+to authenticated
+using (public.is_faculty_profile_owner(owner_email, email))
+with check (public.is_faculty_profile_owner(owner_email, email));
+
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"
 on public.equipment for select
-to anon
+to anon, authenticated
 using (review_status = 'Verified' and public_ready = true);
 
 drop policy if exists "SUT editors can read all equipment" on public.equipment;
@@ -339,6 +440,18 @@ on public.equipment for insert
 to authenticated
 with check (public.is_sut_editor());
 
+drop policy if exists "Faculty can read owned equipment" on public.equipment;
+create policy "Faculty can read owned equipment"
+on public.equipment for select
+to authenticated
+using (public.is_equipment_owner(owner_email, email, submitter_email, custodian));
+
+drop policy if exists "Faculty can insert owned equipment" on public.equipment;
+create policy "Faculty can insert owned equipment"
+on public.equipment for insert
+to authenticated
+with check (public.is_equipment_owner(owner_email, email, submitter_email, custodian));
+
 drop policy if exists "SUT editors can update equipment" on public.equipment;
 create policy "SUT editors can update equipment"
 on public.equipment for update
@@ -346,11 +459,24 @@ to authenticated
 using (public.is_sut_editor())
 with check (public.is_sut_editor());
 
+drop policy if exists "Faculty can update owned equipment" on public.equipment;
+create policy "Faculty can update owned equipment"
+on public.equipment for update
+to authenticated
+using (public.is_equipment_owner(owner_email, email, submitter_email, custodian))
+with check (public.is_equipment_owner(owner_email, email, submitter_email, custodian));
+
 drop policy if exists "SUT editors can delete equipment" on public.equipment;
 create policy "SUT editors can delete equipment"
 on public.equipment for delete
 to authenticated
 using (public.is_sut_editor());
+
+drop policy if exists "Faculty can delete owned equipment" on public.equipment;
+create policy "Faculty can delete owned equipment"
+on public.equipment for delete
+to authenticated
+using (public.is_equipment_owner(owner_email, email, submitter_email, custodian));
 
 drop policy if exists "Public can insert visitor analytics" on public.visitor_events;
 create policy "Public can insert visitor analytics"
@@ -399,6 +525,22 @@ on storage.objects for insert
 to authenticated
 with check (bucket_id = 'equipment-photos' and public.is_sut_editor());
 
+drop policy if exists "Faculty can upload owned equipment photos" on storage.objects;
+create policy "Faculty can upload owned equipment photos"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'equipment-photos'
+  and (
+    public.is_sut_editor()
+    or exists (
+      select 1
+      from public.faculty
+      where public.is_faculty_profile_owner(faculty.owner_email, faculty.email)
+    )
+  )
+);
+
 drop policy if exists "SUT editors can update equipment photos" on storage.objects;
 create policy "SUT editors can update equipment photos"
 on storage.objects for update
@@ -406,10 +548,68 @@ to authenticated
 using (bucket_id = 'equipment-photos' and public.is_sut_editor())
 with check (bucket_id = 'equipment-photos' and public.is_sut_editor());
 
+drop policy if exists "Faculty can update owned equipment photos" on storage.objects;
+create policy "Faculty can update owned equipment photos"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and (
+    public.is_sut_editor()
+    or public.is_equipment_owner(
+      (select equipment.owner_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.submitter_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.custodian from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1))
+    )
+    or public.is_faculty_profile_owner(
+      (select faculty.owner_email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2)),
+      (select faculty.email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2))
+    )
+  )
+)
+with check (
+  bucket_id = 'equipment-photos'
+  and (
+    public.is_sut_editor()
+    or public.is_equipment_owner(
+      (select equipment.owner_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.submitter_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.custodian from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1))
+    )
+    or public.is_faculty_profile_owner(
+      (select faculty.owner_email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2)),
+      (select faculty.email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2))
+    )
+  )
+);
+
 drop policy if exists "SUT editors can delete equipment photos" on storage.objects;
 create policy "SUT editors can delete equipment photos"
 on storage.objects for delete
 to authenticated
 using (bucket_id = 'equipment-photos' and public.is_sut_editor());
+
+drop policy if exists "Faculty can delete owned equipment photos" on storage.objects;
+create policy "Faculty can delete owned equipment photos"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and (
+    public.is_sut_editor()
+    or public.is_equipment_owner(
+      (select equipment.owner_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.submitter_email from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1)),
+      (select equipment.custodian from public.equipment where equipment.id = split_part(storage.objects.name, '/', 1))
+    )
+    or public.is_faculty_profile_owner(
+      (select faculty.owner_email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2)),
+      (select faculty.email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2))
+    )
+  )
+);
 
 notify pgrst, 'reload schema';
