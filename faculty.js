@@ -353,7 +353,7 @@ const categoriesFor = profile => {
 };
 
 const linkLabels = {
-  academic: "Academic profile",
+  academic: "Personal website",
   scopus: "Scopus",
   researchGate: "ResearchGate",
   googleScholar: "Google Scholar",
@@ -368,7 +368,9 @@ const platformMarks = {
   orcid: "iD"
 };
 
-const externalLinks = profile => Object.entries(profile.profileLinks || {})
+const profileLinkOrder = ["orcid", "scopus", "researchGate", "googleScholar", "academic"];
+const externalLinks = profile => profileLinkOrder
+  .map(key => [key, profile.profileLinks?.[key]])
   .filter(([, url]) => /^https?:\/\//.test(String(url || "")))
   .map(([key, url]) => ({ key, label: linkLabels[key] || key, mark: platformMarks[key] || "↗", url }));
 
