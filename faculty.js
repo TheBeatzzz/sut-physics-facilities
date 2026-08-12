@@ -1,30 +1,30 @@
 const REGISTRY_STORAGE_KEY = "sut-physics-equipment-registry-v3";
 
 const fallbackFaculty = [
-  { id: "FACULTY-001", name: "Yupeng Yan", title: "Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#8fd8c8", publicReady: true, sample: true },
-  { id: "FACULTY-002", name: "Santi Maensiri", title: "Professor", email: "", bio: "Dummy faculty profile for Dean. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Materials physics"], highlights: ["Research highlight to update"], activities: ["Dean", "Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#9bc7ee", publicReady: true, sample: true },
-  { id: "FACULTY-003", name: "Sirichoke Jungthawan", title: "Associate Professor", email: "", bio: "Dummy faculty profile for Head. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Head", "Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#f4c26d", publicReady: true, sample: true },
-  { id: "FACULTY-004", name: "Ayut Limphirat", title: "Associate Professor", email: "", bio: "Dummy faculty profile for Vice Dean. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Vice Dean", "Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#e8a89a", publicReady: true, sample: true },
-  { id: "FACULTY-005", name: "Prapan Maenyum", title: "Associate Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#b8d276", publicReady: true, sample: true },
-  { id: "FACULTY-006", name: "Poemwai Chainakul", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#c1b2df", publicReady: true, sample: true },
-  { id: "FACULTY-007", name: "Puangratana Pairo", title: "Associate Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#7fc5b2", publicReady: true, sample: true },
-  { id: "FACULTY-008", name: "Wittawat Saenrang", title: "Associate Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#74dfce", publicReady: true, sample: true },
-  { id: "FACULTY-009", name: "Worawat Meevassana", title: "Associate Professor", email: "", bio: "Dummy faculty profile for Vice Dean. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Vice Dean", "Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#8fc3ff", publicReady: true, sample: true },
-  { id: "FACULTY-010", name: "Prayoon Songsiriritthikul", title: "Associate Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#ff8b5b", publicReady: true, sample: true },
-  { id: "FACULTY-011", name: "Panomsak Meemon", title: "Associate Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Biomedical optics"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#d7ff3f", publicReady: true, sample: true },
-  { id: "FACULTY-012", name: "Chinorat Kobdaj", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#b59cff", publicReady: true, sample: true },
-  { id: "FACULTY-013", name: "Khanchai Kosolthongkee", title: "Assistant Professor", email: "", bio: "Dummy faculty profile for Vice Dean. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Vice Dean", "Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#ffc95c", publicReady: true, sample: true },
-  { id: "FACULTY-014", name: "Christoph Herold", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#8fd8c8", publicReady: true, sample: true },
-  { id: "FACULTY-015", name: "Tirawut Worrakitpoonpol", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#9bc7ee", publicReady: true, sample: true },
-  { id: "FACULTY-016", name: "Michael F. Smith", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#f4c26d", publicReady: true, sample: true },
-  { id: "FACULTY-017", name: "Ittipon Fongkaew", title: "Assistant Professor", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#e8a89a", publicReady: true, sample: true },
-  { id: "FACULTY-018", name: "Warintorn Srithawong", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#b8d276", publicReady: true, sample: true },
-  { id: "FACULTY-019", name: "Narongrit Ritjoho", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#c1b2df", publicReady: true, sample: true },
-  { id: "FACULTY-020", name: "Wiwat Nuansing", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#7fc5b2", publicReady: true, sample: true },
-  { id: "FACULTY-021", name: "Monchai Jitvisate", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#74dfce", publicReady: true, sample: true },
-  { id: "FACULTY-022", name: "Artitsupa Boontan", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#8fc3ff", publicReady: true, sample: true },
-  { id: "FACULTY-023", name: "Sorawis Sangtawesin", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#ff8b5b", publicReady: true, sample: true },
-  { id: "FACULTY-024", name: "Wanvisa Talataisong", title: "Dr.", email: "", bio: "Dummy faculty profile. Replace with verified biography and research information.", researchInterests: ["Research interests to update", "Physics program faculty"], highlights: ["Research highlight to update"], activities: ["Recent activity to update"], recognitions: ["Recognition or appointment to update"], profileLinks: {}, color: "#d7ff3f", publicReady: true, sample: true }
+  { id: "FACULTY-001", name: "Yupeng Yan", title: "Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#8fd8c8", publicReady: true, sample: true },
+  { id: "FACULTY-002", name: "Santi Maensiri", title: "Professor", email: "", bio: "", researchInterests: ["Materials physics"], highlights: [], activities: ["Dean"], recognitions: [], profileLinks: {}, color: "#9bc7ee", publicReady: true, sample: true },
+  { id: "FACULTY-003", name: "Sirichoke Jungthawan", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: ["Head"], recognitions: [], profileLinks: {}, color: "#f4c26d", publicReady: true, sample: true },
+  { id: "FACULTY-004", name: "Ayut Limphirat", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: ["Vice Dean"], recognitions: [], profileLinks: {}, color: "#e8a89a", publicReady: true, sample: true },
+  { id: "FACULTY-005", name: "Prapan Maenyum", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#b8d276", publicReady: true, sample: true },
+  { id: "FACULTY-006", name: "Poemwai Chainakul", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#c1b2df", publicReady: true, sample: true },
+  { id: "FACULTY-007", name: "Puangratana Pairo", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#7fc5b2", publicReady: true, sample: true },
+  { id: "FACULTY-008", name: "Wittawat Saenrang", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#74dfce", publicReady: true, sample: true },
+  { id: "FACULTY-009", name: "Worawat Meevassana", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: ["Vice Dean"], recognitions: [], profileLinks: {}, color: "#8fc3ff", publicReady: true, sample: true },
+  { id: "FACULTY-010", name: "Prayoon Songsiriritthikul", title: "Associate Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#ff8b5b", publicReady: true, sample: true },
+  { id: "FACULTY-011", name: "Panomsak Meemon", title: "Associate Professor", email: "", bio: "", researchInterests: ["Biomedical optics"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#d7ff3f", publicReady: true, sample: true },
+  { id: "FACULTY-012", name: "Chinorat Kobdaj", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#b59cff", publicReady: true, sample: true },
+  { id: "FACULTY-013", name: "Khanchai Kosolthongkee", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: ["Vice Dean"], recognitions: [], profileLinks: {}, color: "#ffc95c", publicReady: true, sample: true },
+  { id: "FACULTY-014", name: "Christoph Herold", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#8fd8c8", publicReady: true, sample: true },
+  { id: "FACULTY-015", name: "Tirawut Worrakitpoonpol", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#9bc7ee", publicReady: true, sample: true },
+  { id: "FACULTY-016", name: "Michael F. Smith", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#f4c26d", publicReady: true, sample: true },
+  { id: "FACULTY-017", name: "Ittipon Fongkaew", title: "Assistant Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#e8a89a", publicReady: true, sample: true },
+  { id: "FACULTY-018", name: "Warintorn Srithawong", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#b8d276", publicReady: true, sample: true },
+  { id: "FACULTY-019", name: "Narongrit Ritjoho", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#c1b2df", publicReady: true, sample: true },
+  { id: "FACULTY-020", name: "Wiwat Nuansing", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#7fc5b2", publicReady: true, sample: true },
+  { id: "FACULTY-021", name: "Monchai Jitvisate", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#74dfce", publicReady: true, sample: true },
+  { id: "FACULTY-022", name: "Artitsupa Boontan", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#8fc3ff", publicReady: true, sample: true },
+  { id: "FACULTY-023", name: "Sorawis Sangtawesin", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#ff8b5b", publicReady: true, sample: true },
+  { id: "FACULTY-024", name: "Wanvisa Talataisong", title: "Dr.", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#d7ff3f", publicReady: true, sample: true }
 ];
 
 const fallbackFacilities = [
@@ -131,14 +131,14 @@ const normalizeFaculty = profile => {
   return {
     ...profile,
     id: profile.id || `faculty-${slug(profile.name)}`,
-    name: facultyNameCorrections[profile.name] || profile.name || "Faculty profile to verify",
-    title: profile.title || "Title to verify",
+    name: facultyNameCorrections[profile.name] || profile.name || "Faculty profile",
+    title: profile.title || "Faculty member",
     email: profile.email || "",
-    bio: profile.bio || "",
-    researchInterests: list(profile.researchInterests),
-    highlights: list(profile.highlights),
-    activities: list(profile.activities),
-    recognitions: list(profile.recognitions),
+    bio: profile.bio && !isPlaceholderContent(profile.bio) ? profile.bio : "",
+    researchInterests: list(profile.researchInterests).filter(item => !isPlaceholderContent(item)),
+    highlights: list(profile.highlights).filter(item => !isPlaceholderContent(item)),
+    activities: list(profile.activities).filter(item => !isPlaceholderContent(item)),
+    recognitions: list(profile.recognitions).filter(item => !isPlaceholderContent(item)),
     profileLinks: profile.profileLinks && typeof profile.profileLinks === "object" ? profile.profileLinks : {},
     scopusMetrics: profile.scopusMetrics && typeof profile.scopusMetrics === "object" ? profile.scopusMetrics : null,
     manualMetrics: profile.manualMetrics && typeof profile.manualMetrics === "object" ? profile.manualMetrics : null,
@@ -213,8 +213,8 @@ const mergeFacultyProfile = (fallbackProfile, liveProfile) => {
       ...liveProfile,
       id: liveProfile.id || fallbackProfile?.id,
       name: liveProfile.name || fallbackProfile?.name,
-      title: liveProfile.title || fallbackProfile?.title || "Title to verify",
-      bio: liveProfile.bio && !isPlaceholderContent(liveProfile.bio) ? liveProfile.bio : fallbackProfile?.bio || liveProfile.bio || "",
+      title: liveProfile.title || fallbackProfile?.title || "Faculty member",
+      bio: liveProfile.bio && !isPlaceholderContent(liveProfile.bio) ? liveProfile.bio : fallbackProfile?.bio || "",
       researchInterests: hasRealListContent(liveProfile.researchInterests) ? liveProfile.researchInterests : fallbackProfile?.researchInterests || liveProfile.researchInterests || [],
       highlights: hasRealListContent(liveProfile.highlights) ? liveProfile.highlights : fallbackProfile?.highlights || liveProfile.highlights || [],
       activities: hasRealListContent(liveProfile.activities) ? liveProfile.activities : fallbackProfile?.activities || liveProfile.activities || [],
@@ -259,7 +259,7 @@ const normalizeEquipment = item => ({
   ...item,
   id: item.id || "",
   category: publicCategory(item),
-  researchGroup: item.researchGroup || item.category || "Research area to verify",
+  researchGroup: item.researchGroup || item.category || "Research area",
   custodian: item.custodian || "",
   email: item.email || "",
   facilityId: item.facilityId || ""
@@ -401,15 +401,15 @@ const scopusMetricsMarkup = profile => {
       <div class="section-heading">
         <p class="section-index">${isScopus ? "Scopus metrics" : "Faculty-provided metrics"}</p>
         <div>
-          <h2 id="citation-metrics-title">Citation profile<br />${isScopus ? "from Scopus." : "fallback values."}</h2>
-          <p>${isScopus ? "Metrics are refreshed from the Scopus Author ID found in the faculty member's Scopus profile link." : "These values were entered by the faculty member and are shown when refreshed Scopus data is not available."}</p>
+          <h2 id="citation-metrics-title">Citation profile<br />${isScopus ? "from Scopus." : "available metrics."}</h2>
+          <p>${isScopus ? "Metrics are refreshed from the Scopus Author ID found in the faculty member's Scopus profile link." : "These values are shown when refreshed Scopus data is not available."}</p>
         </div>
       </div>
       <div class="profile-metric-grid">
         <article><span>H-index</span><strong>${clean(numberText(metrics.hIndex) || "NA")}</strong></article>
         <article><span>Citations</span><strong>${clean(numberText(metrics.citationCount) || "NA")}</strong></article>
         ${isScopus ? `<article><span>Documents</span><strong>${clean(numberText(metrics.documentCount) || "NA")}</strong></article>` : ""}
-        <p>${clean(isScopus ? `Scopus Author ID: ${scopusAuthorIdFor(profile) || "not detected"}${updated ? ` · Updated ${updated}` : ""}` : `Faculty-provided fallback${updated ? ` · Updated ${updated}` : ""}`)}</p>
+        <p>${clean(isScopus ? `Scopus Author ID: ${scopusAuthorIdFor(profile) || "not detected"}${updated ? ` · Updated ${updated}` : ""}` : `Faculty-provided metrics${updated ? ` · Updated ${updated}` : ""}`)}</p>
       </div>
     </section>
   `;
@@ -425,12 +425,12 @@ const renderProfileCard = (profile, index) => {
     <article class="faculty-card" data-categories="${clean([...categoriesFor(profile)].join(" "))}" style="--faculty-color:${color}">
       <div class="faculty-card-head">
         <span class="faculty-avatar">${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}</span>
-        <span class="faculty-state">${profile.sample ? "Needs verification" : "Faculty profile"}</span>
+        <span class="faculty-state">${profile.sample ? "Faculty contact" : "Faculty profile"}</span>
       </div>
       <h3>${clean(profile.name)}</h3>
-      <p>${clean(profile.title || "Title to verify")}</p>
+      <p>${clean(profile.title || "Faculty member")}</p>
       <div class="faculty-tags">
-        ${interests.length ? interests.map(item => `<span>${clean(item)}</span>`).join("") : `<span>Research interests to add</span>`}
+        ${interests.length ? interests.map(item => `<span>${clean(item)}</span>`).join("") : `<span>Physics faculty</span>`}
       </div>
       <dl class="faculty-meta">
         <div><dt>Highlights</dt><dd>${profile.highlights.length}</dd></div>
@@ -448,13 +448,13 @@ const renderFaculty = (filter = "all") => {
     : registry.faculty.filter(profile => categoriesFor(profile).has(filter));
   document.querySelector("#faculty-grid").innerHTML = filtered.length
     ? filtered.map(renderProfileCard).join("")
-    : `<div class="public-empty"><h3>No faculty profiles in this area yet</h3><p>Add research interests to faculty profiles in the registry to populate this expertise filter.</p></div>`;
+    : `<div class="public-empty"><h3>No faculty profiles in this area yet</h3><p>Try another expertise area or browse all faculty contacts.</p></div>`;
 };
 
 const renderExpertise = () => {
   const areas = new Map();
   registry.faculty.forEach(profile => {
-    const interests = profile.researchInterests.length ? profile.researchInterests : ["Research interests to add"];
+    const interests = profile.researchInterests.length ? profile.researchInterests : ["Physics faculty"];
     interests.forEach(interest => {
       const key = interest.toLowerCase();
       if (!areas.has(key)) areas.set(key, { title: interest, people: [], systems: new Set() });
@@ -468,7 +468,7 @@ const renderExpertise = () => {
     <article class="expertise-card" style="--facility-bg:${palette[index % palette.length]}">
       <span class="expertise-index">${String(index + 1).padStart(2, "0")}</span>
       <h3>${clean(area.title)}</h3>
-      <p>${clean(area.people.slice(0, 3).map(profile => profile.name).join(", ") || "Faculty profiles to verify")}</p>
+      <p>${clean(area.people.slice(0, 3).map(profile => profile.name).join(", ") || "Faculty contacts")}</p>
       <div class="expertise-foot">
         <span><strong>${area.people.length}</strong> faculty</span>
         <span><strong>${area.systems.size}</strong> linked system${area.systems.size === 1 ? "" : "s"}</span>
@@ -478,7 +478,7 @@ const renderExpertise = () => {
 
   document.querySelector("#expertise-grid").innerHTML = cards.length
     ? cards.join("")
-    : `<div class="public-empty"><h3>No expertise map yet</h3><p>Add faculty research interests to populate this section.</p></div>`;
+    : `<div class="public-empty"><h3>No expertise map yet</h3><p>Browse faculty profiles above while this expertise map grows.</p></div>`;
 };
 
 const updateSummary = () => {
@@ -503,19 +503,19 @@ const updateSummary = () => {
   });
 
   const liveFacultyCount = registry.faculty.filter(profile => !profile.sample).length;
-  document.querySelector("#faculty-data-status").textContent = registryAvailable ? "Live registry" : "Prototype data";
+  document.querySelector("#faculty-data-status").textContent = "Faculty expertise";
   document.querySelector("#faculty-data-message").textContent = fallbackMode
     ? liveFacultyCount
-      ? `Showing ${liveFacultyCount} updated public faculty profile${liveFacultyCount === 1 ? "" : "s"} with fallback placeholders for members who have not updated yet.`
-      : "Showing placeholder faculty profiles until verified faculty records are added."
-    : "Showing updated public faculty profiles from the shared registry.";
-  document.querySelector("#faculty-status-summary").textContent = `${facultyCount} faculty profile${facultyCount === 1 ? "" : "s"} with ${areaCount} research interest area${areaCount === 1 ? "" : "s"} and ${linkedSystems} linked public system${linkedSystems === 1 ? "" : "s"}.`;
+      ? `Browse ${liveFacultyCount} faculty profile${liveFacultyCount === 1 ? "" : "s"} alongside broader School of Physics contacts.`
+      : "Browse faculty contacts and research areas connected to the School of Physics."
+    : "Browse faculty profiles and research contacts from the School of Physics.";
+  document.querySelector("#faculty-status-summary").textContent = `${facultyCount} faculty contact${facultyCount === 1 ? "" : "s"} with ${areaCount} research interest area${areaCount === 1 ? "" : "s"} and ${linkedSystems} linked public system${linkedSystems === 1 ? "" : "s"}.`;
 };
 
 const listMarkup = (title, items) => `
   <section class="profile-panel">
     <p class="section-index">${clean(title)}</p>
-    <ul>${items.length ? items.map(item => `<li>${clean(item)}</li>`).join("") : `<li>Content to add</li>`}</ul>
+    <ul>${items.length ? items.map(item => `<li>${clean(item)}</li>`).join("") : `<li>Profile details will appear here as they become available.</li>`}</ul>
   </section>
 `;
 
@@ -528,10 +528,10 @@ const renderProfilePage = profile => {
   document.querySelector("#main").innerHTML = `
     <section id="top" class="faculty-profile-hero" style="--faculty-color:${safeColor(profile.color, palette[0])}">
       <div>
-        <p class="eyebrow"><span>Faculty profile</span><span>${clean(profile.sample ? "Needs verification" : "Research infographic")}</span></p>
+        <p class="eyebrow"><span>Faculty profile</span><span>${clean(profile.sample ? "Faculty contact" : "Research infographic")}</span></p>
         <h1>${clean(profile.name)}</h1>
-        <p class="hero-intro">${clean(profile.title || "Title to verify")}</p>
-        <p class="profile-bio">${clean(profile.bio || "Biography and research profile content can be added in the faculty registry.")}</p>
+        <p class="hero-intro">${clean(profile.title || "Faculty member")}</p>
+        <p class="profile-bio">${clean(profile.bio || "Biography and research interests will appear here as profile details are added.")}</p>
         <div class="profile-actions">
           ${validEmail(profile.email) ? `<a class="button button-primary" href="mailto:${clean(profile.email)}">Email faculty <span aria-hidden="true">↗</span></a>` : ""}
           <a class="text-link" href="faculty.html#directory">Back to faculty directory <span aria-hidden="true">→</span></a>
@@ -548,7 +548,7 @@ const renderProfilePage = profile => {
         <div><strong>${String(profile.researchInterests.length).padStart(2, "0")}</strong><span>research interests</span></div>
         <div><strong>${String(profile.highlights.length).padStart(2, "0")}</strong><span>highlights</span></div>
         <div><strong>${String(linked.length).padStart(2, "0")}</strong><span>linked systems</span></div>
-        <p>${clean(facilities.length ? `Associated facilities: ${facilities.join(" · ")}` : "Associated facilities can be selected directly by the faculty member, even before equipment ownership is recorded.")}</p>
+        <p>${clean(facilities.length ? `Associated facilities: ${facilities.join(" · ")}` : "Associated facilities help visitors understand where this faculty member's research and service activities connect.")}</p>
       </div>
     </section>
     <section class="profile-sections section-shell">
@@ -563,14 +563,14 @@ const renderProfilePage = profile => {
         <p class="section-index">Academic links</p>
         <div>
           <h2>Profiles and<br />research systems.</h2>
-          <p>External academic profiles are managed by each faculty member in the registry.</p>
+          <p>Use these links to explore the faculty member's academic profiles and research activity.</p>
         </div>
       </div>
       <div class="profile-link-grid">
         ${links.length ? links.map(link => `<a href="${clean(link.url)}" target="_blank" rel="noopener"><span class="profile-platform-mark profile-platform-${clean(slug(link.key))}" aria-hidden="true">${clean(link.mark)}</span><span class="profile-platform-label">${clean(link.label)}</span><span class="profile-link-arrow" aria-hidden="true">↗</span></a>`).join("") : `<span>No academic profile links have been added yet.</span>`}
       </div>
       <div class="profile-equipment-grid">
-        ${linked.length ? linked.map(item => `<article><span>${clean(item.category)}</span><h3>${clean(item.name)}</h3><p>${clean(item.researchGroup || item.category)}</p></article>`).join("") : `<article><span>Equipment</span><h3>No linked equipment yet</h3><p>This faculty profile still appears in the directory without equipment ownership.</p></article>`}
+        ${linked.length ? linked.map(item => `<article><span>${clean(item.category)}</span><h3>${clean(item.name)}</h3><p>${clean(item.researchGroup || item.category)}</p></article>`).join("") : `<article><span>Equipment</span><h3>No linked equipment yet</h3><p>This profile can still be a starting point for expertise, supervision, or collaboration questions.</p></article>`}
       </div>
     </section>
   `;

@@ -14,20 +14,21 @@
       href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=thai-ui-20260812" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="analytics.js" defer></script>
-    <script src="faculty.js" defer></script>
+    <script src="public-i18n.js?v=thai-ui-20260812" defer></script>
+    <script src="faculty.js?v=thai-ui-20260812" defer></script>
   </head>
   <body class="faculty-page">
     <a class="skip-link" href="#main">Skip to main content</a>
 
     <div class="prototype-note" role="note">
-      <span id="faculty-data-status">Prototype data</span>
-      <span id="faculty-data-message">Faculty profiles are generated from verified public faculty records when available.</span>
-      <a href="admin.html">Open internal registry <span aria-hidden="true">→</span></a>
+      <span id="faculty-data-status">Faculty expertise</span>
+      <span id="faculty-data-message">Explore faculty expertise, research interests, and collaboration contacts across the School of Physics.</span>
+      <a href="#directory">Browse faculty contacts <span aria-hidden="true">→</span></a>
     </div>
 
     <header class="site-header">
@@ -86,7 +87,7 @@
           <div><strong id="snapshot-faculty-count">00</strong><span>public contacts</span></div>
           <div><strong id="snapshot-area-count">00</strong><span>expertise areas</span></div>
           <div><strong id="snapshot-linked-count">00</strong><span>linked systems</span></div>
-          <p id="faculty-status-summary">Add verified custodians, emails, and research groups in the registry to publish named faculty profiles.</p>
+          <p id="faculty-status-summary">Use the directory to find faculty by expertise area, related facilities, and research systems.</p>
         </div>
       </section>
 
@@ -95,7 +96,7 @@
           <p class="section-index">02 / People</p>
           <div>
             <h2 id="directory-title">Faculty contacts<br />by research area.</h2>
-            <p>Profiles are built from faculty-maintained records, so every faculty member can appear whether or not they own equipment.</p>
+            <p>Browse faculty expertise, research interests, and contact pathways for study, research collaboration, services, and facility questions.</p>
           </div>
         </div>
 
@@ -127,9 +128,9 @@
         <p class="section-index">04 / Collaborate</p>
         <div class="contact-copy">
           <h2 id="faculty-contact-title">Need the right<br />faculty contact?</h2>
-          <p>Start with the facility or equipment record closest to your research question. The registry can route inquiries to the responsible faculty contact once verified emails are added.</p>
+          <p>Start with the research area, facility, or equipment closest to your question. We can help identify an appropriate faculty contact.</p>
           <a class="button button-light" href="index.html#contact">Discuss a project <span aria-hidden="true">↗</span></a>
-          <small>Named profiles require verified registry data before publication.</small>
+          <small>Faculty contacts help visitors connect with the right expertise.</small>
         </div>
       </section>
     </main>
@@ -143,7 +144,7 @@
           <small class="identity-institute">Institute of Science, Suranaree University of Technology</small>
         </span>
       </div>
-      <p>Prototype interface · Replace sample content before publication</p>
+      <p>Physics faculty · Research, teaching, and collaboration</p>
       <a href="#top">Back to top <span aria-hidden="true">↑</span></a>
     </footer>
   </body>
