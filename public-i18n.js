@@ -56,7 +56,7 @@ const textTranslations = {
   "example records": "รายการตัวอย่าง",
   "facility clusters": "กลุ่มห้องปฏิบัติการ",
   "capability areas": "ด้านความสามารถ",
-  "One connected Physics SUT environment for biomedical photonics, spectroscopy, fabrication, lasers, integrated photonics, quantum technology, theoretical physics, nanomaterials, and artificial intelligence. Thai research keywords: เลเซอร์, โฟโตนิกส์, โฟตอนนิกส์, ควอนตัม, ฟิสิกส์ทฤษฎี, วัสดุนาโน.": "สภาพแวดล้อม Physics SUT ที่เชื่อมโยงงานโฟโตนิกส์ชีวการแพทย์ สเปกโทรสโกปี การสร้างชิ้นงาน เลเซอร์ โฟโตนิกส์เชิงบูรณาการ เทคโนโลยีควอนตัม ฟิสิกส์ทฤษฎี วัสดุนาโน และปัญญาประดิษฐ์",
+  "One connected environment for measurement, fabrication, modeling, and collaboration across Physics SUT research facilities.": "สภาพแวดล้อมที่เชื่อมโยงการวัด การสร้างชิ้นงาน การสร้างแบบจำลอง และความร่วมมือในห้องปฏิบัติการวิจัยของ Physics SUT",
   "Research spectrum": "ขอบเขตงานวิจัย",
   "From atomic structure": "จากโครงสร้างระดับอะตอม",
   "to complex systems.": "สู่ระบบที่ซับซ้อน",
