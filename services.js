@@ -91,13 +91,13 @@ const updateSummary = () => {
     if (summaryCount) summaryCount.textContent = String(count).padStart(2, "0");
     if (filterCount) filterCount.textContent = String(count).padStart(2, "0");
   });
-  document.querySelector("#services-data-status").textContent = registryAvailable ? "Live services" : "Prototype data";
+  document.querySelector("#services-data-status").textContent = services.length ? "Available services" : "Service interests";
   document.querySelector("#services-data-message").textContent = services.length
-    ? `Showing ${services.length} verified public service${services.length === 1 ? "" : "s"} managed by faculty.`
-    : "No verified public services are available yet. Faculty can add service details in the internal registry.";
+    ? `${services.length} service option${services.length === 1 ? "" : "s"} currently match visitor and partner needs.`
+    : "Tell us what measurement, training, workshop, or STEM support would help your work.";
   document.querySelector("#services-status-summary").textContent = services.length
-    ? "Published services are grouped by category and routed to the responsible faculty contact."
-    : "The service catalog is ready for faculty-managed records; visitors see a coming soon state until services are verified.";
+    ? "Service options are grouped by category so you can find the closest starting point."
+    : "Use the survey below to share the kind of service, timing, format, and outcome you are looking for.";
 };
 
 const comingSoonMarkup = () => `
@@ -105,9 +105,9 @@ const comingSoonMarkup = () => `
     <div class="coming-soon-animation" aria-hidden="true">
       <span></span><span></span><span></span><span></span>
     </div>
-    <p class="section-index">Catalog status</p>
+    <p class="section-index">Service interests</p>
     <h3 id="coming-soon-title">Services coming soon</h3>
-    <p>Faculty-managed service records will appear here after details, contact routes, and publication status are verified.</p>
+    <p>We are gathering interest in measurements, short courses, workshops, and STEM activities. Share your need below so the right expertise can follow up.</p>
     <div class="coming-soon-categories">
       ${Object.values(SERVICE_CATEGORIES).map(label => `<span>${clean(label)}</span>`).join("")}
     </div>
@@ -131,7 +131,7 @@ const serviceCard = service => {
     <article class="service-card">
       <div class="service-card-top"><span>${clean(categoryLabel(service.category))}</span><span>${clean(service.id)}</span></div>
       <h3>${clean(service.title)}</h3>
-      <p>${clean(service.summary || service.details || "Service details are being prepared by the responsible faculty member.")}</p>
+      <p>${clean(service.summary || service.details || "Contact the School of Physics to discuss the scope, timing, and expected outcome for this service.")}</p>
       ${service.details && service.summary ? `<p class="service-detail">${clean(service.details)}</p>` : ""}
       <dl class="service-meta">
         ${details.map(([label, value]) => `<div><dt>${clean(label)}</dt><dd>${clean(value)}</dd></div>`).join("")}
@@ -150,7 +150,7 @@ const renderServices = (filter = "all") => {
   target.innerHTML = services.length
     ? filtered.length
       ? filtered.map(serviceCard).join("")
-      : `<div class="public-empty"><h3>No public services in this category</h3><p>Publish a verified ${clean(categoryLabel(filter).toLowerCase())} service to display it here.</p></div>`
+      : `<div class="public-empty"><h3>No services listed in this category yet</h3><p>Use the survey below to tell us what kind of ${clean(categoryLabel(filter).toLowerCase())} support you need.</p></div>`
     : comingSoonMarkup();
 };
 
@@ -223,7 +223,7 @@ const prepareSurveyEmail = event => {
     `Organization or school: ${data.organization || "Not provided"}`
   ];
   const subject = `Service needs survey: ${categories.slice(0, 2).join(", ")}`;
-  setSurveyMessage("Email draft prepared in your mail application.", "success");
+  setSurveyMessage("Your service request summary is ready to send.", "success");
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
 };
 
