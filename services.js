@@ -74,8 +74,12 @@ const loadServices = async () => {
 };
 
 const facultyFor = id => faculty.find(profile => profile.id === id);
-const serviceOwner = service => facultyFor(service.facultyId)?.name || service.contactName || "Faculty owner to confirm";
+const serviceOwner = service => facultyFor(service.facultyId)?.name || service.contactName || "Contact to be confirmed";
 const serviceContact = service => service.contactEmail || facultyFor(service.facultyId)?.email || "";
+const setText = (selector, value) => {
+  const element = document.querySelector(selector);
+  if (element) element.textContent = value;
+};
 
 const counts = () => Object.keys(SERVICE_CATEGORIES).reduce((result, category) => {
   result[category] = services.filter(service => service.category === category).length;
@@ -84,20 +88,20 @@ const counts = () => Object.keys(SERVICE_CATEGORIES).reduce((result, category) =
 
 const updateSummary = () => {
   const serviceCounts = counts();
-  document.querySelector("#services-count").textContent = String(services.length).padStart(2, "0");
+  setText("#services-count", String(services.length).padStart(2, "0"));
   Object.entries(serviceCounts).forEach(([category, count]) => {
     const summaryCount = document.querySelector(`[data-service-count="${category}"]`);
     const filterCount = document.querySelector(`[data-service-filter-count="${category}"]`);
     if (summaryCount) summaryCount.textContent = String(count).padStart(2, "0");
     if (filterCount) filterCount.textContent = String(count).padStart(2, "0");
   });
-  document.querySelector("#services-data-status").textContent = services.length ? "Available services" : "Service interests";
-  document.querySelector("#services-data-message").textContent = services.length
+  setText("#services-data-status", services.length ? "Available services" : "Service interests");
+  setText("#services-data-message", services.length
     ? `${services.length} service option${services.length === 1 ? "" : "s"} currently match visitor and partner needs.`
-    : "Tell us what measurement, training, workshop, or STEM support would help your work.";
-  document.querySelector("#services-status-summary").textContent = services.length
+    : "Tell us what measurement, training, workshop, or STEM support would help your work.");
+  setText("#services-status-summary", services.length
     ? "Service options are grouped by category so you can find the closest starting point."
-    : "Use the survey below to share the kind of service, timing, format, and outcome you are looking for.";
+    : "Use the survey below to share the kind of service, timing, format, and outcome you are looking for.");
 };
 
 const comingSoonMarkup = () => `
@@ -107,7 +111,7 @@ const comingSoonMarkup = () => `
     </div>
     <p class="section-index">Service interests</p>
     <h3 id="coming-soon-title">Services coming soon</h3>
-    <p>We are gathering interest in measurements, short courses, workshops, and STEM activities. Share your need below so the right expertise can follow up.</p>
+    <p>We are gathering interest in measurements, short courses, workshops, and STEM activities. Share your need below to help shape future service options.</p>
     <div class="coming-soon-categories">
       ${Object.values(SERVICE_CATEGORIES).map(label => `<span>${clean(label)}</span>`).join("")}
     </div>
@@ -137,7 +141,7 @@ const serviceCard = service => {
         ${details.map(([label, value]) => `<div><dt>${clean(label)}</dt><dd>${clean(value)}</dd></div>`).join("")}
       </dl>
       <div class="service-card-foot">
-        <span>Managed by<br /><b>${clean(owner)}</b></span>
+        <span>Contact<br /><b>${clean(owner)}</b></span>
         <a class="text-link" href="${clean(mailto)}">${validEmail(contact) ? "Contact" : "Find faculty"} <span aria-hidden="true">→</span></a>
       </div>
     </article>
@@ -204,7 +208,7 @@ const prepareSurveyEmail = event => {
   }
   const data = Object.fromEntries(new FormData(surveyForm).entries());
   const lines = [
-    "Service needs survey",
+    "Service request summary",
     "",
     `Service area: ${categories.join(", ")}`,
     `Visitor role: ${data.visitorRole || "Not provided"}`,

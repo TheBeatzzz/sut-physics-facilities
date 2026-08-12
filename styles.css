@@ -22,6 +22,7 @@ body {
   background: var(--paper);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 a { color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -209,6 +210,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 42px;
   padding: clamp(70px, 9vw, 124px) clamp(22px, 5vw, 72px) 86px; overflow: hidden;
 }
+.services-hero-copy { min-width: 0; max-width: 100%; }
 .services-hero h1 {
   max-width: 850px; margin: 0; font: 400 clamp(58px, 7vw, 108px)/.86 var(--serif);
   letter-spacing: -.055em;
@@ -593,7 +595,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .faculty-hero { padding-top: 58px; padding-bottom: 60px; gap: 50px; }
   .faculty-hero h1 { font-size: clamp(52px, 16vw, 76px); }
   .services-hero { padding-top: 58px; padding-bottom: 60px; gap: 50px; }
-  .services-hero h1 { font-size: clamp(52px, 16vw, 76px); }
+  .services-hero h1 { font-size: clamp(42px, 13vw, 58px); letter-spacing: -.04em; }
+  .services-hero .button { min-width: 0; }
   .services-grid { grid-template-columns: 1fr; }
   .service-card { min-height: 430px; }
   .service-meta { grid-template-columns: 1fr; }
