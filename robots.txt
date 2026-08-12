@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /tmp/
+Disallow: /output/
+
+Sitemap: https://thebeatzzz.github.io/sut-physics-facilities/sitemap.xml
