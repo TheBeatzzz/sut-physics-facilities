@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Certified measurements, short courses, workshops, and STEM services from the School of Physics at Suranaree University of Technology."
+    />
+    <title>Services · SUT Physics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="analytics.js" defer></script>
+    <script src="services.js" defer></script>
+  </head>
+  <body class="services-page">
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <div class="prototype-note" role="note">
+      <span id="services-data-status">Prototype data</span>
+      <span id="services-data-message">Verified public services will appear here after faculty add and publish them.</span>
+      <a href="admin.html">Open internal registry <span aria-hidden="true">→</span></a>
+    </div>
+
+    <header class="site-header">
+      <a class="identity" href="index.html" aria-label="Research facilities overview">
+        <span class="identity-mark" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span class="identity-copy">
+          <strong>School of Physics</strong>
+          <small>Services</small>
+          <small class="identity-institute">Institute of Science, Suranaree University of Technology</small>
+        </span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span>Menu</span><i aria-hidden="true"></i>
+      </button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="index.html#facilities">Facilities</a>
+        <a href="index.html#equipment">Equipment</a>
+        <a href="faculty.html">Faculty</a>
+        <a href="#service-list">Services</a>
+        <a href="#service-survey">Survey</a>
+        <a class="nav-cta" href="#service-survey">Request a service <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section id="top" class="services-hero" aria-labelledby="services-title">
+        <div class="services-hero-copy">
+          <p class="eyebrow"><span>Physics services</span><span>Faculty managed</span></p>
+          <h1 id="services-title">Services for<br /><em>measurement, learning, and outreach.</em></h1>
+          <p class="hero-intro">
+            Faculty can publish certified measurements, short courses, workshops, and STEM services with details, contacts, schedules, and review status.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#service-list">View services <span aria-hidden="true">↓</span></a>
+            <a class="text-link" href="faculty.html">Find faculty owners <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+
+        <div class="services-orbit" aria-label="Animated service readiness indicator">
+          <div class="service-core"><span id="services-count">00</span><small>public<br />services</small></div>
+          <i class="service-pulse pulse-a"></i>
+          <i class="service-pulse pulse-b"></i>
+          <i class="service-pulse pulse-c"></i>
+          <i class="service-pulse pulse-d"></i>
+        </div>
+      </section>
+
+      <section class="signal-strip services-strip" aria-label="Service category summary">
+        <p class="section-index">01 / Categories</p>
+        <div class="signal-grid">
+          <div><strong data-service-count="certified-measurements">00</strong><span>certified measurements</span></div>
+          <div><strong data-service-count="short-courses">00</strong><span>short courses</span></div>
+          <div><strong data-service-count="workshops">00</strong><span>workshops</span></div>
+          <div><strong data-service-count="stem">00</strong><span>STEM services</span></div>
+          <p id="services-status-summary">Services are published only after faculty add details and mark records as verified for public display.</p>
+        </div>
+      </section>
+
+      <section id="service-list" class="services-directory section-shell" aria-labelledby="service-list-title">
+        <div class="section-heading">
+          <p class="section-index">02 / Services</p>
+          <div>
+            <h2 id="service-list-title">Faculty-owned<br />service records.</h2>
+            <p>Each public service has a responsible faculty owner, contact route, and current availability details.</p>
+          </div>
+        </div>
+
+        <div id="service-category-filters" class="filters" role="group" aria-label="Filter services by category">
+          <button type="button" class="filter is-active" data-filter="all" aria-pressed="true">All services <span data-service-filter-count="all">00</span></button>
+          <button type="button" class="filter" data-filter="certified-measurements" aria-pressed="false">Certified measurements <span data-service-filter-count="certified-measurements">00</span></button>
+          <button type="button" class="filter" data-filter="short-courses" aria-pressed="false">Short courses <span data-service-filter-count="short-courses">00</span></button>
+          <button type="button" class="filter" data-filter="workshops" aria-pressed="false">Workshops <span data-service-filter-count="workshops">00</span></button>
+          <button type="button" class="filter" data-filter="stem" aria-pressed="false">STEM <span data-service-filter-count="stem">00</span></button>
+        </div>
+
+        <div id="services-grid" class="services-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="service-survey" class="service-survey section-shell" aria-labelledby="service-survey-title">
+        <div class="section-heading">
+          <p class="section-index">03 / Needs survey</p>
+          <div>
+            <h2 id="service-survey-title">Tell us what<br />service you need.</h2>
+            <p>This short survey helps faculty understand demand for measurements, courses, workshops, and STEM activities. Responses are prepared as an email draft from your device; this page does not store submissions.</p>
+          </div>
+        </div>
+
+        <form id="service-survey-form" class="service-survey-form">
+          <fieldset class="survey-block">
+            <legend>Service area</legend>
+            <p>Select every category that may fit your need.</p>
+            <div class="survey-choice-grid" id="survey-category-group">
+              <label><input type="checkbox" name="serviceCategory" value="Certified measurements" /><span>Certified measurements</span></label>
+              <label><input type="checkbox" name="serviceCategory" value="Short courses" /><span>Short courses</span></label>
+              <label><input type="checkbox" name="serviceCategory" value="Workshops" /><span>Workshops</span></label>
+              <label><input type="checkbox" name="serviceCategory" value="STEM" /><span>STEM</span></label>
+            </div>
+          </fieldset>
+
+          <div class="survey-grid">
+            <label>
+              <span>Your role <b aria-hidden="true">*</b></span>
+              <select name="visitorRole" required>
+                <option value="">Choose one</option>
+                <option>Industry or company partner</option>
+                <option>Researcher or laboratory staff</option>
+                <option>University student</option>
+                <option>School teacher</option>
+                <option>School student</option>
+                <option>Government or public organization</option>
+                <option>Other visitor</option>
+              </select>
+            </label>
+            <label>
+              <span>Preferred timing <b aria-hidden="true">*</b></span>
+              <select name="timeline" required>
+                <option value="">Choose one</option>
+                <option>As soon as possible</option>
+                <option>Within 1 month</option>
+                <option>Within 3 months</option>
+                <option>This semester</option>
+                <option>Still exploring</option>
+              </select>
+            </label>
+            <label>
+              <span>Preferred format</span>
+              <select name="format">
+                <option>On campus at SUT</option>
+                <option>Online</option>
+                <option>Hybrid</option>
+                <option>On-site at my organization</option>
+                <option>Not sure yet</option>
+              </select>
+            </label>
+            <label>
+              <span>Expected group size</span>
+              <input name="groupSize" type="text" inputmode="numeric" placeholder="e.g. 1, 12, 40 students" />
+            </label>
+            <label class="survey-span">
+              <span>Main need or question <b aria-hidden="true">*</b></span>
+              <textarea name="mainNeed" rows="5" required placeholder="Describe the measurement, training topic, workshop theme, STEM activity, sample, audience, or problem you want help with."></textarea>
+            </label>
+            <label class="survey-span">
+              <span>Output or outcome you hope for</span>
+              <textarea name="desiredOutcome" rows="3" placeholder="Examples: certificate, report, training completion, demonstration activity, measurement result, method advice."></textarea>
+            </label>
+            <label>
+              <span>Your name</span>
+              <input name="visitorName" autocomplete="name" placeholder="Name" />
+            </label>
+            <label>
+              <span>Email for follow-up</span>
+              <input name="visitorEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+            </label>
+            <label class="survey-span">
+              <span>Organization or school</span>
+              <input name="organization" autocomplete="organization" placeholder="Company, laboratory, school, or institution" />
+            </label>
+          </div>
+
+          <div class="survey-foot">
+            <p id="service-survey-message" role="status" aria-live="polite">Select at least one service area before preparing the email draft.</p>
+            <button class="button button-primary" type="submit">Prepare email draft <span aria-hidden="true">↗</span></button>
+          </div>
+        </form>
+      </section>
+
+      <section id="service-contact" class="contact services-contact" aria-labelledby="service-contact-title">
+        <div class="contact-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="section-index">04 / Request</p>
+        <div class="contact-copy">
+          <h2 id="service-contact-title">Need a<br />physics service?</h2>
+          <p>Use a published service contact when available, or start with the faculty directory while the service catalog is being prepared.</p>
+          <a class="button button-light" href="faculty.html#directory">Browse faculty <span aria-hidden="true">↗</span></a>
+          <small>Services require verified faculty-managed records before publication.</small>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="identity identity-footer">
+        <span class="identity-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="identity-copy">
+          <strong>School of Physics</strong>
+          <small>Services</small>
+          <small class="identity-institute">Institute of Science, Suranaree University of Technology</small>
+        </span>
+      </div>
+      <p>Faculty-managed services · Replace placeholders before publication</p>
+      <a href="#top">Back to top <span aria-hidden="true">↑</span></a>
+    </footer>
+  </body>
+</html>

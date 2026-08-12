@@ -161,6 +161,50 @@
     sample: Boolean(profile.sample)
   });
 
+  const camelService = row => ({
+    id: row.id,
+    title: row.title,
+    category: row.category || "workshops",
+    summary: row.summary || "",
+    details: row.details || "",
+    audience: row.audience || "",
+    duration: row.duration || "",
+    schedule: row.schedule || "",
+    fee: row.fee || "",
+    location: row.location || "",
+    contactName: row.contact_name || "",
+    contactEmail: row.contact_email || "",
+    facultyId: row.faculty_id || "",
+    ownerEmail: row.owner_email || "",
+    publicReady: Boolean(row.public_ready),
+    reviewStatus: row.review_status || "Draft",
+    submitterNotes: row.submitter_notes || "",
+    sample: Boolean(row.sample),
+    createdAt: String(row.created_at || "").slice(0, 10),
+    updatedAt: String(row.updated_at || "").slice(0, 10)
+  });
+
+  const snakeService = service => ({
+    id: service.id,
+    title: service.title,
+    category: service.category || "workshops",
+    summary: service.summary || null,
+    details: service.details || null,
+    audience: service.audience || null,
+    duration: service.duration || null,
+    schedule: service.schedule || null,
+    fee: service.fee || null,
+    location: service.location || null,
+    contact_name: service.contactName || null,
+    contact_email: service.contactEmail || null,
+    faculty_id: service.facultyId || null,
+    owner_email: service.ownerEmail || null,
+    public_ready: Boolean(service.publicReady),
+    review_status: service.reviewStatus || "Draft",
+    submitter_notes: service.submitterNotes || null,
+    sample: Boolean(service.sample)
+  });
+
   const camelVisitorEvent = row => ({
     id: row.id,
     eventName: row.event_name || "page_view",
@@ -252,21 +296,26 @@
     const facilitiesQuery = supabase.from("facilities").select("*").order("id", { ascending: true });
     let facultyQuery = supabase.from("faculty").select("*").order("name", { ascending: true });
     let equipmentQuery = supabase.from("equipment").select("*").order("updated_at", { ascending: false });
+    let servicesQuery = supabase.from("services").select("*").order("updated_at", { ascending: false });
     if (publicOnly) {
       facultyQuery = facultyQuery.eq("public_ready", true);
       equipmentQuery = equipmentQuery.eq("review_status", "Verified").eq("public_ready", true);
+      servicesQuery = servicesQuery.eq("review_status", "Verified").eq("public_ready", true);
     }
 
-    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }] = await Promise.all([
+    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }] = await Promise.all([
       facilitiesQuery,
       facultyQuery,
-      equipmentQuery
+      equipmentQuery,
+      servicesQuery
     ]);
 
     if (facilityError) throw facilityError;
     const facultyTableMissing = facultyError && ["42P01", "PGRST205"].includes(facultyError.code);
+    const servicesTableMissing = servicesError && ["42P01", "PGRST205"].includes(servicesError.code);
     if (facultyError && !facultyTableMissing) throw facultyError;
     if (equipmentError) throw equipmentError;
+    if (servicesError && !servicesTableMissing) throw servicesError;
 
     return {
       meta: {
@@ -278,7 +327,8 @@
       },
       facilities: (facilities || []).map(camelFacility),
       faculty: facultyTableMissing ? [] : (faculty || []).map(camelFaculty),
-      equipment: (equipment || []).map(camelEquipment)
+      equipment: (equipment || []).map(camelEquipment),
+      services: servicesTableMissing ? [] : (services || []).map(camelService)
     };
   };
 
@@ -332,6 +382,23 @@
   const deleteFaculty = async id => {
     const supabase = getClient();
     const { error } = await supabase.from("faculty").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const saveService = async service => {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from("services")
+      .upsert(snakeService(service), { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return camelService(data);
+  };
+
+  const deleteService = async id => {
+    const supabase = getClient();
+    const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) throw error;
   };
 
@@ -465,6 +532,8 @@
     deleteFacility,
     saveFaculty,
     deleteFaculty,
+    saveService,
+    deleteService,
     trackVisit,
     loadVisitorStats,
     refreshScopusMetrics,

@@ -1,5 +1,11 @@
 const STORAGE_KEY = "sut-physics-equipment-registry-v3";
 const DESCRIPTION_LIMIT = 800;
+const SERVICE_CATEGORIES = {
+  "certified-measurements": "Certified measurements",
+  "short-courses": "Short courses",
+  workshops: "Workshops",
+  stem: "STEM"
+};
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
   id,
@@ -115,6 +121,7 @@ const sampleDatabase = {
     { id: "FAC-06", name: "Quantum Computing Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility for quantum computing research, design, simulation, and experimental activities.", color: "#c1b2df" },
     { id: "FAC-07", name: "AI, Machine Vision & Medical Intelligence Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for deep learning, machine vision, and AI-assisted medical diagnosis system design and implementation.", color: "#7fc5b2" }
   ],
+  services: [],
   equipment: [
     sampleRecord("EQ-001", "Photon Counting Scanning Confocal Microscopy", "Imaging", "FAC-01", "Biomedical photonics"),
     sampleRecord("EQ-002", "Fluorescent Life-Time Measurement", "Optics & photonics", "FAC-01", "Biomedical photonics"),
@@ -167,6 +174,7 @@ const normalizeDatabase = value => ({
   meta: { ...clone(sampleDatabase.meta), ...(value?.meta || {}) },
   faculty: isGenericSampleFaculty(value?.faculty) ? clone(sampleDatabase.faculty) : Array.isArray(value?.faculty) ? normalizeFacultyNames(value.faculty) : [],
   facilities: Array.isArray(value?.facilities) ? value.facilities : [],
+  services: Array.isArray(value?.services) ? value.services : [],
   equipment: Array.isArray(value?.equipment) ? value.equipment : []
 });
 const loadDatabase = () => {
@@ -192,6 +200,8 @@ let lastFacilityError = null;
 let editingFacilityId = null;
 let lastFacultyError = null;
 let editingFacultyId = null;
+let lastServiceError = null;
+let editingServiceId = null;
 let visitorEvents = [];
 let visitorStatsError = "";
 
@@ -239,6 +249,8 @@ const extractScopusAuthorId = value => {
   return match ? match[1] : "";
 };
 const facilityFor = id => db.facilities.find(item => item.id === id);
+const facultyFor = id => db.faculty.find(item => item.id === id);
+const serviceCategoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
 const photoSrc = photo => backend?.photoSrc?.(photo) || photo?.url || photo?.data || "";
 const save = () => {
@@ -478,6 +490,33 @@ async function persistFaculty(profile) {
   }
 }
 
+async function persistService(service) {
+  lastServiceError = null;
+  if (!backendReady) {
+    const index = db.services.findIndex(item => item.id === service.id);
+    if (index >= 0) db.services[index] = service; else db.services.unshift(service);
+    save();
+    return true;
+  }
+  try {
+    const savedService = await backend.saveService(service);
+    const index = db.services.findIndex(item => item.id === savedService.id);
+    if (index >= 0) db.services[index] = savedService; else db.services.unshift(savedService);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    return true;
+  } catch (error) {
+    const schemaMessage = /schema cache|services|PGRST|42P01/i.test(String(error.message || ""))
+      ? "Supabase needs the latest services schema. Run supabase-schema.sql in SQL Editor, then try saving this service again."
+      : "";
+    const rlsMessage = /row-level security|violates.*policy/i.test(String(error.message || ""))
+      ? "Supabase blocked this service save. Confirm your faculty profile owner email matches your sign-in email, or ask a registry manager to approve it."
+      : "";
+    lastServiceError = new Error(schemaMessage || rlsMessage || error.message || "Could not save service to Supabase");
+    showToast(lastServiceError.message);
+    return false;
+  }
+}
+
 function showToast(message) {
   clearTimeout(toastTimer);
   $("#toast p").textContent = message;
@@ -489,7 +528,7 @@ function showView(view, options = {}) {
   activeView = view;
   $$(".nav-item").forEach(item => item.classList.toggle("is-active", item.dataset.view === view));
   $$(".view").forEach(panel => panel.classList.toggle("is-visible", panel.dataset.viewPanel === view));
-  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", facilities: "Facilities directory", data: "Data & export" };
+  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
   $("#page-context").textContent = labels[view];
   $("#sidebar").classList.remove("is-open");
   $(".mobile-menu").setAttribute("aria-expanded", "false");
@@ -508,6 +547,7 @@ function renderAll() {
   renderEquipmentTable();
   renderSubmissions();
   renderFacilities();
+  renderServices();
 }
 
 function renderNavigationCounts() {
@@ -515,6 +555,8 @@ function renderNavigationCounts() {
   $("#submission-nav-count").textContent = db.equipment.filter(item => item.reviewStatus === "Submitted").length || "";
   const facultyCount = $("#faculty-nav-count");
   if (facultyCount) facultyCount.textContent = db.faculty.length;
+  const servicesCount = $("#services-nav-count");
+  if (servicesCount) servicesCount.textContent = db.services.length;
 }
 
 function renderOverview() {
@@ -589,6 +631,7 @@ function pageLabel(path) {
   if (cleanPath === "/" || cleanPath.endsWith("/index.html")) return "Facilities overview";
   if (cleanPath.includes("faculty.html?id=")) return "Faculty profile";
   if (cleanPath.includes("faculty.html")) return "Faculty directory";
+  if (cleanPath.includes("services.html")) return "Services";
   return cleanPath;
 }
 function visitorRows(rows, empty = "No data yet") {
@@ -674,6 +717,15 @@ function populateFacilityOptions() {
   if ([...filter.options].some(option => option.value === previous)) filter.value = previous;
   $("#record-facility").innerHTML = `<option value="">Select facility</option>${options}`;
   populateFacultyFacilityOptions();
+  populateServiceFacultyOptions();
+}
+
+function populateServiceFacultyOptions(selected = "") {
+  const target = $("#service-faculty");
+  if (!target) return;
+  const previous = selected || target.value;
+  target.innerHTML = `<option value="">Choose faculty profile</option>${db.faculty.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
+  if ([...target.options].some(option => option.value === previous)) target.value = previous;
 }
 
 function populateFacultyFacilityOptions(selected = []) {
@@ -775,6 +827,118 @@ function renderFacilities() {
     const count = db.equipment.filter(item => item.facilityId === facility.id).length;
     return `<article class="facility-card" data-facility-id="${clean(facility.id)}"><div class="facility-visual" style="--facility-color:${facility.color || facilityPalette[index % facilityPalette.length]}"></div><div class="facility-card-meta"><span>${clean(facility.id)}</span><span>${clean(facility.building || "Building not set")} · ${clean(facility.room || "Room not set")}</span></div><h2>${clean(facility.name)}</h2><p>${clean(facility.description || "No facility description has been added.")}</p><div class="facility-card-foot"><span><strong>${count}</strong> equipment record${count === 1 ? "" : "s"}</span><span>Lead<br /><b>${clean(facility.lead || "Not assigned")}</b></span><button class="text-button" type="button" data-edit-facility="${clean(facility.id)}" aria-label="Edit ${clean(facility.name)}">Edit <span>→</span></button><button class="text-button" type="button" data-delete-facility="${clean(facility.id)}" aria-label="Delete ${clean(facility.name)}">Delete <span>×</span></button></div></article>`;
   }).join("");
+}
+
+function serviceOwner(service) {
+  const profile = facultyFor(service.facultyId);
+  return profile?.name || service.contactName || "Faculty owner to assign";
+}
+
+function renderServices() {
+  const grid = $("#service-grid");
+  if (!grid) return;
+  $("#service-result-count").textContent = db.services.length;
+  grid.innerHTML = db.services.length ? db.services.map(service => `
+    <article class="service-admin-card" data-service-id="${clean(service.id)}">
+      <div class="service-admin-meta"><span>${clean(serviceCategoryLabel(service.category))}</span>${reviewPill(service.reviewStatus || "Draft")}</div>
+      <h2>${clean(service.title)}</h2>
+      <p>${clean(service.summary || service.details || "Service details have not been added yet.")}</p>
+      <div class="service-admin-foot">
+        <span><strong>${clean(service.duration || "TBD")}</strong> duration</span>
+        <span><strong>${clean(service.schedule || "TBD")}</strong> schedule</span>
+        <span><strong>${clean(serviceOwner(service))}</strong> owner</span>
+        <span><strong>${service.publicReady ? "Yes" : "No"}</strong> public</span>
+        <button class="text-button" type="button" data-edit-service="${clean(service.id)}" aria-label="Edit ${clean(service.title)}">Edit <span>→</span></button>
+        <button class="text-button" type="button" data-delete-service="${clean(service.id)}" aria-label="Delete ${clean(service.title)}">Delete <span>×</span></button>
+      </div>
+    </article>
+  `).join("") : `<div class="empty-state panel"><span>+</span><h2>No services yet</h2><p>Add a service record when certified measurements, short courses, workshops, or STEM offerings are ready.</p></div>`;
+}
+
+function setServiceMessage(message = "", type = "") {
+  const target = $("#service-message");
+  if (!target) return;
+  target.textContent = message;
+  target.className = type ? `is-${type}` : "";
+}
+
+function openServiceDialog(id = null) {
+  const form = $("#service-form");
+  const service = id ? db.services.find(item => item.id === id) : null;
+  const faculty = currentFacultyProfile();
+  editingServiceId = service?.id || null;
+  form.reset();
+  setServiceMessage();
+  $("#service-form-title").textContent = service ? "Edit service" : "Add service";
+  $("#service-primary-action").textContent = service ? "Save service" : "Add service";
+  populateServiceFacultyOptions(service?.facultyId || faculty?.id || "");
+  if (service) {
+    ["title", "category", "summary", "details", "audience", "duration", "schedule", "fee", "location", "contactName", "contactEmail", "ownerEmail", "reviewStatus", "submitterNotes"].forEach(key => {
+      const field = form.elements.namedItem(key);
+      if (field) field.value = service[key] || "";
+    });
+    form.elements.publicReady.checked = Boolean(service.publicReady);
+  } else {
+    form.elements.category.value = "certified-measurements";
+    form.elements.reviewStatus.value = "Draft";
+    form.elements.publicReady.checked = false;
+    if (faculty) {
+      form.elements.facultyId.value = faculty.id;
+      form.elements.contactName.value = faculty.name || "";
+      form.elements.contactEmail.value = signedInEmail() || faculty.email || "";
+      form.elements.ownerEmail.value = signedInEmail() || faculty.ownerEmail || faculty.email || "";
+    } else if (signedInEmail()) {
+      form.elements.contactEmail.value = signedInEmail();
+      form.elements.ownerEmail.value = signedInEmail();
+    }
+  }
+  $("#service-dialog").showModal();
+  setTimeout(() => form.elements.namedItem("title")?.focus(), 50);
+}
+
+function serviceFromForm(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  Object.keys(data).forEach(key => { data[key] = String(data[key] || "").trim(); });
+  const existing = editingServiceId ? db.services.find(item => item.id === editingServiceId) : null;
+  const numericIds = db.services.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
+  const id = existing?.id || `SERV-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
+  const profile = facultyFor(data.facultyId);
+  return {
+    ...existing,
+    ...data,
+    id,
+    contactName: data.contactName || profile?.name || "",
+    contactEmail: data.contactEmail || profile?.email || signedInEmail(),
+    ownerEmail: data.ownerEmail || profile?.ownerEmail || profile?.email || signedInEmail(),
+    publicReady: form.elements.publicReady.checked,
+    createdAt: existing?.createdAt || today(),
+    updatedAt: today(),
+    sample: existing?.sample || false
+  };
+}
+
+async function deleteService(id) {
+  const service = db.services.find(item => item.id === id);
+  if (!service) return;
+  const confirmed = await askConfirm("Delete service?", `“${service.title}” will be removed from ${backendReady ? "the shared Supabase registry" : "this browser database"}.`);
+  if (!confirmed) return;
+  const previousServices = clone(db.services);
+  db.services = db.services.filter(item => item.id !== id);
+  if (backendReady) {
+    try {
+      await backend.deleteService(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch (error) {
+      db.services = previousServices;
+      renderAll();
+      showToast(error.message || "Could not delete service from Supabase");
+      return;
+    }
+  } else {
+    save();
+  }
+  renderAll();
+  showToast("Service deleted");
 }
 
 function setFacultyMessage(message = "", type = "") {
@@ -1097,6 +1261,7 @@ $$('[data-view-jump]').forEach(button => button.addEventListener("click", () => 
 $$('[data-action="new-record"]').forEach(button => button.addEventListener("click", () => openRecordDialog("manager")));
 $$('[data-action="faculty-submit"]').forEach(button => button.addEventListener("click", () => openRecordDialog("faculty")));
 $$('[data-action="new-faculty"]').forEach(button => button.addEventListener("click", () => openFacultyDialog()));
+$$('[data-action="new-service"]').forEach(button => button.addEventListener("click", () => openServiceDialog()));
 function setFacilityMessage(message = "", type = "") {
   const target = $("#facility-message");
   if (!target) return;
@@ -1275,6 +1440,49 @@ $("#faculty-profile-grid").addEventListener("click", event => {
   if (id) openFacultyDialog(id);
 });
 
+$("#service-grid").addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-service]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteService(deleteButton.dataset.deleteService);
+    return;
+  }
+  const editButton = event.target.closest("[data-edit-service]");
+  const card = event.target.closest("[data-service-id]");
+  const id = editButton?.dataset.editService || card?.dataset.serviceId;
+  if (id) openServiceDialog(id);
+});
+
+$("#service-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  setBusy(event.submitter, true);
+  setServiceMessage("Saving service…");
+  try {
+    const service = serviceFromForm(event.currentTarget);
+    const duplicate = db.services.find(item => item.id !== service.id && item.title.trim().toLowerCase() === service.title.trim().toLowerCase());
+    if (duplicate) {
+      setServiceMessage(`A service named “${duplicate.title}” already exists.`, "error");
+      showToast(`A service named “${duplicate.title}” already exists`);
+      return;
+    }
+    if (await persistService(service)) {
+      $("#service-dialog").close();
+      event.currentTarget.reset();
+      editingServiceId = null;
+      renderAll();
+      showToast(`${service.title} ${db.services.some(item => item.id === service.id) ? "saved" : "added to services"}`);
+    } else {
+      setServiceMessage(lastServiceError?.message || "Could not save this service.", "error");
+    }
+  } catch (error) {
+    setServiceMessage(error.message || "Could not save this service.", "error");
+    showToast(error.message || "Could not save service");
+  } finally {
+    setBusy(event.submitter, false);
+  }
+});
+
 $("#faculty-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
@@ -1350,16 +1558,18 @@ $("#import-json").addEventListener("change", async event => {
     const imported = JSON.parse(await file.text());
     if (!Array.isArray(imported.equipment) || !Array.isArray(imported.facilities)) throw new Error("Invalid schema");
     imported.faculty = Array.isArray(imported.faculty) ? imported.faculty : [];
+    imported.services = Array.isArray(imported.services) ? imported.services : [];
     imported.equipment = imported.equipment.map(item => ({
       ...item,
       description: String(item.description || "").slice(0, DESCRIPTION_LIMIT)
     }));
-    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.equipment.length} equipment records, and ${imported.facilities.length} facilities from “${file.name}”?`);
+    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
     if (confirmed) {
       if (backendReady) {
         for (const profile of imported.faculty) await backend.saveFaculty(profile);
         for (const facility of imported.facilities) await backend.saveFacility(facility);
         for (const record of imported.equipment) await backend.saveEquipment(record);
+        for (const service of imported.services) await backend.saveService(service);
         await loadSharedRegistry();
       } else {
         db = normalizeDatabase(imported); save(); renderAll();
@@ -1432,7 +1642,7 @@ $("#refresh-scopus-metrics").addEventListener("click", async event => {
 });
 
 $("#seed-sample-data").addEventListener("click", async event => {
-  const confirmed = await askConfirm("Seed example records?", `Add or update ${sampleDatabase.faculty.length} example faculty profiles, ${sampleDatabase.equipment.length} example equipment records, and ${sampleDatabase.facilities.length} facilities in ${backendReady ? "Supabase" : "this browser"}?`);
+  const confirmed = await askConfirm("Seed example records?", `Add or update ${sampleDatabase.faculty.length} example faculty profiles, ${sampleDatabase.equipment.length} example equipment records, ${sampleDatabase.facilities.length} facilities, and ${sampleDatabase.services.length} services in ${backendReady ? "Supabase" : "this browser"}?`);
   if (!confirmed) return;
   setBusy(event.currentTarget, true, "Seeding…");
   try {
@@ -1440,6 +1650,7 @@ $("#seed-sample-data").addEventListener("click", async event => {
       for (const profile of sampleDatabase.faculty) await backend.saveFaculty(profile);
       for (const facility of sampleDatabase.facilities) await backend.saveFacility(facility);
       for (const record of sampleDatabase.equipment) await backend.saveEquipment(record);
+      for (const service of sampleDatabase.services) await backend.saveService(service);
       await loadSharedRegistry();
     } else {
       db = clone(sampleDatabase);

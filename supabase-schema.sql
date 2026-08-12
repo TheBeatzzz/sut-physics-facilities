@@ -112,6 +112,32 @@ create table if not exists public.equipment (
 alter table if exists public.equipment
 add column if not exists owner_email text;
 
+create table if not exists public.services (
+  id text primary key,
+  title text not null,
+  category text not null default 'workshops' check (category in ('certified-measurements', 'short-courses', 'workshops', 'stem')),
+  summary varchar(320),
+  details text,
+  audience text,
+  duration text,
+  schedule text,
+  fee text,
+  location text,
+  contact_name text,
+  contact_email text,
+  faculty_id text references public.faculty(id) on update cascade on delete set null,
+  owner_email text,
+  public_ready boolean not null default false,
+  review_status text not null default 'Draft' check (review_status in ('Draft', 'Submitted', 'Verified')),
+  submitter_notes text,
+  sample boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table if exists public.services
+add column if not exists owner_email text;
+
 create index if not exists equipment_public_idx
   on public.equipment (review_status, public_ready);
 
@@ -129,6 +155,15 @@ create index if not exists facilities_owner_email_idx
 
 create index if not exists equipment_owner_email_idx
   on public.equipment (lower(owner_email));
+
+create index if not exists services_public_idx
+  on public.services (review_status, public_ready);
+
+create index if not exists services_owner_email_idx
+  on public.services (lower(owner_email));
+
+create index if not exists services_faculty_idx
+  on public.services (faculty_id);
 
 create table if not exists public.visitor_events (
   id uuid primary key default gen_random_uuid(),
@@ -183,6 +218,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists faculty_set_updated_at on public.faculty;
 create trigger faculty_set_updated_at
 before update on public.faculty
+for each row execute function public.set_updated_at();
+
+drop trigger if exists services_set_updated_at on public.services;
+create trigger services_set_updated_at
+before update on public.services
 for each row execute function public.set_updated_at();
 
 drop trigger if exists registry_admins_set_updated_at on public.registry_admins;
@@ -327,10 +367,49 @@ $$;
 revoke all on function public.is_equipment_owner(text, text, text, text) from public;
 grant execute on function public.is_equipment_owner(text, text, text, text) to anon, authenticated;
 
+create or replace function public.is_service_owner(target_owner_email text, target_contact_email text, target_contact_name text, target_faculty_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+      and (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_contact_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_contact_name, ''))) = lower(btrim(coalesce(faculty.name, '')))
+        or btrim(coalesce(target_faculty_id, '')) = btrim(coalesce(faculty.id, ''))
+      )
+  );
+$$;
+
+revoke all on function public.is_service_owner(text, text, text, text) from public;
+grant execute on function public.is_service_owner(text, text, text, text) to anon, authenticated;
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
 alter table public.equipment enable row level security;
+alter table public.services enable row level security;
 alter table public.visitor_events enable row level security;
 
 drop policy if exists "Approved admins can read admin list" on public.registry_admins;
@@ -477,6 +556,50 @@ create policy "Faculty can delete owned equipment"
 on public.equipment for delete
 to authenticated
 using (public.is_equipment_owner(owner_email, email, submitter_email, custodian));
+
+drop policy if exists "Public can read approved services" on public.services;
+create policy "Public can read approved services"
+on public.services for select
+to anon, authenticated
+using (review_status = 'Verified' and public_ready = true);
+
+drop policy if exists "SUT editors can read all services" on public.services;
+create policy "SUT editors can read all services"
+on public.services for select
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "SUT editors can manage services" on public.services;
+create policy "SUT editors can manage services"
+on public.services for all
+to authenticated
+using (public.is_sut_editor())
+with check (public.is_sut_editor());
+
+drop policy if exists "Faculty can read owned services" on public.services;
+create policy "Faculty can read owned services"
+on public.services for select
+to authenticated
+using (public.is_service_owner(owner_email, contact_email, contact_name, faculty_id));
+
+drop policy if exists "Faculty can insert owned services" on public.services;
+create policy "Faculty can insert owned services"
+on public.services for insert
+to authenticated
+with check (public.is_service_owner(owner_email, contact_email, contact_name, faculty_id));
+
+drop policy if exists "Faculty can update owned services" on public.services;
+create policy "Faculty can update owned services"
+on public.services for update
+to authenticated
+using (public.is_service_owner(owner_email, contact_email, contact_name, faculty_id))
+with check (public.is_service_owner(owner_email, contact_email, contact_name, faculty_id));
+
+drop policy if exists "Faculty can delete owned services" on public.services;
+create policy "Faculty can delete owned services"
+on public.services for delete
+to authenticated
+using (public.is_service_owner(owner_email, contact_email, contact_name, faculty_id));
 
 drop policy if exists "Public can insert visitor analytics" on public.visitor_events;
 create policy "Public can insert visitor analytics"

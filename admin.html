@@ -76,6 +76,11 @@
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 12h2v2H9zM13 12h2v2h-2zM9 17h6"/></svg>
           Facilities
         </button>
+        <button class="nav-item" data-view="services" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v14H5zM8 9h8M8 13h5M16 16l3 3"/></svg>
+          Services
+          <span class="nav-count" id="services-nav-count">0</span>
+        </button>
         <button class="nav-item" data-view="data" type="button">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M5 20h14"/></svg>
           Data & export
@@ -201,6 +206,15 @@
             <button class="button button-primary" type="button" data-action="new-facility"><span aria-hidden="true">＋</span> Add facility</button>
           </div>
           <div id="facility-grid" class="facility-grid"></div>
+        </section>
+
+        <section class="view" data-view-panel="services" aria-labelledby="services-title">
+          <div class="view-heading compact-heading">
+            <div><p class="eyebrow">Public engagement & paid services</p><h1 id="services-title">Services directory</h1><p class="heading-description">Publish certified measurements, short courses, workshops, and STEM services managed by the faculty member who adds them.</p></div>
+            <button class="button button-primary" type="button" data-action="new-service"><span aria-hidden="true">＋</span> Add service</button>
+          </div>
+          <div class="registry-summary"><p><strong id="service-result-count">0</strong> services</p><p><span class="legend-dot verified"></span> Verified <span class="legend-dot submitted"></span> Awaiting review <span class="legend-dot draft"></span> Draft</p></div>
+          <div id="service-grid" class="service-admin-grid"></div>
         </section>
 
         <section class="view" data-view-panel="data" aria-labelledby="data-title">
@@ -329,6 +343,35 @@
           </div></div>
         </div>
         <div class="modal-foot"><p id="faculty-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="faculty-dialog">Cancel</button><button class="button button-primary" id="faculty-primary-action" type="submit">Add profile</button></div></div>
+      </form>
+    </dialog>
+
+    <dialog id="service-dialog" class="modal">
+      <form id="service-form" method="dialog">
+        <div class="modal-head"><div><p class="eyebrow">Service record</p><h2 id="service-form-title">Add service</h2></div><button class="close-button" type="button" data-close="service-dialog"><span class="sr-only">Close</span>×</button></div>
+        <div class="modal-body">
+          <div class="form-section"><div class="form-section-title"><span>01</span><div><h3>Service identity</h3><p>Name the service and choose the public category it belongs to.</p></div></div><div class="form-grid">
+            <label class="span-2">Service title <span aria-hidden="true">*</span><input name="title" required placeholder="e.g. Certified optical power measurement" /></label>
+            <label>Category <span aria-hidden="true">*</span><select name="category" required><option value="certified-measurements">Certified measurements</option><option value="short-courses">Short courses</option><option value="workshops">Workshops</option><option value="stem">STEM</option></select></label>
+            <label>Faculty owner<select id="service-faculty" name="facultyId"><option value="">Choose faculty profile</option></select></label>
+            <label class="span-2">Short summary<textarea name="summary" rows="3" maxlength="320" placeholder="One or two sentences for the public Services page"></textarea></label>
+            <label class="span-2">Details<textarea name="details" rows="5" placeholder="Scope, method, learning outcomes, deliverables, preparation, or requirements"></textarea></label>
+          </div></div>
+          <div class="form-section"><div class="form-section-title"><span>02</span><div><h3>Logistics</h3><p>Record who it is for, how it runs, and who should receive inquiries.</p></div></div><div class="form-grid">
+            <label>Audience<input name="audience" placeholder="Industry, teachers, students, researchers…" /></label>
+            <label>Duration<input name="duration" placeholder="Half day, 2 days, by arrangement…" /></label>
+            <label>Schedule<input name="schedule" placeholder="On demand, semester break, monthly…" /></label>
+            <label>Fee<input name="fee" placeholder="To be confirmed, free, quoted by scope…" /></label>
+            <label>Location<input name="location" placeholder="School of Physics, SUT or online" /></label>
+            <label>Contact name<input name="contactName" placeholder="Faculty or program contact" /></label>
+            <label>Contact email<input name="contactEmail" type="email" placeholder="name@sut.ac.th or name@g.sut.ac.th" /></label>
+            <label>Owner login email<input name="ownerEmail" type="email" placeholder="Faculty account that can manage this service" /></label>
+            <label>Review status<select name="reviewStatus"><option>Draft</option><option>Submitted</option><option>Verified</option></select></label>
+            <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public Services page</strong><small>Requires Verified review status to appear publicly.</small></span></label>
+            <label class="span-2">Notes for reviewer<textarea name="submitterNotes" rows="2" placeholder="Anything a manager should verify before publication"></textarea></label>
+          </div></div>
+        </div>
+        <div class="modal-foot"><p id="service-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="service-dialog">Cancel</button><button class="button button-primary" id="service-primary-action" type="submit">Add service</button></div></div>
       </form>
     </dialog>
 
