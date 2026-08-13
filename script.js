@@ -397,17 +397,7 @@ const updatePublicSummary = () => {
   });
 
   document.querySelector("#public-data-status").textContent = registryMode ? "Live registry" : "Prototype data";
-  document.querySelector("#public-data-message").textContent = registryMode
-    ? equipmentAtlasFallback
-      ? liveEquipmentCount
-        ? `Showing ${liveEquipmentCount} verified public equipment record${liveEquipmentCount === 1 ? "" : "s"} alongside example fallback equipment.`
-        : "Showing live facilities from Supabase and example equipment until verified public equipment records are available."
-      : equipment.length
-      ? "Showing live facilities and verified equipment approved for the public research profile."
-      : "Showing live facilities from Supabase. Equipment records will appear after they are verified and marked public."
-    : registryEmptyFallback
-      ? "Supabase is connected, but no equipment has been approved for public display yet. Showing example records until the registry is populated."
-      : "Equipment names and figures below are illustrative. Replace them with verified institutional data.";
+  document.querySelector("#public-data-message").textContent = "";
 };
 
 const renderEquipment = (filter = "all") => {
