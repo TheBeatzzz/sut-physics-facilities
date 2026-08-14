@@ -161,6 +161,81 @@
     sample: Boolean(profile.sample)
   });
 
+  const camelStudent = row => ({
+    id: row.id,
+    studentCode: row.student_code || "",
+    name: row.name,
+    preferredName: row.preferred_name || "",
+    email: row.email || "",
+    level: row.level === "Undergraduate" ? "Bachelor" : row.level || "Bachelor",
+    status: row.status || "Active",
+    advisorId: row.advisor_id || "",
+    coadvisor: row.coadvisor || "",
+    researchGroupId: row.research_group_id || "",
+    researchGroup: row.research_group || "",
+    projectTitle: row.project_title || "",
+    thesisTitle: row.thesis_title || "",
+    startTerm: row.start_term || "",
+    startYear: row.start_year || "",
+    expectedGraduationYear: row.expected_graduation_year || "",
+    graduationYear: row.graduation_year || "",
+    office: row.office || "",
+    phone: row.phone || "",
+    shortBio: row.short_bio || "",
+    skills: asArray(row.skills),
+    notes: row.notes || "",
+    programId: row.program_id || "",
+    studyProgress: row.study_progress && typeof row.study_progress === "object" ? row.study_progress : {},
+    deadlineAlertsEnabled: row.deadline_alerts_enabled !== false,
+    deadlineLeadDays: asArray(row.deadline_lead_days).length ? asArray(row.deadline_lead_days) : [30, 14, 7, 1],
+    verificationStatus: row.verification_status || "Pending",
+    publicReady: Boolean(row.public_ready),
+    verifiedByEmail: row.verified_by_email || "",
+    verifiedAt: row.verified_at || "",
+    ownerEmail: row.owner_email || "",
+    sample: Boolean(row.sample),
+    createdAt: String(row.created_at || "").slice(0, 10),
+    updatedAt: String(row.updated_at || "").slice(0, 10)
+  });
+
+  const optionalYear = value => value ? Number(value) : null;
+  const optionalTerm = value => ["1", "2", "3"].includes(String(value || "")) ? Number(value) : null;
+
+  const snakeStudent = student => ({
+    id: student.id,
+    student_code: student.studentCode || null,
+    name: student.name,
+    preferred_name: student.preferredName || null,
+    email: student.email || null,
+    level: student.level === "Undergraduate" ? "Bachelor" : student.level || "Bachelor",
+    status: student.status || "Active",
+    advisor_id: student.advisorId || null,
+    coadvisor: student.coadvisor || null,
+    research_group_id: student.researchGroupId || null,
+    research_group: student.researchGroup || null,
+    project_title: student.projectTitle || null,
+    thesis_title: student.thesisTitle || null,
+    start_term: optionalTerm(student.startTerm),
+    start_year: optionalYear(student.startYear),
+    expected_graduation_year: optionalYear(student.expectedGraduationYear),
+    graduation_year: optionalYear(student.graduationYear),
+    office: student.office || null,
+    phone: student.phone || null,
+    short_bio: String(student.shortBio || "").slice(0, 420) || null,
+    skills: asArray(student.skills).filter(Boolean),
+    notes: student.notes || null,
+    program_id: student.programId || null,
+    study_progress: student.studyProgress && typeof student.studyProgress === "object" ? student.studyProgress : {},
+    deadline_alerts_enabled: student.deadlineAlertsEnabled !== false,
+    deadline_lead_days: asArray(student.deadlineLeadDays).length ? asArray(student.deadlineLeadDays) : [30, 14, 7, 1],
+    verification_status: student.verificationStatus || "Pending",
+    public_ready: Boolean(student.publicReady),
+    verified_by_email: student.verifiedByEmail || null,
+    verified_at: student.verifiedAt || null,
+    owner_email: student.ownerEmail || student.email || null,
+    sample: Boolean(student.sample)
+  });
+
   const camelService = row => ({
     id: row.id,
     title: row.title,
@@ -297,29 +372,34 @@
     let facultyQuery = supabase.from("faculty").select("*").order("name", { ascending: true });
     let equipmentQuery = supabase.from("equipment").select("*").order("updated_at", { ascending: false });
     let servicesQuery = supabase.from("services").select("*").order("updated_at", { ascending: false });
+    let studentsQuery = publicOnly ? null : supabase.from("students").select("*").order("updated_at", { ascending: false });
     if (publicOnly) {
       facultyQuery = facultyQuery.eq("public_ready", true);
       equipmentQuery = equipmentQuery.eq("review_status", "Verified").eq("public_ready", true);
       servicesQuery = servicesQuery.eq("review_status", "Verified").eq("public_ready", true);
     }
 
-    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }] = await Promise.all([
+    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, studentsResult] = await Promise.all([
       facilitiesQuery,
       facultyQuery,
       equipmentQuery,
-      servicesQuery
+      servicesQuery,
+      studentsQuery || Promise.resolve({ data: [], error: null })
     ]);
+    const { data: students, error: studentsError } = studentsResult;
 
     if (facilityError) throw facilityError;
     const facultyTableMissing = facultyError && ["42P01", "PGRST205"].includes(facultyError.code);
     const servicesTableMissing = servicesError && ["42P01", "PGRST205"].includes(servicesError.code);
+    const studentsTableMissing = studentsError && ["42P01", "PGRST205"].includes(studentsError.code);
     if (facultyError && !facultyTableMissing) throw facultyError;
     if (equipmentError) throw equipmentError;
     if (servicesError && !servicesTableMissing) throw servicesError;
+    if (studentsError && !studentsTableMissing) throw studentsError;
 
     return {
       meta: {
-        version: 5,
+        version: 6,
         institution: "Suranaree University of Technology",
         program: "Physics Program",
         backend: "supabase",
@@ -327,6 +407,7 @@
       },
       facilities: (facilities || []).map(camelFacility),
       faculty: facultyTableMissing ? [] : (faculty || []).map(camelFaculty),
+      students: studentsTableMissing ? [] : (students || []).map(camelStudent),
       equipment: (equipment || []).map(camelEquipment),
       services: servicesTableMissing ? [] : (services || []).map(camelService)
     };
@@ -383,6 +464,61 @@
     const supabase = getClient();
     const { error } = await supabase.from("faculty").delete().eq("id", id);
     if (error) throw error;
+  };
+
+  const saveStudent = async student => {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from("students")
+      .upsert(snakeStudent(student), { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return camelStudent(data);
+  };
+
+  const loadMyStudentRecord = async () => {
+    const supabase = getClient();
+    const session = await getSession();
+    const email = String(session?.user?.email || "").trim().toLowerCase();
+    if (!email) throw new Error("Sign in before loading a student record.");
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .or(`owner_email.eq.${email},email.eq.${email}`)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] ? camelStudent(data[0]) : null;
+  };
+
+  const deleteStudent = async id => {
+    const supabase = getClient();
+    const { error } = await supabase.from("students").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const loadPublicStudents = async () => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
+      supabase
+        .from("students")
+        .select("id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at")
+        .eq("verification_status", "Verified")
+        .eq("public_ready", true)
+        .order("name", { ascending: true }),
+      supabase.from("faculty").select("*").eq("public_ready", true).order("name", { ascending: true }),
+      supabase.from("facilities").select("*").order("id", { ascending: true })
+    ]);
+    if (studentsError) throw studentsError;
+    if (facultyError) throw facultyError;
+    if (facilityError) throw facilityError;
+    return {
+      students: (students || []).map(camelStudent),
+      faculty: (faculty || []).map(camelFaculty),
+      facilities: (facilities || []).map(camelFacility)
+    };
   };
 
   const saveService = async service => {
@@ -493,10 +629,34 @@
       .filter(Boolean);
     const normalizedEmail = String(email || "").trim().toLowerCase();
     if (!allowedDomains.some(domain => normalizedEmail.endsWith(`@${domain}`))) {
-      throw new Error(`Use an approved faculty email ending in ${allowedDomains.map(domain => `@${domain}`).join(" or ")}.`);
+      throw new Error(`Use an approved SUT email ending in ${allowedDomains.map(domain => `@${domain}`).join(" or ")}.`);
     }
     if (!password) throw new Error("Enter your password to sign in.");
     const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+    if (error) throw error;
+    return data.session;
+  };
+
+  const signUp = async (email, password, metadata = {}) => {
+    const supabase = getClient();
+    const allowedDomains = (Array.isArray(config.facultyEmailDomains) && config.facultyEmailDomains.length
+      ? config.facultyEmailDomains
+      : [config.facultyEmailDomain || "sut.ac.th"])
+      .map(domain => String(domain).replace(/^@/, "").trim().toLowerCase())
+      .filter(Boolean);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!allowedDomains.some(domain => normalizedEmail.endsWith(`@${domain}`))) {
+      throw new Error(`Use an approved SUT email ending in ${allowedDomains.map(domain => `@${domain}`).join(" or ")}.`);
+    }
+    if (!password || password.length < 8) throw new Error("Use a password with at least 8 characters.");
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: metadata && typeof metadata === "object" ? metadata : {},
+        emailRedirectTo: window.location.href.split("#")[0]
+      }
+    });
     if (error) throw error;
     return data.session;
   };
@@ -523,6 +683,7 @@
     getSession,
     completeAuthFromUrl,
     signIn,
+    signUp,
     signOut,
     updatePassword,
     loadRegistry,
@@ -532,6 +693,10 @@
     deleteFacility,
     saveFaculty,
     deleteFaculty,
+    saveStudent,
+    loadMyStudentRecord,
+    deleteStudent,
+    loadPublicStudents,
     saveService,
     deleteService,
     trackVisit,

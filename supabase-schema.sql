@@ -77,6 +77,117 @@ add column if not exists manual_metrics jsonb;
 alter table if exists public.facilities
 add column if not exists owner_email text;
 
+create table if not exists public.students (
+  id text primary key,
+  student_code text,
+  name text not null,
+  preferred_name text,
+  email text,
+  level text not null default 'Bachelor' check (level in ('Bachelor', 'Master', 'PhD')),
+  status text not null default 'Active' check (status in ('Active', 'Leave', 'Graduated', 'Withdrawn')),
+  advisor_id text references public.faculty(id) on update cascade on delete set null,
+  coadvisor text,
+  research_group_id text references public.facilities(id) on update cascade on delete set null,
+  research_group text,
+  project_title text,
+  thesis_title text,
+  start_term integer check (start_term in (1, 2, 3)),
+  start_year integer,
+  expected_graduation_year integer,
+  graduation_year integer,
+  office text,
+  phone text,
+  short_bio varchar(420),
+  skills jsonb not null default '[]'::jsonb,
+  notes text,
+  program_id text,
+  study_progress jsonb not null default '{}'::jsonb,
+  deadline_alerts_enabled boolean not null default true,
+  deadline_lead_days jsonb not null default '[30, 14, 7, 1]'::jsonb,
+  verification_status text not null default 'Pending' check (verification_status in ('Pending', 'Verified', 'Rejected')),
+  public_ready boolean not null default false,
+  verified_by_email text,
+  verified_at timestamptz,
+  owner_email text,
+  sample boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table if exists public.students
+add column if not exists owner_email text;
+
+alter table if exists public.students
+add column if not exists skills jsonb not null default '[]'::jsonb;
+
+alter table if exists public.students
+add column if not exists research_group_id text references public.facilities(id) on update cascade on delete set null;
+
+alter table if exists public.students
+add column if not exists short_bio varchar(420);
+
+alter table if exists public.students
+add column if not exists program_id text;
+
+alter table if exists public.students
+add column if not exists study_progress jsonb not null default '{}'::jsonb;
+
+alter table if exists public.students
+add column if not exists deadline_alerts_enabled boolean not null default true;
+
+alter table if exists public.students
+add column if not exists deadline_lead_days jsonb not null default '[30, 14, 7, 1]'::jsonb;
+
+alter table if exists public.students
+add column if not exists verification_status text not null default 'Pending';
+
+alter table if exists public.students
+add column if not exists public_ready boolean not null default false;
+
+alter table if exists public.students
+add column if not exists verified_by_email text;
+
+alter table if exists public.students
+add column if not exists verified_at timestamptz;
+
+alter table if exists public.students
+add column if not exists start_term integer;
+
+alter table public.students
+  drop constraint if exists students_start_term_check;
+
+alter table public.students
+  add constraint students_start_term_check
+  check (start_term is null or start_term in (1, 2, 3));
+
+alter table public.students
+  drop constraint if exists students_verification_status_check;
+
+alter table public.students
+  add constraint students_verification_status_check
+  check (verification_status in ('Pending', 'Verified', 'Rejected'));
+
+alter table public.students
+  drop constraint if exists students_level_check;
+
+update public.students
+set level = 'Bachelor'
+where level = 'Undergraduate';
+
+alter table public.students
+  add constraint students_level_check
+  check (level in ('Bachelor', 'Master', 'PhD'));
+
+alter table public.students
+  drop constraint if exists students_program_id_check;
+
+alter table public.students
+  add constraint students_program_id_check
+  check (
+    program_id is null
+    or program_id in ('bsc-physics', 'msc-physics', 'msc-applied-physics', 'phd-physics', 'phd-applied-physics')
+  );
+
 create table if not exists public.equipment (
   id text primary key,
   name text not null,
@@ -150,6 +261,30 @@ create index if not exists faculty_public_idx
 create index if not exists faculty_owner_email_idx
   on public.faculty (lower(owner_email));
 
+create index if not exists students_status_idx
+  on public.students (status, level);
+
+create index if not exists students_program_idx
+  on public.students (program_id);
+
+create index if not exists students_verification_idx
+  on public.students (verification_status, updated_at desc);
+
+create index if not exists students_public_idx
+  on public.students (verification_status, public_ready, level, program_id);
+
+create index if not exists students_advisor_idx
+  on public.students (advisor_id);
+
+create index if not exists students_research_group_idx
+  on public.students (research_group_id);
+
+create index if not exists students_owner_email_idx
+  on public.students (lower(owner_email));
+
+create index if not exists students_email_idx
+  on public.students (lower(email));
+
 create index if not exists facilities_owner_email_idx
   on public.facilities (lower(owner_email));
 
@@ -220,6 +355,11 @@ create trigger faculty_set_updated_at
 before update on public.faculty
 for each row execute function public.set_updated_at();
 
+drop trigger if exists students_set_updated_at on public.students;
+create trigger students_set_updated_at
+before update on public.students
+for each row execute function public.set_updated_at();
+
 drop trigger if exists services_set_updated_at on public.services;
 create trigger services_set_updated_at
 before update on public.services
@@ -259,8 +399,6 @@ $$;
 
 revoke all on function public.is_sut_editor() from public;
 grant execute on function public.is_sut_editor() to anon, authenticated;
-
-drop function if exists public.is_registered_sut_faculty();
 
 create or replace function public.is_facility_owner(target_owner_email text, target_lead text)
 returns boolean
@@ -328,6 +466,173 @@ $$;
 
 revoke all on function public.is_faculty_profile_owner(text, text) from public;
 grant execute on function public.is_faculty_profile_owner(text, text) to anon, authenticated;
+
+create or replace function public.current_sut_email()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select lower(btrim(coalesce(
+    nullif(auth.jwt() ->> 'email', ''),
+    nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+    ''
+  )));
+$$;
+
+revoke all on function public.current_sut_email() from public;
+grant execute on function public.current_sut_email() to anon, authenticated;
+
+create or replace function public.is_registered_sut_faculty()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select public.current_sut_email() as email
+  )
+  select public.is_sut_editor()
+  or exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_registered_sut_faculty() from public;
+grant execute on function public.is_registered_sut_faculty() to anon, authenticated;
+
+create or replace function public.is_student_self(target_owner_email text, target_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select public.current_sut_email() as email
+  )
+  select exists (
+    select 1
+    from current_identity
+    where (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_student_self(text, text) from public;
+grant execute on function public.is_student_self(text, text) to anon, authenticated;
+
+create or replace function public.is_student_owner(target_owner_email text, target_email text, target_advisor_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from current_identity
+    where (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  )
+  or exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and btrim(coalesce(target_advisor_id, '')) = btrim(coalesce(faculty.id, ''))
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_student_owner(text, text, text) from public;
+grant execute on function public.is_student_owner(text, text, text) to anon, authenticated;
+
+create or replace function public.protect_student_verification_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_email text := public.current_sut_email();
+  faculty_editor boolean := public.is_registered_sut_faculty();
+begin
+  if faculty_editor then
+    if new.verification_status = 'Verified' and (tg_op = 'INSERT' or old.verification_status is distinct from 'Verified') then
+      new.verified_by_email := coalesce(nullif(new.verified_by_email, ''), current_email);
+      new.verified_at := coalesce(new.verified_at, now());
+    elsif new.verification_status is distinct from 'Verified' then
+      new.verified_at := case when new.verification_status = 'Pending' then null else new.verified_at end;
+    end if;
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if not public.is_student_self(coalesce(new.owner_email, current_email), coalesce(new.email, current_email)) then
+      raise exception 'Student records must use the signed-in student email.';
+    end if;
+    new.owner_email := coalesce(nullif(new.owner_email, ''), current_email);
+    new.email := coalesce(nullif(new.email, ''), current_email);
+    new.verification_status := 'Pending';
+    new.verified_by_email := null;
+    new.verified_at := null;
+    return new;
+  end if;
+
+  new.owner_email := old.owner_email;
+  new.email := old.email;
+  new.verification_status := old.verification_status;
+  new.verified_by_email := old.verified_by_email;
+  new.verified_at := old.verified_at;
+  return new;
+end;
+$$;
+
+revoke all on function public.protect_student_verification_fields() from public;
+grant execute on function public.protect_student_verification_fields() to authenticated;
+
+drop trigger if exists students_protect_verification on public.students;
+create trigger students_protect_verification
+before insert or update on public.students
+for each row execute function public.protect_student_verification_fields();
 
 create or replace function public.is_equipment_owner(target_owner_email text, target_email text, target_submitter_email text, target_custodian text)
 returns boolean
@@ -408,6 +713,7 @@ grant execute on function public.is_service_owner(text, text, text, text) to ano
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
+alter table public.students enable row level security;
 alter table public.equipment enable row level security;
 alter table public.services enable row level security;
 alter table public.visitor_events enable row level security;
@@ -500,6 +806,68 @@ on public.faculty for update
 to authenticated
 using (public.is_faculty_profile_owner(owner_email, email))
 with check (public.is_faculty_profile_owner(owner_email, email));
+
+drop policy if exists "SUT editors can read all students" on public.students;
+create policy "SUT editors can read all students"
+on public.students for select
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "SUT editors can manage students" on public.students;
+create policy "SUT editors can manage students"
+on public.students for all
+to authenticated
+using (public.is_sut_editor())
+with check (public.is_sut_editor());
+
+drop policy if exists "Public can read verified public students" on public.students;
+create policy "Public can read verified public students"
+on public.students for select
+to anon, authenticated
+using (verification_status = 'Verified' and public_ready = true);
+
+drop policy if exists "Owners and advisors can read students" on public.students;
+drop policy if exists "Owners and advisors can insert students" on public.students;
+drop policy if exists "Owners and advisors can update students" on public.students;
+drop policy if exists "Owners and advisors can delete students" on public.students;
+
+drop policy if exists "Registered faculty can read all students" on public.students;
+create policy "Registered faculty can read all students"
+on public.students for select
+to authenticated
+using (public.is_registered_sut_faculty());
+
+drop policy if exists "Registered faculty can update students" on public.students;
+create policy "Registered faculty can update students"
+on public.students for update
+to authenticated
+using (public.is_registered_sut_faculty())
+with check (public.is_registered_sut_faculty());
+
+drop policy if exists "Students can read own student record" on public.students;
+create policy "Students can read own student record"
+on public.students for select
+to authenticated
+using (public.is_student_self(owner_email, email));
+
+drop policy if exists "Students can create own pending student record" on public.students;
+create policy "Students can create own pending student record"
+on public.students for insert
+to authenticated
+with check (public.is_student_self(owner_email, email));
+
+drop policy if exists "Students can update own student record" on public.students;
+create policy "Students can update own student record"
+on public.students for update
+to authenticated
+using (public.is_student_self(owner_email, email))
+with check (public.is_student_self(owner_email, email));
+
+drop policy if exists "Students can delete own unverified student record" on public.students;
+create policy "Students can delete own unverified student record"
+on public.students for delete
+to authenticated
+using (public.is_student_self(owner_email, email) and verification_status <> 'Verified');
 
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"

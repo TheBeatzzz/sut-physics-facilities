@@ -6,6 +6,14 @@ const SERVICE_CATEGORIES = {
   workshops: "Workshops",
   stem: "STEM"
 };
+const STUDY_LEVELS = ["Bachelor", "Master", "PhD"];
+const STUDY_PROGRAMS = {
+  "bsc-physics": { label: "B.Sc. Physics", level: "Bachelor" },
+  "msc-physics": { label: "M.Sc. Physics", level: "Master" },
+  "msc-applied-physics": { label: "M.Sc. Applied Physics", level: "Master" },
+  "phd-physics": { label: "Ph.D. Physics", level: "PhD" },
+  "phd-applied-physics": { label: "Ph.D. Applied Physics", level: "PhD" }
+};
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
   id,
@@ -85,7 +93,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
 });
 
 const sampleDatabase = {
-  meta: { version: 5, institution: "Suranaree University of Technology", program: "Physics Program", prototype: true },
+  meta: { version: 6, institution: "Suranaree University of Technology", program: "Physics Program", prototype: true },
   faculty: [
     sampleFacultyProfile("FACULTY-001", "Yupeng Yan", "Professor", ["Research interests to update", "Physics program faculty"], "#8fd8c8"),
     sampleFacultyProfile("FACULTY-002", "Santi Maensiri", "Professor", ["Research interests to update", "Materials physics"], "#9bc7ee", "Dean"),
@@ -121,6 +129,7 @@ const sampleDatabase = {
     { id: "FAC-06", name: "Quantum Computing Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility for quantum computing research, design, simulation, and experimental activities.", color: "#c1b2df" },
     { id: "FAC-07", name: "AI, Machine Vision & Medical Intelligence Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for deep learning, machine vision, and AI-assisted medical diagnosis system design and implementation.", color: "#7fc5b2" }
   ],
+  students: [],
   services: [],
   equipment: [
     sampleRecord("EQ-001", "Photon Counting Scanning Confocal Microscopy", "Imaging", "FAC-01", "Biomedical photonics"),
@@ -164,6 +173,22 @@ const normalizeFacultyNames = profiles => profiles.map(profile => {
     facilityIds: facilityIds.length ? facilityIds : profile.sample ? sampleFacultyFacilities(profile.id) : []
   };
 });
+const normalizeStudents = students => students.map(student => ({
+  ...student,
+  level: student.level === "Undergraduate" ? "Bachelor" : STUDY_LEVELS.includes(student.level) ? student.level : STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
+  status: student.status || "Active",
+  startTerm: ["1", "2", "3"].includes(String(student.startTerm || "")) ? String(student.startTerm) : "",
+  skills: normalizeList(student.skills),
+  shortBio: student.shortBio || "",
+  researchGroupId: student.researchGroupId || "",
+  studyProgress: student.studyProgress && typeof student.studyProgress === "object" ? student.studyProgress : {},
+  deadlineAlertsEnabled: student.deadlineAlertsEnabled !== false,
+  deadlineLeadDays: normalizeList(student.deadlineLeadDays).length ? normalizeList(student.deadlineLeadDays) : [30, 14, 7, 1],
+  verificationStatus: student.verificationStatus || "Pending",
+  publicReady: Boolean(student.publicReady),
+  verifiedByEmail: student.verifiedByEmail || "",
+  verifiedAt: student.verifiedAt || ""
+}));
 const isGenericSampleFaculty = profiles =>
   Array.isArray(profiles) &&
   profiles.length > 0 &&
@@ -174,6 +199,7 @@ const normalizeDatabase = value => ({
   meta: { ...clone(sampleDatabase.meta), ...(value?.meta || {}) },
   faculty: isGenericSampleFaculty(value?.faculty) ? clone(sampleDatabase.faculty) : Array.isArray(value?.faculty) ? normalizeFacultyNames(value.faculty) : [],
   facilities: Array.isArray(value?.facilities) ? value.facilities : [],
+  students: Array.isArray(value?.students) ? normalizeStudents(value.students) : [],
   services: Array.isArray(value?.services) ? value.services : [],
   equipment: Array.isArray(value?.equipment) ? value.equipment : []
 });
@@ -200,6 +226,8 @@ let lastFacilityError = null;
 let editingFacilityId = null;
 let lastFacultyError = null;
 let editingFacultyId = null;
+let lastStudentError = null;
+let editingStudentId = null;
 let lastServiceError = null;
 let editingServiceId = null;
 let visitorEvents = [];
@@ -250,7 +278,10 @@ const extractScopusAuthorId = value => {
 };
 const facilityFor = id => db.facilities.find(item => item.id === id);
 const facultyFor = id => db.faculty.find(item => item.id === id);
+const advisorName = id => facultyFor(id)?.name || "TBD";
+const researchGroupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "TBD";
 const serviceCategoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
+const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
 const photoSrc = photo => backend?.photoSrc?.(photo) || photo?.url || photo?.data || "";
 const save = () => {
@@ -355,7 +386,7 @@ function showAuthGate(message = "", options = {}) {
   document.body.classList.add("auth-required");
   $("#auth-message").textContent = message || "Sign in with a registered SUT faculty account to manage the shared registry.";
   hideAccessIssuePanel();
-  db = { ...clone(sampleDatabase), faculty: [], equipment: [], facilities: [] };
+  db = { ...clone(sampleDatabase), faculty: [], students: [], equipment: [], facilities: [], services: [] };
   backendReady = false;
   visitorEvents = [];
   visitorStatsError = "";
@@ -490,6 +521,33 @@ async function persistFaculty(profile) {
   }
 }
 
+async function persistStudent(student) {
+  lastStudentError = null;
+  if (!backendReady) {
+    const index = db.students.findIndex(item => item.id === student.id);
+    if (index >= 0) db.students[index] = student; else db.students.unshift(student);
+    save();
+    return true;
+  }
+  try {
+    const savedStudent = await backend.saveStudent(student);
+    const index = db.students.findIndex(item => item.id === savedStudent.id);
+    if (index >= 0) db.students[index] = savedStudent; else db.students.unshift(savedStudent);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    return true;
+  } catch (error) {
+    const schemaMessage = /schema cache|students|PGRST|42P01/i.test(String(error.message || ""))
+      ? "Supabase needs the latest students schema. Run supabase-schema.sql in SQL Editor, then try saving this student again."
+      : "";
+    const rlsMessage = /row-level security|violates.*policy/i.test(String(error.message || ""))
+      ? "Supabase blocked this student save. Confirm the owner email matches your sign-in email, or assign yourself as the advisor on the student record."
+      : "";
+    lastStudentError = new Error(schemaMessage || rlsMessage || error.message || "Could not save student to Supabase");
+    showToast(lastStudentError.message);
+    return false;
+  }
+}
+
 async function persistService(service) {
   lastServiceError = null;
   if (!backendReady) {
@@ -528,7 +586,7 @@ function showView(view, options = {}) {
   activeView = view;
   $$(".nav-item").forEach(item => item.classList.toggle("is-active", item.dataset.view === view));
   $$(".view").forEach(panel => panel.classList.toggle("is-visible", panel.dataset.viewPanel === view));
-  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
+  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", students: "Student database", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
   $("#page-context").textContent = labels[view];
   $("#sidebar").classList.remove("is-open");
   $(".mobile-menu").setAttribute("aria-expanded", "false");
@@ -544,6 +602,8 @@ function renderAll() {
   populateFacilityOptions();
   renderOverview();
   renderFacultyProfiles();
+  populateStudentStartYearOptions();
+  renderStudents();
   renderEquipmentTable();
   renderSubmissions();
   renderFacilities();
@@ -555,6 +615,8 @@ function renderNavigationCounts() {
   $("#submission-nav-count").textContent = db.equipment.filter(item => item.reviewStatus === "Submitted").length || "";
   const facultyCount = $("#faculty-nav-count");
   if (facultyCount) facultyCount.textContent = db.faculty.length;
+  const studentsCount = $("#students-nav-count");
+  if (studentsCount) studentsCount.textContent = db.students.length;
   const servicesCount = $("#services-nav-count");
   if (servicesCount) servicesCount.textContent = db.services.length;
 }
@@ -562,12 +624,12 @@ function renderNavigationCounts() {
 function renderOverview() {
   const verified = db.equipment.filter(item => item.reviewStatus === "Verified").length;
   const pending = db.equipment.filter(item => item.reviewStatus === "Submitted").length;
-  const operational = db.equipment.filter(item => item.status === "Operational").length;
   const publicReady = db.equipment.filter(item => item.publicReady && item.reviewStatus === "Verified").length;
+  const activeStudents = db.students.filter(item => item.status === "Active").length;
   const metrics = [
     ["Equipment records", db.equipment.length, "total", "+ Registry"],
     ["Faculty profiles", db.faculty.length, "total", "People"],
-    ["Verified records", verified, `${percentage(verified, db.equipment.length)}%`, "Quality"],
+    ["Student records", db.students.length, `${activeStudents} active`, "Students"],
     ["Public-ready", publicReady, "systems", "Website"]
   ];
   $("#metric-grid").innerHTML = metrics.map(([label, value, note, tag]) => `<article class="metric-card"><div class="metric-label"><span>${label}</span><span>${tag}</span></div><div class="metric-value"><strong>${value}</strong><small>${note}</small></div></article>`).join("");
@@ -718,6 +780,8 @@ function populateFacilityOptions() {
   $("#record-facility").innerHTML = `<option value="">Select facility</option>${options}`;
   populateFacultyFacilityOptions();
   populateServiceFacultyOptions();
+  populateStudentAdvisorOptions();
+  populateStudentResearchGroupOptions();
 }
 
 function populateServiceFacultyOptions(selected = "") {
@@ -725,6 +789,47 @@ function populateServiceFacultyOptions(selected = "") {
   if (!target) return;
   const previous = selected || target.value;
   target.innerHTML = `<option value="">Choose faculty profile</option>${db.faculty.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
+  if ([...target.options].some(option => option.value === previous)) target.value = previous;
+}
+
+function populateStudentAdvisorOptions(selected = "") {
+  const options = db.faculty.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("");
+  const formTarget = $("#student-advisor");
+  if (formTarget) {
+    const previous = selected || formTarget.value;
+    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
+  }
+  const filterTarget = $("#student-advisor-filter");
+  if (filterTarget) {
+    const previous = filterTarget.value;
+    filterTarget.innerHTML = `<option value="all">All advisors</option><option value="">TBD</option>${options}`;
+    if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
+  }
+}
+
+function populateStudentResearchGroupOptions(selected = "") {
+  const options = db.facilities.map(facility => `<option value="${clean(facility.id)}">${clean(facility.name)}</option>`).join("");
+  const formTarget = $("#student-research-group");
+  if (formTarget) {
+    const previous = selected || formTarget.value;
+    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
+  }
+  const filterTarget = $("#student-group-filter");
+  if (filterTarget) {
+    const previous = filterTarget.value;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
+  }
+}
+
+function populateStudentStartYearOptions() {
+  const target = $("#student-start-year-filter");
+  if (!target) return;
+  const previous = target.value;
+  const years = [...new Set(db.students.map(student => student.startYear).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+  target.innerHTML = `<option value="all">All years</option>${years.map(year => `<option value="${clean(year)}">${clean(year)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === previous)) target.value = previous;
 }
 
@@ -816,6 +921,77 @@ function renderFacultyProfiles() {
   }).join("") : `<div class="empty-state panel"><span>+</span><h2>No faculty profiles yet</h2><p>Add every faculty member here, including those without equipment records.</p></div>`;
 }
 
+function studentStatusPill(status) {
+  const className = status === "Active" ? "verified" : status === "Leave" ? "submitted" : "draft";
+  return `<span class="review-pill ${className}">${clean(status || "Active")}</span>`;
+}
+
+function verificationPill(status) {
+  const className = status === "Verified" ? "verified" : status === "Pending" ? "submitted" : "draft";
+  return `<span class="review-pill ${className}">${clean(status || "Pending")}</span>`;
+}
+
+function filteredStudents() {
+  const query = $("#student-search")?.value.trim().toLowerCase() || "";
+  const level = $("#student-level-filter")?.value || "all";
+  const program = $("#student-program-filter")?.value || "all";
+  const startYear = $("#student-start-year-filter")?.value || "all";
+  const status = $("#student-status-filter")?.value || "all";
+  const verification = $("#student-verification-filter")?.value || "all";
+  const advisor = $("#student-advisor-filter")?.value || "all";
+  const group = $("#student-group-filter")?.value || "all";
+  return db.students.filter(student => {
+    const haystack = [
+      student.name,
+      student.preferredName,
+      student.studentCode,
+      student.email,
+      student.level,
+      programLabel(student.programId),
+      student.status,
+      student.verificationStatus,
+      student.startTerm ? `Term ${student.startTerm}` : "",
+      student.startYear,
+      advisorName(student.advisorId),
+      student.coadvisor,
+      researchGroupName(student),
+      student.projectTitle,
+      student.thesisTitle,
+      student.shortBio,
+      normalizeList(student.skills).join(" ")
+    ].join(" ").toLowerCase();
+    return (!query || haystack.includes(query)) &&
+      (level === "all" || student.level === level) &&
+      (program === "all" || student.programId === program) &&
+      (startYear === "all" || String(student.startYear || "") === startYear) &&
+      (status === "all" || student.status === status) &&
+      (verification === "all" || student.verificationStatus === verification) &&
+      (advisor === "all" || student.advisorId === advisor) &&
+      (group === "all" || (student.researchGroupId || "") === group);
+  });
+}
+
+function renderStudents() {
+  const table = $("#student-table");
+  if (!table) return;
+  const students = filteredStudents();
+  $("#student-result-count").textContent = students.length;
+  $("#student-empty").hidden = students.length > 0;
+  table.innerHTML = students.map(student => {
+    const started = student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
+    const years = [started, student.expectedGraduationYear || student.graduationYear].filter(Boolean).join(" - ") || "Timeline TBD";
+    const project = student.projectTitle || student.thesisTitle || "Project title to add";
+    return `<tr data-student-id="${clean(student.id)}">
+      <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(student.name))}</span><div><strong>${clean(student.name)}</strong><small>${clean(student.studentCode || student.id)}${student.email ? ` · ${clean(student.email)}` : ""}</small></div></div></td>
+      <td><div class="cell-stack"><strong>${clean(programLabel(student.programId))}</strong><small>${clean(student.level || "Bachelor")} · ${studentStatusPill(student.status || "Active")} ${verificationPill(student.verificationStatus || "Pending")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId))}</strong><small>${clean(student.coadvisor || "No co-advisor")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(project)}</strong><small>${clean(researchGroupName(student))}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small></div></td>
+      <td><div class="row-actions"><button type="button" data-edit-student="${clean(student.id)}" aria-label="Edit ${clean(student.name)}">✎</button><button type="button" data-delete-student="${clean(student.id)}" aria-label="Delete ${clean(student.name)}">×</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
 function initials(name) {
   const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "FP";
@@ -853,6 +1029,118 @@ function renderServices() {
       </div>
     </article>
   `).join("") : `<div class="empty-state panel"><span>+</span><h2>No services yet</h2><p>Add a service record when certified measurements, short courses, workshops, or STEM offerings are ready.</p></div>`;
+}
+
+function setStudentMessage(message = "", type = "") {
+  const target = $("#student-message");
+  if (!target) return;
+  target.textContent = message;
+  target.className = type ? `is-${type}` : "";
+}
+
+function openStudentDialog(id = null) {
+  const form = $("#student-form");
+  const student = id ? db.students.find(item => item.id === id) : null;
+  const faculty = currentFacultyProfile();
+  editingStudentId = student?.id || null;
+  form.reset();
+  setStudentMessage();
+  $("#student-form-title").textContent = student ? "Edit student" : "Add student";
+  $("#student-primary-action").textContent = student ? "Save student" : "Add student";
+  populateStudentAdvisorOptions(student?.advisorId || "");
+  populateStudentResearchGroupOptions(student?.researchGroupId || "");
+  if (student) {
+    ["studentCode", "name", "preferredName", "email", "level", "status", "verificationStatus", "programId", "advisorId", "coadvisor", "researchGroupId", "office", "phone", "ownerEmail", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
+      const field = form.elements.namedItem(key);
+      if (field) field.value = student[key] || "";
+    });
+    form.elements.skills.value = normalizeList(student.skills).join("\n");
+    form.elements.deadlineAlertsEnabled.checked = student.deadlineAlertsEnabled !== false;
+    form.elements.publicReady.checked = Boolean(student.publicReady);
+  } else {
+    form.elements.level.value = "Bachelor";
+    form.elements.programId.value = "bsc-physics";
+    form.elements.status.value = "Active";
+    form.elements.verificationStatus.value = "Pending";
+    form.elements.startTerm.value = "1";
+    form.elements.deadlineAlertsEnabled.checked = true;
+    form.elements.publicReady.checked = false;
+    form.elements.ownerEmail.value = signedInEmail() || faculty?.ownerEmail || faculty?.email || "";
+  }
+  $("#student-dialog").showModal();
+  setTimeout(() => form.elements.namedItem("name")?.focus(), 50);
+}
+
+function studentFromForm(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  Object.keys(data).forEach(key => { data[key] = String(data[key] || "").trim(); });
+  const existing = editingStudentId ? db.students.find(item => item.id === editingStudentId) : null;
+  const numericIds = db.students.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
+  const id = existing?.id || `STU-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
+  const advisor = facultyFor(data.advisorId);
+  const group = facilityFor(data.researchGroupId);
+  const program = STUDY_PROGRAMS[data.programId];
+  return {
+    ...existing,
+    id,
+    studentCode: data.studentCode,
+    name: data.name,
+    preferredName: data.preferredName,
+    email: data.email,
+    level: data.level || program?.level || "Bachelor",
+    status: data.status || "Active",
+    advisorId: data.advisorId,
+    coadvisor: data.coadvisor,
+    researchGroupId: data.researchGroupId,
+    researchGroup: group?.name || existing?.researchGroup || "",
+    projectTitle: data.projectTitle,
+    thesisTitle: data.thesisTitle,
+    startTerm: data.startTerm,
+    startYear: data.startYear,
+    expectedGraduationYear: data.expectedGraduationYear,
+    graduationYear: data.graduationYear,
+    office: data.office,
+    phone: data.phone,
+    shortBio: data.shortBio,
+    skills: normalizeList(data.skills),
+    notes: data.notes,
+    programId: data.programId,
+    studyProgress: existing?.studyProgress || {},
+    deadlineAlertsEnabled: form.elements.deadlineAlertsEnabled.checked,
+    deadlineLeadDays: existing?.deadlineLeadDays || [30, 14, 7, 1],
+    verificationStatus: data.verificationStatus || existing?.verificationStatus || "Pending",
+    publicReady: form.elements.publicReady.checked,
+    verifiedByEmail: data.verificationStatus === "Verified" ? (existing?.verifiedByEmail || signedInEmail()) : existing?.verifiedByEmail || "",
+    verifiedAt: data.verificationStatus === "Verified" ? (existing?.verifiedAt || new Date().toISOString()) : existing?.verifiedAt || "",
+    ownerEmail: data.ownerEmail || advisor?.ownerEmail || advisor?.email || signedInEmail(),
+    createdAt: existing?.createdAt || today(),
+    updatedAt: today(),
+    sample: existing?.sample || false
+  };
+}
+
+async function deleteStudent(id) {
+  const student = db.students.find(item => item.id === id);
+  if (!student) return;
+  const confirmed = await askConfirm("Delete student record?", `“${student.name}” will be removed from ${backendReady ? "the shared Supabase registry" : "this browser database"}.`);
+  if (!confirmed) return;
+  const previousStudents = clone(db.students);
+  db.students = db.students.filter(item => item.id !== id);
+  if (backendReady) {
+    try {
+      await backend.deleteStudent(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch (error) {
+      db.students = previousStudents;
+      renderAll();
+      showToast(error.message || "Could not delete student from Supabase");
+      return;
+    }
+  } else {
+    save();
+  }
+  renderAll();
+  showToast("Student record deleted");
 }
 
 function setServiceMessage(message = "", type = "") {
@@ -1256,11 +1544,27 @@ function exportCsv() {
   showToast("CSV export created");
 }
 
+function exportStudentCsv() {
+  const fields = ["id","studentCode","name","preferredName","email","level","program","status","verificationStatus","publicReady","advisor","coadvisor","researchGroup","projectTitle","thesisTitle","shortBio","startTerm","startYear","expectedGraduationYear","graduationYear","office","phone","skills","deadlineAlertsEnabled","ownerEmail","verifiedByEmail","verifiedAt","updatedAt"];
+  const quote = value => `"${String(value ?? "").replace(/"/g,'""')}"`;
+  const rows = db.students.map(student => ({
+    ...student,
+    program: programLabel(student.programId),
+    advisor: advisorName(student.advisorId),
+    researchGroup: researchGroupName(student),
+    skills: normalizeList(student.skills).join("; ")
+  }));
+  const csv = [fields.join(","), ...rows.map(item => fields.map(field => quote(item[field])).join(","))].join("\n");
+  downloadFile(`sut-physics-students-${today()}.csv`, "text/csv;charset=utf-8", csv);
+  showToast("Student CSV export created");
+}
+
 $$('.nav-item').forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
 $$('[data-view-jump]').forEach(button => button.addEventListener("click", () => showView(button.dataset.viewJump)));
 $$('[data-action="new-record"]').forEach(button => button.addEventListener("click", () => openRecordDialog("manager")));
 $$('[data-action="faculty-submit"]').forEach(button => button.addEventListener("click", () => openRecordDialog("faculty")));
 $$('[data-action="new-faculty"]').forEach(button => button.addEventListener("click", () => openFacultyDialog()));
+$$('[data-action="new-student"]').forEach(button => button.addEventListener("click", () => openStudentDialog()));
 $$('[data-action="new-service"]').forEach(button => button.addEventListener("click", () => openServiceDialog()));
 function setFacilityMessage(message = "", type = "") {
   const target = $("#facility-message");
@@ -1440,6 +1744,23 @@ $("#faculty-profile-grid").addEventListener("click", event => {
   if (id) openFacultyDialog(id);
 });
 
+$("#student-table").addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-student]");
+  const editButton = event.target.closest("[data-edit-student]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteStudent(deleteButton.dataset.deleteStudent);
+    return;
+  }
+  if (editButton) {
+    event.stopPropagation();
+    openStudentDialog(editButton.dataset.editStudent);
+    return;
+  }
+  const row = event.target.closest("[data-student-id]");
+  if (row) openStudentDialog(row.dataset.studentId);
+});
+
 $("#service-grid").addEventListener("click", event => {
   const deleteButton = event.target.closest("[data-delete-service]");
   if (deleteButton) {
@@ -1451,6 +1772,47 @@ $("#service-grid").addEventListener("click", event => {
   const card = event.target.closest("[data-service-id]");
   const id = editButton?.dataset.editService || card?.dataset.serviceId;
   if (id) openServiceDialog(id);
+});
+
+$("#student-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  setBusy(event.submitter, true);
+  setStudentMessage("Saving student…");
+  try {
+    const student = studentFromForm(event.currentTarget);
+    const duplicate = db.students.find(item => {
+      if (item.id === student.id) return false;
+      const sameCode = student.studentCode && item.studentCode && item.studentCode.trim().toLowerCase() === student.studentCode.trim().toLowerCase();
+      const sameEmail = student.email && item.email && item.email.trim().toLowerCase() === student.email.trim().toLowerCase();
+      const sameName = item.name.trim().toLowerCase() === student.name.trim().toLowerCase();
+      return sameCode || sameEmail || sameName;
+    });
+    if (duplicate) {
+      setStudentMessage(`A student record for “${duplicate.name}” already exists.`, "error");
+      showToast(`A student record for “${duplicate.name}” already exists`);
+      return;
+    }
+    if (await persistStudent(student)) {
+      $("#student-dialog").close();
+      event.currentTarget.reset();
+      editingStudentId = null;
+      renderAll();
+      showToast(`${student.name} ${db.students.some(item => item.id === student.id) ? "student record saved" : "added to students"}`);
+    } else {
+      setStudentMessage(lastStudentError?.message || "Could not save this student.", "error");
+    }
+  } catch (error) {
+    setStudentMessage(error.message || "Could not save this student.", "error");
+    showToast(error.message || "Could not save student");
+  } finally {
+    setBusy(event.submitter, false);
+  }
+});
+
+$("#student-form").elements.namedItem("programId").addEventListener("change", event => {
+  const level = STUDY_PROGRAMS[event.target.value]?.level;
+  if (level) $("#student-form").elements.namedItem("level").value = level;
 });
 
 $("#service-form").addEventListener("submit", async event => {
@@ -1547,26 +1909,42 @@ $("#attention-list").addEventListener("click", event => { const button = event.t
 [$("#equipment-search"), $("#facility-filter"), $("#status-filter"), $("#review-filter")].forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", renderEquipmentTable));
 $("#clear-filters").addEventListener("click", () => { $("#equipment-search").value = ""; $("#facility-filter").value = "all"; $("#status-filter").value = "all"; $("#review-filter").value = "all"; renderEquipmentTable(); });
 
+[$("#student-search"), $("#student-level-filter"), $("#student-program-filter"), $("#student-start-year-filter"), $("#student-status-filter"), $("#student-verification-filter"), $("#student-advisor-filter"), $("#student-group-filter")].forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", renderStudents));
+$("#clear-student-filters").addEventListener("click", () => {
+  $("#student-search").value = "";
+  $("#student-level-filter").value = "all";
+  $("#student-program-filter").value = "all";
+  $("#student-start-year-filter").value = "all";
+  $("#student-status-filter").value = "all";
+  $("#student-verification-filter").value = "all";
+  $("#student-advisor-filter").value = "all";
+  $("#student-group-filter").value = "all";
+  renderStudents();
+});
+
 $("#global-search").addEventListener("input", event => { if (event.target.value.trim()) showView("equipment", { query: event.target.value, preserveScroll: true }); });
 document.addEventListener("keydown", event => { if (event.key === "/" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); $("#global-search").focus(); } });
 
 $("#export-json").addEventListener("click", () => { downloadFile(`sut-physics-registry-${today()}.json`, "application/json", JSON.stringify(db, null, 2)); showToast("JSON backup created"); });
 $("#export-csv").addEventListener("click", exportCsv);
+$("#export-student-csv").addEventListener("click", exportStudentCsv);
 $("#import-json").addEventListener("change", async event => {
   const file = event.target.files[0]; if (!file) return;
   try {
     const imported = JSON.parse(await file.text());
     if (!Array.isArray(imported.equipment) || !Array.isArray(imported.facilities)) throw new Error("Invalid schema");
     imported.faculty = Array.isArray(imported.faculty) ? imported.faculty : [];
+    imported.students = Array.isArray(imported.students) ? imported.students : [];
     imported.services = Array.isArray(imported.services) ? imported.services : [];
     imported.equipment = imported.equipment.map(item => ({
       ...item,
       description: String(item.description || "").slice(0, DESCRIPTION_LIMIT)
     }));
-    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
+    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.students.length} student records, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
     if (confirmed) {
       if (backendReady) {
         for (const profile of imported.faculty) await backend.saveFaculty(profile);
+        for (const student of imported.students) await backend.saveStudent(student);
         for (const facility of imported.facilities) await backend.saveFacility(facility);
         for (const record of imported.equipment) await backend.saveEquipment(record);
         for (const service of imported.services) await backend.saveService(service);
@@ -1642,12 +2020,13 @@ $("#refresh-scopus-metrics").addEventListener("click", async event => {
 });
 
 $("#seed-sample-data").addEventListener("click", async event => {
-  const confirmed = await askConfirm("Seed example records?", `Add or update ${sampleDatabase.faculty.length} example faculty profiles, ${sampleDatabase.equipment.length} example equipment records, ${sampleDatabase.facilities.length} facilities, and ${sampleDatabase.services.length} services in ${backendReady ? "Supabase" : "this browser"}?`);
+  const confirmed = await askConfirm("Seed example records?", `Add or update ${sampleDatabase.faculty.length} example faculty profiles, ${sampleDatabase.students.length} student records, ${sampleDatabase.equipment.length} example equipment records, ${sampleDatabase.facilities.length} facilities, and ${sampleDatabase.services.length} services in ${backendReady ? "Supabase" : "this browser"}?`);
   if (!confirmed) return;
   setBusy(event.currentTarget, true, "Seeding…");
   try {
     if (backendReady) {
       for (const profile of sampleDatabase.faculty) await backend.saveFaculty(profile);
+      for (const student of sampleDatabase.students) await backend.saveStudent(student);
       for (const facility of sampleDatabase.facilities) await backend.saveFacility(facility);
       for (const record of sampleDatabase.equipment) await backend.saveEquipment(record);
       for (const service of sampleDatabase.services) await backend.saveService(service);

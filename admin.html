@@ -73,6 +73,11 @@
           Faculty
           <span class="nav-count" id="faculty-nav-count">0</span>
         </button>
+        <button class="nav-item" data-view="students" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7 12 3l8 4-8 4-8-4Zm3 4v4c0 2 2 4 5 4s5-2 5-4v-4M20 9v6"/></svg>
+          Students
+          <span class="nav-count" id="students-nav-count">0</span>
+        </button>
         <button class="nav-item" data-view="facilities" type="button">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 12h2v2H9zM13 12h2v2h-2zM9 17h6"/></svg>
           Facilities
@@ -91,6 +96,7 @@
       <div class="sidebar-foot">
         <div class="storage-state" id="storage-state"><span></span><div><strong>Prototype storage</strong><small>Saved in this browser only</small></div></div>
         <a href="index.html">View public infographic <span aria-hidden="true">↗</span></a>
+        <a href="student-portal.html">Student portal <span aria-hidden="true">↗</span></a>
       </div>
     </aside>
 
@@ -201,6 +207,28 @@
           <div id="faculty-profile-grid" class="faculty-admin-grid"></div>
         </section>
 
+        <section class="view" data-view-panel="students" aria-labelledby="students-title">
+          <div class="view-heading compact-heading">
+            <div><p class="eyebrow">Student records</p><h1 id="students-title">Students, advising, and projects</h1><p class="heading-description">Track enrolled students, alumni, advisors, research groups, and thesis or project progress for the Physics Program.</p></div>
+            <button class="button button-primary" type="button" data-action="new-student"><span aria-hidden="true">＋</span> Add student</button>
+          </div>
+
+          <div class="registry-tools">
+            <label class="table-search"><span class="sr-only">Search student records</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="student-search" type="search" placeholder="Search name, ID, advisor, project…" /></label>
+            <label>Level<select id="student-level-filter"><option value="all">All levels</option><option>Bachelor</option><option>Master</option><option>PhD</option></select></label>
+            <label>Program<select id="student-program-filter"><option value="all">All programs</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+            <label>Start year<select id="student-start-year-filter"><option value="all">All years</option></select></label>
+            <label>Status<select id="student-status-filter"><option value="all">All statuses</option><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
+            <label>Verification<select id="student-verification-filter"><option value="all">All verification</option><option>Pending</option><option>Verified</option><option>Rejected</option></select></label>
+            <label>Advisor<select id="student-advisor-filter"><option value="all">All advisors</option></select></label>
+            <label>Group<select id="student-group-filter"><option value="all">All groups</option></select></label>
+            <button class="icon-button" id="clear-student-filters" type="button" title="Clear student filters"><span class="sr-only">Clear student filters</span>↺</button>
+          </div>
+
+          <div class="registry-summary"><p><strong id="student-result-count">0</strong> students</p><p><span class="legend-dot submitted"></span> Pending verification <span class="legend-dot verified"></span> Verified <span class="legend-dot draft"></span> Rejected</p></div>
+          <div class="panel table-panel"><div class="table-wrap"><table class="registry-table student-table"><thead><tr><th>Student</th><th>Program & status</th><th>Advisor</th><th>Project</th><th>Timeline</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="student-table"></tbody></table></div><div id="student-empty" class="empty-state" hidden><span>⌕</span><h2>No matching students</h2><p>Try changing the search or filters.</p></div></div>
+        </section>
+
         <section class="view" data-view-panel="facilities" aria-labelledby="facilities-title">
           <div class="view-heading compact-heading">
             <div><p class="eyebrow">Spaces & laboratories</p><h1 id="facilities-title">Facilities directory</h1><p class="heading-description">Group equipment by the physical spaces where research, teaching, and technical support happen.</p></div>
@@ -223,6 +251,7 @@
           <div class="data-grid">
             <section class="panel data-card"><span class="data-icon">{ }</span><h2>Export full registry</h2><p>Download equipment, facilities, and metadata as structured JSON.</p><button class="button button-secondary" type="button" id="export-json">Download JSON <span>↓</span></button></section>
             <section class="panel data-card"><span class="data-icon">CSV</span><h2>Export equipment table</h2><p>Download a spreadsheet-ready CSV for checking and reporting.</p><button class="button button-secondary" type="button" id="export-csv">Download CSV <span>↓</span></button></section>
+            <section class="panel data-card"><span class="data-icon">ST</span><h2>Export student table</h2><p>Download a spreadsheet-ready CSV of student records, advisors, project titles, and status fields.</p><button class="button button-secondary" type="button" id="export-student-csv">Download CSV <span>↓</span></button></section>
             <section class="panel data-card"><span class="data-icon">↥</span><h2>Import a backup</h2><p>Restore a JSON file created by this platform. In Supabase mode, imported records are uploaded into the shared database.</p><label class="button button-secondary file-button">Choose JSON <input type="file" id="import-json" accept="application/json,.json" /></label></section>
             <section class="panel data-card"><span class="data-icon">19</span><h2>Seed atlas equipment</h2><p>Add missing fallback Equipment Atlas records and facility clusters without creating faculty profiles or custodians.</p><button class="button button-secondary" type="button" id="seed-atlas-equipment">Seed atlas equipment</button></section>
             <section class="panel data-card"><span class="data-icon">Sc</span><h2>Refresh Scopus metrics</h2><p>Use each faculty member's Scopus profile link to update h-index, citation count, and document count.</p><button class="button button-secondary" type="button" id="refresh-scopus-metrics">Refresh metrics</button></section>
@@ -344,6 +373,46 @@
           </div></div>
         </div>
         <div class="modal-foot"><p id="faculty-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="faculty-dialog">Cancel</button><button class="button button-primary" id="faculty-primary-action" type="submit">Add profile</button></div></div>
+      </form>
+    </dialog>
+
+    <dialog id="student-dialog" class="modal">
+      <form id="student-form" method="dialog">
+        <div class="modal-head"><div><p class="eyebrow">Student record</p><h2 id="student-form-title">Add student</h2></div><button class="close-button" type="button" data-close="student-dialog"><span class="sr-only">Close</span>×</button></div>
+        <div class="modal-body">
+          <div class="form-section"><div class="form-section-title"><span>01</span><div><h3>Identity</h3><p>Connect the student to a program, login email, and current academic status.</p></div></div><div class="form-grid">
+            <label>Student ID<input name="studentCode" placeholder="e.g. B65..." /></label>
+            <label>Full name <span aria-hidden="true">*</span><input name="name" required placeholder="Student full name" /></label>
+            <label>Preferred name<input name="preferredName" placeholder="Optional" /></label>
+            <label>Email<input name="email" type="email" placeholder="student@g.sut.ac.th" /></label>
+            <label>Program level <span aria-hidden="true">*</span><select name="level" required><option>Bachelor</option><option>Master</option><option>PhD</option></select></label>
+            <label>Study program <span aria-hidden="true">*</span><select name="programId" required><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+            <label>Status <span aria-hidden="true">*</span><select name="status" required><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
+            <label>Verification<select name="verificationStatus"><option>Pending</option><option>Verified</option><option>Rejected</option></select></label>
+            <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public student list</strong><small>Only verified records with a short bio appear publicly.</small></span></label>
+          </div></div>
+          <div class="form-section"><div class="form-section-title"><span>02</span><div><h3>Advising</h3><p>Assign the academic owner and the research context for this student.</p></div></div><div class="form-grid">
+            <label>Primary advisor<select id="student-advisor" name="advisorId"><option value="">TBD</option></select></label>
+            <label>Co-advisor<input name="coadvisor" placeholder="Optional co-advisor or committee" /></label>
+            <label>Research lab / group<select id="student-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
+            <label>Office / lab<input name="office" placeholder="Building and room" /></label>
+            <label>Phone<input name="phone" placeholder="Optional contact number" /></label>
+            <label>Owner login email<input name="ownerEmail" type="email" placeholder="Faculty or student account allowed to manage this record" /></label>
+            <label class="checkbox-label"><input type="checkbox" name="deadlineAlertsEnabled" checked /><span><strong>Deadline alarms enabled</strong><small>Program-linked deadline reminders will use this record when study programs are added.</small></span></label>
+          </div></div>
+          <div class="form-section"><div class="form-section-title"><span>03</span><div><h3>Project</h3><p>Track thesis, capstone, internship, or research assistantship information.</p></div></div><div class="form-grid">
+            <label class="span-2">Project title<textarea name="projectTitle" rows="2" placeholder="Research project, capstone, or assistantship topic"></textarea></label>
+            <label class="span-2">Thesis title<textarea name="thesisTitle" rows="2" placeholder="Thesis or dissertation title, if applicable"></textarea></label>
+            <label>Start trimester <span aria-hidden="true">*</span><select name="startTerm" required><option value="">Choose term</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+            <label>Start year <span aria-hidden="true">*</span><input name="startYear" type="number" min="1950" max="2100" placeholder="YYYY" required /></label>
+            <label>Expected graduation<input name="expectedGraduationYear" type="number" min="1950" max="2100" placeholder="YYYY" /></label>
+            <label>Graduation year<input name="graduationYear" type="number" min="1950" max="2100" placeholder="YYYY" /></label>
+            <label class="span-2">Short bio<textarea name="shortBio" rows="3" maxlength="420" placeholder="Short public bio for the student directory"></textarea></label>
+            <label class="span-2">Skills and methods<textarea name="skills" rows="3" placeholder="Enter one item per line"></textarea></label>
+            <label class="span-2">Internal notes<textarea name="notes" rows="3" placeholder="Administrative notes, funding, milestones, or follow-up items"></textarea></label>
+          </div></div>
+        </div>
+        <div class="modal-foot"><p id="student-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="student-dialog">Cancel</button><button class="button button-primary" id="student-primary-action" type="submit">Add student</button></div></div>
       </form>
     </dialog>
 

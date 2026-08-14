@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Student study progress portal for the Physics Program at Suranaree University of Technology." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Physics Student Portal · SUT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="student.js" defer></script>
+  </head>
+  <body class="student-portal">
+    <section id="student-auth" class="auth-gate" aria-labelledby="student-auth-title">
+      <div class="auth-card">
+        <p class="eyebrow">Student portal</p>
+        <h1 id="student-auth-title">Create or open your Physics study record.</h1>
+        <p>Your account uses your SUT email. Your student record stays pending until a faculty member verifies it.</p>
+        <form id="student-signin-form" class="auth-form">
+          <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@g.sut.ac.th" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="button button-primary" type="submit">Sign in</button>
+        </form>
+        <form id="student-signup-form" class="auth-form">
+          <label>Full name<input name="name" autocomplete="name" required /></label>
+          <label>Student ID<input name="studentCode" autocomplete="off" /></label>
+          <label>Start trimester<select name="startTerm" required><option value="">Choose term</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+          <label>Start year<input name="startYear" type="number" min="1950" max="2100" placeholder="YYYY" required /></label>
+          <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@g.sut.ac.th" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <button class="button button-secondary" type="submit">Create account</button>
+        </form>
+        <p class="auth-help" id="student-auth-message">Use your SUT or g.sut.ac.th email address.</p>
+      </div>
+    </section>
+
+    <main id="student-workspace" class="workspace" hidden>
+      <section class="view is-visible" aria-labelledby="student-title">
+        <div class="view-heading compact-heading">
+          <div>
+            <p class="eyebrow">Student study progress</p>
+            <h1 id="student-title">Your Physics record</h1>
+            <p class="heading-description">Keep your advising, project, thesis, and deadline reminder details current.</p>
+          </div>
+          <button class="button button-secondary" id="student-sign-out" type="button">Sign out</button>
+        </div>
+
+        <section class="panel visitor-panel">
+          <div class="panel-heading">
+            <div><p class="panel-kicker">Verification</p><h2 id="student-verification-title">Pending</h2></div>
+            <span class="data-date" id="student-account-email"></span>
+          </div>
+          <p class="visitor-empty" id="student-verification-note">Faculty verification is required before this record is treated as official.</p>
+        </section>
+
+        <form id="student-record-form" class="panel">
+          <div class="form-section">
+            <div class="form-section-title"><span>01</span><div><h3>Identity</h3><p>Your program and current academic status.</p></div></div>
+            <div class="form-grid">
+              <label>Student ID<input name="studentCode" /></label>
+              <label>Full name <span aria-hidden="true">*</span><input name="name" required /></label>
+              <label>Preferred name<input name="preferredName" /></label>
+              <label>Email<input name="email" type="email" readonly /></label>
+              <label>Program level<select name="level"><option>Bachelor</option><option>Master</option><option>PhD</option></select></label>
+              <label>Study program<select name="programId"><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+              <label>Status<select name="status"><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
+              <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public student list</strong><small>Your record must be verified before your short bio appears publicly.</small></span></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>02</span><div><h3>Advising</h3><p>Your advisor, group, and project context.</p></div></div>
+            <div class="form-grid">
+              <label>Primary advisor<select id="student-self-advisor" name="advisorId"><option value="">TBD</option></select></label>
+              <label>Co-advisor<input name="coadvisor" /></label>
+              <label>Research lab / group<select id="student-self-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
+              <label>Office / lab<input name="office" /></label>
+              <label class="span-2">Project title<textarea name="projectTitle" rows="2"></textarea></label>
+              <label class="span-2">Thesis title<textarea name="thesisTitle" rows="2"></textarea></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>03</span><div><h3>Progress</h3><p>Study timeline and reminder settings.</p></div></div>
+            <div class="form-grid">
+              <label>Start trimester <span aria-hidden="true">*</span><select name="startTerm" required><option value="">Choose term</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+              <label>Start year <span aria-hidden="true">*</span><input name="startYear" type="number" min="1950" max="2100" placeholder="YYYY" required /></label>
+              <label>Expected graduation<input name="expectedGraduationYear" type="number" min="1950" max="2100" /></label>
+              <label>Graduation year<input name="graduationYear" type="number" min="1950" max="2100" /></label>
+              <label class="checkbox-label span-2"><input type="checkbox" name="deadlineAlertsEnabled" checked /><span><strong>Deadline alarms enabled</strong><small>Reminders will follow the study program deadline plan once it is added.</small></span></label>
+              <label class="span-2">Short bio<textarea name="shortBio" rows="3" maxlength="420" placeholder="A short bio for the public student list, if you choose to appear there."></textarea></label>
+              <label class="span-2">Skills and methods<textarea name="skills" rows="3" placeholder="Enter one item per line"></textarea></label>
+              <label class="span-2">Notes<textarea name="notes" rows="3"></textarea></label>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <p id="student-record-message" role="status" aria-live="polite"></p>
+            <div><button class="button button-primary" id="student-record-submit" type="submit">Save study record</button></div>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span><p></p></div>
+  </body>
+</html>
