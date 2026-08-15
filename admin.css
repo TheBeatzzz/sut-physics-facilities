@@ -40,7 +40,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auth-form { margin-top: 24px; display: grid; gap: 13px; }
 .auth-form label { display: grid; gap: 6px; color: var(--ink-2); font-size: 12px; font-weight: 700; }
 .auth-form label span { color: var(--muted); font-weight: 500; }
-.auth-form input { min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); }
+.auth-form input, .auth-form select { min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); }
 .access-issue-panel { margin-top: 18px; padding: 16px 18px; color: #72570e; background: #faefce; border: 1px solid #e4cb83; font-size: 12px; line-height: 1.55; }
 .access-issue-panel strong { display: block; margin-bottom: 5px; color: #72570e; font-size: 13px; }
 .access-issue-panel b { color: var(--ink); }
@@ -211,6 +211,16 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 #student-record-message { max-width: 420px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 #student-record-message.is-error { color: var(--red); }
 #student-record-message.is-success { color: var(--green-2); }
+.student-portal .auth-gate {
+  place-items: start center;
+  overflow-y: auto;
+  padding-block: max(24px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-bottom));
+}
+.student-portal .auth-card { align-self: start; }
+.student-portal #student-signup-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.student-portal #student-signup-form .button { grid-column: 1 / -1; }
 .student-portal .workspace { max-width: 1120px; margin: 0 auto; padding-left: clamp(22px, 3.4vw, 52px); }
 .student-portal #student-record-form { overflow: hidden; }
 .description-label { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -232,6 +242,7 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 
 @media (max-width: 460px) {
   .metric-grid, .visitor-summary-grid { grid-template-columns: 1fr; }.metric-card { min-height: 125px; }.registry-tools > label { min-width: 100%; }.registry-table th:nth-child(2), .registry-table td:nth-child(2) { display: none; }.facility-grid { display: block; }.facility-card { margin-bottom: 12px; }.submission-details { grid-template-columns: 1fr; }.submission-details div { padding: 6px 0; border: 0; }.form-grid { grid-template-columns: 1fr; }.span-2 { grid-column: auto; }.modal-head, .form-section { padding-left: 20px; padding-right: 20px; }.modal-foot { padding-inline: 20px; }.modal-foot > div { grid-template-columns: 1fr; }.production-note ul { grid-template-columns: 1fr; }
+  .student-portal #student-signup-form { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } html { scroll-behavior: auto; } }
