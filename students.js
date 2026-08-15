@@ -11,6 +11,7 @@ const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
 }[character]));
 const list = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+const keywords = value => list(value).slice(0, 5);
 
 let students = [];
 let faculty = [];
@@ -44,6 +45,7 @@ const normalizeStudent = student => ({
   startTerm: student.startTerm || "",
   startYear: student.startYear || "",
   shortBio: student.shortBio || "",
+  researchInterests: keywords(student.researchInterests),
   skills: list(student.skills),
   updatedAt: student.updatedAt || ""
 });
@@ -129,7 +131,8 @@ function filteredStudents() {
 
 function studentCard(student) {
   const project = student.projectTitle || student.thesisTitle || "Research topic to be announced";
-  const tags = [student.level, programLabel(student.programId), startLabel(student), ...student.skills.slice(0, 1)].filter(Boolean);
+  const interests = student.researchInterests.length ? student.researchInterests : student.skills.slice(0, 5);
+  const tags = [student.level, programLabel(student.programId), ...interests].filter(Boolean);
   return `
     <article class="service-card student-public-card">
       <div class="service-card-top"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>

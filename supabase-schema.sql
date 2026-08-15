@@ -97,7 +97,8 @@ create table if not exists public.students (
   graduation_year integer,
   office text,
   phone text,
-  short_bio varchar(420),
+  short_bio text,
+  research_interests jsonb not null default '[]'::jsonb,
   skills jsonb not null default '[]'::jsonb,
   notes text,
   program_id text,
@@ -121,10 +122,33 @@ alter table if exists public.students
 add column if not exists skills jsonb not null default '[]'::jsonb;
 
 alter table if exists public.students
+add column if not exists research_interests jsonb not null default '[]'::jsonb;
+
+alter table if exists public.students
+alter column research_interests set default '[]'::jsonb;
+
+update public.students
+set research_interests = '[]'::jsonb
+where research_interests is null;
+
+alter table if exists public.students
+alter column research_interests set not null;
+
+alter table public.students
+  drop constraint if exists students_research_interests_limit;
+
+alter table public.students
+  add constraint students_research_interests_limit
+  check (jsonb_typeof(research_interests) = 'array' and jsonb_array_length(research_interests) <= 5);
+
+alter table if exists public.students
 add column if not exists research_group_id text references public.facilities(id) on update cascade on delete set null;
 
 alter table if exists public.students
-add column if not exists short_bio varchar(420);
+add column if not exists short_bio text;
+
+alter table if exists public.students
+alter column short_bio type text;
 
 alter table if exists public.students
 add column if not exists program_id text;

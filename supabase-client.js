@@ -182,6 +182,7 @@
     office: row.office || "",
     phone: row.phone || "",
     shortBio: row.short_bio || "",
+    researchInterests: asArray(row.research_interests),
     skills: asArray(row.skills),
     notes: row.notes || "",
     programId: row.program_id || "",
@@ -221,7 +222,8 @@
     graduation_year: optionalYear(student.graduationYear),
     office: student.office || null,
     phone: student.phone || null,
-    short_bio: String(student.shortBio || "").slice(0, 420) || null,
+    short_bio: String(student.shortBio || "") || null,
+    research_interests: asArray(student.researchInterests).slice(0, 5).filter(Boolean),
     skills: asArray(student.skills).filter(Boolean),
     notes: student.notes || null,
     program_id: student.programId || null,
@@ -501,13 +503,20 @@
   const loadPublicStudents = async () => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
+    const publicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
+    const legacyPublicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
+    const loadStudentRows = columns => supabase
+      .from("students")
+      .select(columns)
+      .eq("verification_status", "Verified")
+      .eq("public_ready", true)
+      .order("name", { ascending: true });
+    const studentsPromise = loadStudentRows(publicStudentColumns).then(result => {
+      const message = String(result.error?.message || "");
+      return /research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
+    });
     const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
-      supabase
-        .from("students")
-        .select("id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at")
-        .eq("verification_status", "Verified")
-        .eq("public_ready", true)
-        .order("name", { ascending: true }),
+      studentsPromise,
       supabase.from("faculty").select("*").eq("public_ready", true).order("name", { ascending: true }),
       supabase.from("facilities").select("*").order("id", { ascending: true })
     ]);

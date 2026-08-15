@@ -158,6 +158,8 @@ const facilityPalette = ["#8fd8c8", "#9bc7ee", "#f4c26d", "#c1b2df", "#e8a89a", 
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const normalizeList = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+const normalizeKeywords = value => normalizeList(value).slice(0, 5);
+const wordCount = value => String(value || "").trim().split(/\s+/).filter(Boolean).length;
 const facultyNameCorrections = {
   "Worawat Meewassana": "Worawat Meevassana",
   "Prayoon Songsirittikul": "Prayoon Songsiriritthikul",
@@ -178,6 +180,7 @@ const normalizeStudents = students => students.map(student => ({
   level: student.level === "Undergraduate" ? "Bachelor" : STUDY_LEVELS.includes(student.level) ? student.level : STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
   status: student.status || "Active",
   startTerm: ["1", "2", "3"].includes(String(student.startTerm || "")) ? String(student.startTerm) : "",
+  researchInterests: normalizeKeywords(student.researchInterests),
   skills: normalizeList(student.skills),
   shortBio: student.shortBio || "",
   researchGroupId: student.researchGroupId || "",
@@ -952,6 +955,7 @@ function filteredStudents() {
       student.verificationStatus,
       student.startTerm ? `Term ${student.startTerm}` : "",
       student.startYear,
+      normalizeList(student.researchInterests).join(" "),
       advisorName(student.advisorId),
       student.coadvisor,
       researchGroupName(student),
@@ -1038,6 +1042,21 @@ function setStudentMessage(message = "", type = "") {
   target.className = type ? `is-${type}` : "";
 }
 
+function validateStudentProfileFields(form) {
+  const interests = normalizeList(form.elements.researchInterests.value);
+  if (interests.length > 5) {
+    setStudentMessage("Use no more than 5 research interest keywords.", "error");
+    form.elements.researchInterests.focus();
+    return false;
+  }
+  if (wordCount(form.elements.shortBio.value) > 500) {
+    setStudentMessage("Short bio must be 500 words or fewer.", "error");
+    form.elements.shortBio.focus();
+    return false;
+  }
+  return true;
+}
+
 function openStudentDialog(id = null) {
   const form = $("#student-form");
   const student = id ? db.students.find(item => item.id === id) : null;
@@ -1054,6 +1073,7 @@ function openStudentDialog(id = null) {
       const field = form.elements.namedItem(key);
       if (field) field.value = student[key] || "";
     });
+    form.elements.researchInterests.value = normalizeList(student.researchInterests).join("\n");
     form.elements.skills.value = normalizeList(student.skills).join("\n");
     form.elements.deadlineAlertsEnabled.checked = student.deadlineAlertsEnabled !== false;
     form.elements.publicReady.checked = Boolean(student.publicReady);
@@ -1102,6 +1122,7 @@ function studentFromForm(form) {
     office: data.office,
     phone: data.phone,
     shortBio: data.shortBio,
+    researchInterests: normalizeKeywords(data.researchInterests),
     skills: normalizeList(data.skills),
     notes: data.notes,
     programId: data.programId,
@@ -1545,13 +1566,14 @@ function exportCsv() {
 }
 
 function exportStudentCsv() {
-  const fields = ["id","studentCode","name","preferredName","email","level","program","status","verificationStatus","publicReady","advisor","coadvisor","researchGroup","projectTitle","thesisTitle","shortBio","startTerm","startYear","expectedGraduationYear","graduationYear","office","phone","skills","deadlineAlertsEnabled","ownerEmail","verifiedByEmail","verifiedAt","updatedAt"];
+  const fields = ["id","studentCode","name","preferredName","email","level","program","status","verificationStatus","publicReady","advisor","coadvisor","researchGroup","projectTitle","thesisTitle","shortBio","researchInterests","startTerm","startYear","expectedGraduationYear","graduationYear","office","phone","skills","deadlineAlertsEnabled","ownerEmail","verifiedByEmail","verifiedAt","updatedAt"];
   const quote = value => `"${String(value ?? "").replace(/"/g,'""')}"`;
   const rows = db.students.map(student => ({
     ...student,
     program: programLabel(student.programId),
     advisor: advisorName(student.advisorId),
     researchGroup: researchGroupName(student),
+    researchInterests: normalizeList(student.researchInterests).join("; "),
     skills: normalizeList(student.skills).join("; ")
   }));
   const csv = [fields.join(","), ...rows.map(item => fields.map(field => quote(item[field])).join(","))].join("\n");
@@ -1777,6 +1799,7 @@ $("#service-grid").addEventListener("click", event => {
 $("#student-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
+  if (!validateStudentProfileFields(event.currentTarget)) return;
   setBusy(event.submitter, true);
   setStudentMessage("Saving student…");
   try {

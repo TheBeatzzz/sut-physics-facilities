@@ -87,7 +87,8 @@
               <label>Expected graduation<input name="expectedGraduationYear" type="number" min="1950" max="2100" /></label>
               <label>Graduation year<input name="graduationYear" type="number" min="1950" max="2100" /></label>
               <label class="checkbox-label span-2"><input type="checkbox" name="deadlineAlertsEnabled" checked /><span><strong>Deadline alarms enabled</strong><small>Reminders will follow the study program deadline plan once it is added.</small></span></label>
-              <label class="span-2">Short bio<textarea name="shortBio" rows="3" maxlength="420" placeholder="A short bio for the public student list, if you choose to appear there."></textarea></label>
+              <label class="span-2">Research interests <span aria-hidden="true">*</span><textarea name="researchInterests" rows="3" required placeholder="Enter up to 5 keywords, one per line"></textarea></label>
+              <label class="span-2">Short bio<textarea name="shortBio" rows="5" placeholder="A short bio for the public student list, up to 500 words."></textarea></label>
               <label class="span-2">Skills and methods<textarea name="skills" rows="3" placeholder="Enter one item per line"></textarea></label>
               <label class="span-2">Notes<textarea name="notes" rows="3"></textarea></label>
             </div>

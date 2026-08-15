@@ -11,6 +11,8 @@ const $ = selector => document.querySelector(selector);
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const today = () => new Date().toISOString().slice(0, 10);
 const normalizeList = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+const normalizeKeywords = value => normalizeList(value).slice(0, 5);
+const wordCount = value => String(value || "").trim().split(/\s+/).filter(Boolean).length;
 const STUDY_PROGRAMS = {
   "bsc-physics": { label: "B.Sc. Physics", level: "Bachelor" },
   "msc-physics": { label: "M.Sc. Physics", level: "Master" },
@@ -38,6 +40,21 @@ function setRecordMessage(message, type = "") {
   const target = $("#student-record-message");
   target.textContent = message;
   target.className = type ? `is-${type}` : "";
+}
+
+function validateProfileFields(form, setMessage) {
+  const interests = normalizeList(form.elements.researchInterests.value);
+  if (interests.length > 5) {
+    setMessage("Use no more than 5 research interest keywords.", "error");
+    form.elements.researchInterests.focus();
+    return false;
+  }
+  if (wordCount(form.elements.shortBio.value) > 500) {
+    setMessage("Short bio must be 500 words or fewer.", "error");
+    form.elements.shortBio.focus();
+    return false;
+  }
+  return true;
 }
 
 function setBusy(button, busy, label = "Working...") {
@@ -98,6 +115,7 @@ function formToRecord(form) {
     graduationYear: data.graduationYear,
     office: data.office,
     shortBio: data.shortBio,
+    researchInterests: normalizeKeywords(data.researchInterests),
     skills: normalizeList(data.skills),
     notes: data.notes,
     programId: data.programId,
@@ -132,6 +150,7 @@ function fillRecordForm(record = null) {
     const field = form.elements.namedItem(key);
     if (field) field.value = defaults[key] || "";
   });
+  form.elements.researchInterests.value = normalizeList(defaults.researchInterests).join("\n");
   form.elements.skills.value = normalizeList(defaults.skills).join("\n");
   form.elements.deadlineAlertsEnabled.checked = defaults.deadlineAlertsEnabled !== false;
   form.elements.publicReady.checked = Boolean(defaults.publicReady);
@@ -191,6 +210,7 @@ $("#student-signin-form").addEventListener("submit", async event => {
 $("#student-record-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
+  if (!validateProfileFields(event.currentTarget, setRecordMessage)) return;
   setBusy($("#student-record-submit"), true, "Saving...");
   setRecordMessage("Saving study record...");
   try {
