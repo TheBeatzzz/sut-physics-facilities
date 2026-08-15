@@ -300,7 +300,7 @@ const textTranslations = {
   "Physics students": "นักศึกษาฟิสิกส์",
   "Bachelor · Master · PhD": "ปริญญาตรี · ปริญญาโท · ปริญญาเอก",
   "Students shaping": "นักศึกษาผู้ร่วมสร้าง",
-  "the next questions.": "คำถามใหม่ของอนาคต",
+  "the future": "อนาคต",
   "Browse verified student profiles by study level, program, advisor, and research lab or group.": "ดูโปรไฟล์นักศึกษาที่ผ่านการตรวจสอบแล้วตามระดับการศึกษา หลักสูตร อาจารย์ที่ปรึกษา และห้องปฏิบัติการหรือกลุ่มวิจัย",
   "View students": "ดูรายชื่อนักศึกษา",
   "Open student portal": "เปิดพอร์ทัลนักศึกษา",
