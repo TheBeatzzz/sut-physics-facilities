@@ -188,52 +188,6 @@ $("#student-signin-form").addEventListener("submit", async event => {
   }
 });
 
-$("#student-signup-form").addEventListener("submit", async event => {
-  event.preventDefault();
-  if (!backend?.isConfigured?.()) {
-    setAuthMessage("Supabase must be configured before students can create accounts.", "error");
-    return;
-  }
-  if (!event.currentTarget.reportValidity()) return;
-  setBusy(event.submitter, true, "Creating...");
-  try {
-    const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-    currentSession = await backend.signUp(data.email, data.password, {
-      role: "student",
-      full_name: data.name,
-      student_code: data.studentCode,
-      start_term: normalizeTerm(data.startTerm),
-      start_year: data.startYear
-    });
-    const draft = {
-      id: `STU-${Date.now().toString(36).toUpperCase()}`,
-      name: data.name,
-      studentCode: data.studentCode,
-      email: String(data.email || "").trim().toLowerCase(),
-      ownerEmail: String(data.email || "").trim().toLowerCase(),
-      verificationStatus: "Pending",
-      level: "Bachelor",
-      programId: "bsc-physics",
-      startTerm: normalizeTerm(data.startTerm),
-      startYear: data.startYear,
-      status: "Active",
-      deadlineAlertsEnabled: true,
-      publicReady: false
-    };
-    localStorage.setItem(STUDENT_STORAGE_KEY, JSON.stringify(draft));
-    if (currentSession) {
-      await loadStudentWorkspace();
-      showToast("Account created");
-    } else {
-      setAuthMessage("Account created. Check your email if Supabase requires confirmation, then sign in here.", "success");
-    }
-  } catch (error) {
-    setAuthMessage(error.message || "Could not create account.", "error");
-  } finally {
-    setBusy(event.submitter, false);
-  }
-});
-
 $("#student-record-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;

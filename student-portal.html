@@ -19,22 +19,16 @@
     <section id="student-auth" class="auth-gate" aria-labelledby="student-auth-title">
       <div class="auth-card">
         <p class="eyebrow">Student portal</p>
-        <h1 id="student-auth-title">Create or open your Physics study record.</h1>
+        <h1 id="student-auth-title">Open your Physics study record.</h1>
         <p>Your account uses your SUT email. Your student record stays pending until a faculty member verifies it.</p>
         <form id="student-signin-form" class="auth-form">
           <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@g.sut.ac.th" required /></label>
           <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="button button-primary" type="submit">Sign in</button>
         </form>
-        <form id="student-signup-form" class="auth-form">
-          <label>Full name<input name="name" autocomplete="name" required /></label>
-          <label>Student ID<input name="studentCode" autocomplete="off" /></label>
-          <label>Start trimester<select name="startTerm" required><option value="">Choose term</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
-          <label>Start year<input name="startYear" type="number" min="1950" max="2100" placeholder="YYYY" required /></label>
-          <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@g.sut.ac.th" required /></label>
-          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
-          <button class="button button-secondary" type="submit">Create account</button>
-        </form>
+        <div class="auth-actions">
+          <a class="button button-secondary" href="student-register.html" target="_blank" rel="noopener">Create account</a>
+        </div>
         <p class="auth-help" id="student-auth-message">Use your SUT or g.sut.ac.th email address.</p>
       </div>
     </section>
