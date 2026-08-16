@@ -13,6 +13,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
+    <script src="student-email-cooldown.js"></script>
     <script src="student-register.js" defer></script>
   </head>
   <body class="student-portal student-register">
@@ -31,6 +32,7 @@
           <label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
           <button class="button button-primary" type="submit">Create account</button>
         </form>
+        <p class="auth-cooldown" id="student-email-cooldown" role="status" aria-live="polite"></p>
         <div class="auth-actions">
           <a class="button button-secondary" href="student-portal.html">Back to sign in</a>
         </div>

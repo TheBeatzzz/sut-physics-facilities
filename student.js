@@ -1,6 +1,7 @@
 const STUDENT_STORAGE_KEY = "sut-physics-student-draft-v1";
 
 const backend = window.SUTSupabase;
+const emailCooldown = window.SUTStudentEmailCooldown;
 let currentSession = null;
 let currentRecord = null;
 let facultyProfiles = [];
@@ -248,6 +249,7 @@ $("#student-recovery-form").addEventListener("submit", async event => {
   try {
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
     await backend.requestPasswordReset(data.email);
+    emailCooldown?.record();
     setAuthMessage("Password reset link sent. Check your email, then open the link to set a new password.", "success");
   } catch (error) {
     setAuthMessage(error.message || "Could not send password reset link.", "error");

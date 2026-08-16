@@ -2,6 +2,7 @@ const STUDENT_STORAGE_KEY = "sut-physics-student-draft-v1";
 const TERM_VALUES = ["1", "2", "3"];
 
 const backend = window.SUTSupabase;
+const emailCooldown = window.SUTStudentEmailCooldown;
 const $ = selector => document.querySelector(selector);
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
 
@@ -42,6 +43,16 @@ function studentDraft(data) {
   };
 }
 
+function updateEmailCooldownNotice() {
+  const target = $("#student-email-cooldown");
+  if (!target || !emailCooldown) return;
+  const cooldown = emailCooldown.status();
+  target.classList.toggle("is-waiting", cooldown.remaining === 0);
+  target.textContent = cooldown.remaining
+    ? `Supabase built-in email can send about ${cooldown.remaining} more confirmation email${cooldown.remaining === 1 ? "" : "s"} from this browser in the current hour.`
+    : `Supabase built-in email may be cooling down for this browser. Try again in ${emailCooldown.formatWait(cooldown.waitMs)}, or ask faculty if the email does not arrive.`;
+}
+
 $("#student-signup-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!backend?.isConfigured?.()) {
@@ -70,6 +81,8 @@ $("#student-signup-form").addEventListener("submit", async event => {
     if (session) {
       window.location.href = "student-portal.html";
     } else {
+      emailCooldown?.record();
+      updateEmailCooldownNotice();
       setAuthMessage("Account created. Check your email if Supabase requires confirmation, then sign in from the student portal.", "success");
     }
   } catch (error) {
@@ -78,3 +91,5 @@ $("#student-signup-form").addEventListener("submit", async event => {
     setBusy(event.submitter, false);
   }
 });
+
+updateEmailCooldownNotice();

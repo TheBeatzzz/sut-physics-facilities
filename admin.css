@@ -43,6 +43,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auth-form label { display: grid; gap: 6px; color: var(--ink-2); font-size: 12px; font-weight: 700; }
 .auth-form label span { color: var(--muted); font-weight: 500; }
 .auth-form input, .auth-form select { min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); }
+.auth-cooldown { margin-top: 12px !important; padding: 12px 14px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); font-size: 11px !important; line-height: 1.5 !important; }
+.auth-cooldown.is-waiting { color: #72570e; background: #faefce; border-color: #e4cb83; }
 .access-issue-panel { margin-top: 18px; padding: 16px 18px; color: #72570e; background: #faefce; border: 1px solid #e4cb83; font-size: 12px; line-height: 1.55; }
 .access-issue-panel strong { display: block; margin-bottom: 5px; color: #72570e; font-size: 13px; }
 .access-issue-panel b { color: var(--ink); }
