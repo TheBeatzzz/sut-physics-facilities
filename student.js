@@ -54,6 +54,17 @@ function isPasswordRecoveryUrl() {
   return url.searchParams.get("type") === "recovery" || hash.get("type") === "recovery";
 }
 
+function isEmailVerificationUrl() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get("emailVerified") === "1";
+}
+
+function clearStudentNoticeParam(name) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(name);
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
 function showPasswordReset() {
   $("#student-auth").hidden = true;
   $("#student-workspace").hidden = true;
@@ -318,10 +329,22 @@ async function boot() {
   }
   try {
     const passwordRecovery = isPasswordRecoveryUrl();
+    const emailVerification = isEmailVerificationUrl();
     const callbackSession = await backend.completeAuthFromUrl();
     currentSession = await backend.getSession();
     if (passwordRecovery && (callbackSession || currentSession)) {
       showPasswordReset();
+      return;
+    }
+    if (emailVerification) {
+      if (currentSession) await backend.signOut();
+      currentSession = null;
+      currentRecord = null;
+      $("#student-password-reset").hidden = true;
+      $("#student-workspace").hidden = true;
+      $("#student-auth").hidden = false;
+      clearStudentNoticeParam("emailVerified");
+      setAuthMessage("Email verified. Please sign in with your student account.", "success");
       return;
     }
     if (currentSession) await loadStudentWorkspace();

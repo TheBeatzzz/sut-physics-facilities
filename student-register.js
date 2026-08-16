@@ -63,6 +63,8 @@ $("#student-signup-form").addEventListener("submit", async event => {
       student_code: data.studentCode,
       start_term: normalizeTerm(data.startTerm),
       start_year: data.startYear
+    }, {
+      emailRedirectTo: new URL("student-portal.html?emailVerified=1", window.location.href).href
     });
     localStorage.setItem(STUDENT_STORAGE_KEY, JSON.stringify(studentDraft(data)));
     if (session) {

@@ -646,7 +646,7 @@
     return data.session;
   };
 
-  const signUp = async (email, password, metadata = {}) => {
+  const signUp = async (email, password, metadata = {}, options = {}) => {
     const supabase = getClient();
     const allowedDomains = (Array.isArray(config.facultyEmailDomains) && config.facultyEmailDomains.length
       ? config.facultyEmailDomains
@@ -663,7 +663,7 @@
       password,
       options: {
         data: metadata && typeof metadata === "object" ? metadata : {},
-        emailRedirectTo: window.location.href.split("#")[0]
+        emailRedirectTo: options.emailRedirectTo || window.location.href.split("#")[0]
       }
     });
     if (error) throw error;
