@@ -49,9 +49,14 @@ $("#student-signup-form").addEventListener("submit", async event => {
     return;
   }
   if (!event.currentTarget.reportValidity()) return;
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  if (data.password !== data.confirmPassword) {
+    setAuthMessage("Passwords do not match.", "error");
+    event.currentTarget.elements.namedItem("confirmPassword").focus();
+    return;
+  }
   setBusy(event.submitter, true, "Creating...");
   try {
-    const data = Object.fromEntries(new FormData(event.currentTarget).entries());
     const session = await backend.signUp(data.email, data.password, {
       role: "student",
       full_name: data.name,

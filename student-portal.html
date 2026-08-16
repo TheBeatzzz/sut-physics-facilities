@@ -29,7 +29,25 @@
         <div class="auth-actions">
           <a class="button button-secondary" href="student-register.html" target="_blank" rel="noopener">Create account</a>
         </div>
+        <form id="student-recovery-form" class="auth-form compact-auth-form">
+          <label>Forgot password?<input name="email" type="email" autocomplete="email" placeholder="Enter your SUT email" required /></label>
+          <button class="button button-secondary" type="submit">Send reset link</button>
+        </form>
         <p class="auth-help" id="student-auth-message">Use your SUT or g.sut.ac.th email address.</p>
+      </div>
+    </section>
+
+    <section id="student-password-reset" class="auth-gate" aria-labelledby="student-password-reset-title" hidden>
+      <div class="auth-card">
+        <p class="eyebrow">Account security</p>
+        <h1 id="student-password-reset-title">Set a new password.</h1>
+        <p>Enter a new password for your student portal account. After saving, you can sign in with the new password.</p>
+        <form id="student-password-reset-form" class="auth-form">
+          <label>New password<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters" /></label>
+          <label>Confirm new password<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Re-enter the new password" /></label>
+          <button class="button button-primary" type="submit">Update password</button>
+        </form>
+        <p class="auth-help" id="student-password-reset-message" role="status" aria-live="polite"></p>
       </div>
     </section>
 

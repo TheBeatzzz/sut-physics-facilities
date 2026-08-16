@@ -42,6 +42,25 @@ function setRecordMessage(message, type = "") {
   target.className = type ? `is-${type}` : "";
 }
 
+function setPasswordResetMessage(message, type = "") {
+  const target = $("#student-password-reset-message");
+  target.textContent = message;
+  target.className = type ? `auth-help is-${type}` : "auth-help";
+}
+
+function isPasswordRecoveryUrl() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+  return url.searchParams.get("type") === "recovery" || hash.get("type") === "recovery";
+}
+
+function showPasswordReset() {
+  $("#student-auth").hidden = true;
+  $("#student-workspace").hidden = true;
+  $("#student-password-reset").hidden = false;
+  setTimeout(() => $("#student-password-reset-form").elements.namedItem("password")?.focus(), 50);
+}
+
 function validateProfileFields(form, setMessage) {
   const interests = normalizeList(form.elements.researchInterests.value);
   if (interests.length > 5) {
@@ -207,6 +226,52 @@ $("#student-signin-form").addEventListener("submit", async event => {
   }
 });
 
+$("#student-recovery-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!backend?.isConfigured?.()) {
+    setAuthMessage("Supabase must be configured before students can reset passwords.", "error");
+    return;
+  }
+  if (!event.currentTarget.reportValidity()) return;
+  setBusy(event.submitter, true, "Sending...");
+  try {
+    const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+    await backend.requestPasswordReset(data.email);
+    setAuthMessage("Password reset link sent. Check your email, then open the link to set a new password.", "success");
+  } catch (error) {
+    setAuthMessage(error.message || "Could not send password reset link.", "error");
+  } finally {
+    setBusy(event.submitter, false);
+  }
+});
+
+$("#student-password-reset-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  const password = event.currentTarget.elements.namedItem("password").value;
+  const confirmPassword = event.currentTarget.elements.namedItem("confirmPassword").value;
+  if (password !== confirmPassword) {
+    setPasswordResetMessage("Passwords do not match.", "error");
+    event.currentTarget.elements.namedItem("confirmPassword").focus();
+    return;
+  }
+  setBusy(event.submitter, true, "Updating...");
+  try {
+    await backend.updatePassword(password);
+    await backend.signOut();
+    currentSession = null;
+    currentRecord = null;
+    event.currentTarget.reset();
+    $("#student-password-reset").hidden = true;
+    $("#student-auth").hidden = false;
+    setAuthMessage("Password updated. Sign in with your new password.", "success");
+  } catch (error) {
+    setPasswordResetMessage(error.message || "Could not update password.", "error");
+  } finally {
+    setBusy(event.submitter, false);
+  }
+});
+
 $("#student-record-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
@@ -252,8 +317,13 @@ async function boot() {
     return;
   }
   try {
-    await backend.completeAuthFromUrl();
+    const passwordRecovery = isPasswordRecoveryUrl();
+    const callbackSession = await backend.completeAuthFromUrl();
     currentSession = await backend.getSession();
+    if (passwordRecovery && (callbackSession || currentSession)) {
+      showPasswordReset();
+      return;
+    }
     if (currentSession) await loadStudentWorkspace();
   } catch (error) {
     setAuthMessage(error.message || "Could not complete sign-in.", "error");

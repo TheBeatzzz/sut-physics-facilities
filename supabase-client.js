@@ -670,6 +670,22 @@
     return data.session;
   };
 
+  const requestPasswordReset = async email => {
+    const supabase = getClient();
+    const allowedDomains = (Array.isArray(config.facultyEmailDomains) && config.facultyEmailDomains.length
+      ? config.facultyEmailDomains
+      : [config.facultyEmailDomain || "sut.ac.th"])
+      .map(domain => String(domain).replace(/^@/, "").trim().toLowerCase())
+      .filter(Boolean);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!allowedDomains.some(domain => normalizedEmail.endsWith(`@${domain}`))) {
+      throw new Error(`Use an approved SUT email ending in ${allowedDomains.map(domain => `@${domain}`).join(" or ")}.`);
+    }
+    const redirectTo = window.location.href.split("#")[0].split("?")[0];
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const supabase = getClient();
     if (!supabase) return;
@@ -693,6 +709,7 @@
     completeAuthFromUrl,
     signIn,
     signUp,
+    requestPasswordReset,
     signOut,
     updatePassword,
     loadRegistry,
