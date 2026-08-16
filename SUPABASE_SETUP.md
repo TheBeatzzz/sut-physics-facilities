@@ -34,9 +34,9 @@ In Supabase, open **Authentication → URL Configuration**.
 Recommended URL settings:
 
 - Set **Site URL** to the published admin page, not `localhost`:
-  `https://thebeatzzz.github.io/sut-physics-facilities/admin.html`
+  `https://physics-sut-portal.org/admin.html`
 - Add the same GitHub Pages admin URL to **Redirect URLs** for password recovery and invite flows:
-  `https://thebeatzzz.github.io/sut-physics-facilities/admin.html`
+  `https://physics-sut-portal.org/admin.html`
 
 Then open **Authentication → Providers → Email**:
 

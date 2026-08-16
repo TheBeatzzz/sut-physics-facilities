@@ -1,4 +1,11 @@
 const REGISTRY_STORAGE_KEY = "sut-physics-equipment-registry-v3";
+const STUDY_PROGRAMS = {
+  "bsc-physics": { label: "B.Sc. Physics", level: "Bachelor" },
+  "msc-physics": { label: "M.Sc. Physics", level: "Master" },
+  "msc-applied-physics": { label: "M.Sc. Applied Physics", level: "Master" },
+  "phd-physics": { label: "Ph.D. Physics", level: "PhD" },
+  "phd-applied-physics": { label: "Ph.D. Applied Physics", level: "PhD" }
+};
 
 const fallbackFaculty = [
   { id: "FACULTY-001", name: "Yupeng Yan", title: "Professor", email: "", bio: "", researchInterests: ["Physics program faculty"], highlights: [], activities: [], recognitions: [], profileLinks: {}, color: "#8fd8c8", publicReady: true, sample: true },
@@ -67,6 +74,8 @@ const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(Str
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 const keyFor = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 const numberText = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "";
+const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
+const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
 const profileKey = profile => keyFor(profile.id || profile.name);
 const extractScopusAuthorId = value => {
   const text = String(value || "").trim();
@@ -116,7 +125,7 @@ const slug = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "
 
 let registryAvailable = false;
 let fallbackMode = false;
-let registry = { faculty: [], facilities: [], equipment: [] };
+let registry = { faculty: [], facilities: [], equipment: [], students: [] };
 
 const publicCategory = item => {
   const text = `${item.name} ${item.category}`.toLowerCase();
@@ -265,12 +274,39 @@ const normalizeEquipment = item => ({
   facilityId: item.facilityId || ""
 });
 
+const visibleStudent = student => student.verificationStatus === "Verified" && student.publicReady === true;
+
+const normalizeStudent = student => ({
+  id: student.id || "",
+  studentCode: student.studentCode || "",
+  name: student.name || "Student name to confirm",
+  preferredName: student.preferredName || "",
+  level: student.level === "Undergraduate" ? "Bachelor" : student.level || STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
+  status: student.status || "Active",
+  verificationStatus: student.verificationStatus || "Pending",
+  publicReady: Boolean(student.publicReady),
+  programId: student.programId || "",
+  advisorId: student.advisorId || "",
+  coadvisor: student.coadvisor || "",
+  researchGroupId: student.researchGroupId || "",
+  researchGroup: student.researchGroup || "",
+  projectTitle: student.projectTitle || "",
+  thesisTitle: student.thesisTitle || "",
+  startTerm: student.startTerm || "",
+  startYear: student.startYear || "",
+  shortBio: student.shortBio || "",
+  researchInterests: list(student.researchInterests).slice(0, 5),
+  skills: list(student.skills),
+  updatedAt: student.updatedAt || ""
+});
+
 const prepareFallbackRegistry = () => {
   fallbackMode = true;
   return {
     faculty: fallbackFaculty.map(normalizeFaculty),
     facilities: fallbackFacilities.map(item => ({ ...item })),
-    equipment: fallbackEquipment.map(normalizeEquipment)
+    equipment: fallbackEquipment.map(normalizeEquipment),
+    students: []
   };
 };
 
@@ -283,14 +319,16 @@ const loadLocalRegistry = () => {
     const publicEquipment = (parsed.equipment || [])
       .filter(item => item.reviewStatus === "Verified" && item.publicReady === true)
       .map(normalizeEquipment);
+    const publicStudents = (parsed.students || []).map(normalizeStudent).filter(visibleStudent);
     const facilities = Array.isArray(parsed.facilities) ? parsed.facilities : [];
-    if (!publicFaculty.length && !publicEquipment.length && !facilities.length) return prepareFallbackRegistry();
+    if (!publicFaculty.length && !publicEquipment.length && !publicStudents.length && !facilities.length) return prepareFallbackRegistry();
     const faculty = mergeFacultyWithFallback(publicFaculty);
     fallbackMode = faculty.some(profile => profile.sample);
     return {
       faculty,
       facilities: mergeFacilitiesWithFallback(facilities),
-      equipment: publicEquipment.length ? publicEquipment : fallbackEquipment.map(normalizeEquipment)
+      equipment: publicEquipment.length ? publicEquipment : fallbackEquipment.map(normalizeEquipment),
+      students: publicStudents
     };
   } catch {
     return prepareFallbackRegistry();
@@ -306,14 +344,24 @@ const loadFacultyRegistry = async () => {
       const faculty = (loaded.faculty || []).map(normalizeFaculty);
       const equipment = (loaded.equipment || []).map(normalizeEquipment);
       const facilities = Array.isArray(loaded.facilities) ? loaded.facilities : [];
-      if (faculty.length || equipment.length || facilities.length) {
+      let studentLoad = { students: [] };
+      if (window.SUTSupabase.loadPublicStudents) {
+        try {
+          studentLoad = await window.SUTSupabase.loadPublicStudents();
+        } catch (error) {
+          console.warn("Supabase public student registry unavailable; hiding faculty advisees.", error);
+        }
+      }
+      const students = (studentLoad.students || []).map(normalizeStudent).filter(visibleStudent);
+      if (faculty.length || equipment.length || facilities.length || students.length) {
         registryAvailable = true;
         const mergedFaculty = mergeFacultyWithFallback(faculty);
         fallbackMode = mergedFaculty.some(profile => profile.sample);
         return {
           faculty: mergedFaculty,
           facilities: mergeFacilitiesWithFallback(facilities),
-          equipment: equipment.length ? equipment : fallbackEquipment.map(normalizeEquipment)
+          equipment: equipment.length ? equipment : fallbackEquipment.map(normalizeEquipment),
+          students
         };
       }
     } catch (error) {
@@ -335,6 +383,34 @@ const linkedEquipment = profile => registry.equipment.filter(item => {
   const interestMatch = profile.researchInterests.some(interest => `${item.name} ${item.researchGroup} ${item.category}`.toLowerCase().includes(interest.toLowerCase()));
   return facilityMatch || emailMatch || nameMatch || interestMatch;
 });
+
+const adviseesFor = profile => {
+  const profileKeys = facultyIdentityKeys(profile);
+  return registry.students.filter(student => {
+    const advisorKey = keyFor(student.advisorId);
+    if (!advisorKey || advisorKey === "tbd") return false;
+    return profileKeys.includes(advisorKey) || profileKeys.includes(canonicalFacultyName(student.advisorId));
+  });
+};
+
+const adviseeHeadline = student => student.projectTitle || student.thesisTitle || student.researchGroup || "Research topic to be announced";
+
+const adviseeCard = student => {
+  const interests = list(student.researchInterests).slice(0, 5);
+  return `
+    <article>
+      <span>${clean(programLabel(student.programId))}</span>
+      <h3>${clean(student.preferredName || student.name)}</h3>
+      <p>${clean(student.shortBio || adviseeHeadline(student))}</p>
+      <dl class="profile-advisee-meta">
+        <div><dt>Level</dt><dd>${clean(student.level || "TBD")}</dd></div>
+        <div><dt>Started</dt><dd>${clean(startLabel(student))}</dd></div>
+        <div><dt>Status</dt><dd>${clean(student.status || "Active")}</dd></div>
+      </dl>
+      ${interests.length ? `<div class="profile-advisee-tags">${interests.map(interest => `<small>${clean(interest)}</small>`).join("")}</div>` : ""}
+    </article>
+  `;
+};
 
 const facilityById = id => registry.facilities.find(facility => facility.id === id);
 
@@ -521,6 +597,7 @@ const listMarkup = (title, items) => `
 
 const renderProfilePage = profile => {
   const linked = linkedEquipment(profile);
+  const advisees = adviseesFor(profile);
   const facilities = associatedFacilities(profile);
   const links = externalLinks(profile);
   const portrait = photoSrc(profile.profilePhoto);
@@ -547,6 +624,7 @@ const renderProfilePage = profile => {
       <div class="signal-grid">
         <div><strong>${String(profile.researchInterests.length).padStart(2, "0")}</strong><span>research interests</span></div>
         <div><strong>${String(profile.highlights.length).padStart(2, "0")}</strong><span>highlights</span></div>
+        <div><strong>${String(advisees.length).padStart(2, "0")}</strong><span>advisees</span></div>
         <div><strong>${String(linked.length).padStart(2, "0")}</strong><span>linked systems</span></div>
         <p>${clean(facilities.length ? `Associated facilities: ${facilities.join(" · ")}` : "Associated facilities help visitors understand where this faculty member's research and service activities connect.")}</p>
       </div>
@@ -558,6 +636,18 @@ const renderProfilePage = profile => {
       ${listMarkup("Recognitions", profile.recognitions)}
     </section>
     ${scopusMetricsMarkup(profile)}
+    <section class="profile-advisees section-shell" aria-labelledby="profile-advisees-title">
+      <div class="section-heading">
+        <p class="section-index">Advisees</p>
+        <div>
+          <h2 id="profile-advisees-title">Student<br />advisees.</h2>
+          <p>Verified public students listing this faculty member as primary advisor.</p>
+        </div>
+      </div>
+      <div class="profile-advisee-grid">
+        ${advisees.length ? advisees.map(adviseeCard).join("") : `<article><span>Advisees</span><h3>No verified public advisees yet</h3><p>Student advisees will appear here after students opt in and faculty verification is complete.</p></article>`}
+      </div>
+    </section>
     <section class="faculty-expertise section-shell">
       <div class="section-heading">
         <p class="section-index">Academic links</p>
