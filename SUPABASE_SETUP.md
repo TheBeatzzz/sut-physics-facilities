@@ -3,7 +3,7 @@
 This site can run in two modes:
 
 - Prototype mode: uses browser `localStorage`; no shared database.
-- Supabase mode: uses faculty login, shared PostgreSQL tables, and Supabase Storage for equipment and faculty profile photos.
+- Supabase mode: uses faculty/student login, shared PostgreSQL tables, and Supabase Storage for equipment, faculty profile photos, and student profile pictures.
 
 ## 1. Create the Supabase project
 
@@ -17,7 +17,7 @@ The SQL creates:
 - `facilities` table
 - `equipment` table
 - `visitor_events` table for anonymous website visitor statistics
-- `equipment-photos` storage bucket for equipment images and faculty profile pictures
+- `equipment-photos` storage bucket for equipment images, faculty profile pictures, and student profile pictures
 - Row Level Security policies
 
 By default, broad manager access is limited to authenticated users who are both:
@@ -170,13 +170,16 @@ Faculty members can also enter a fallback h-index and citation count in the facu
 - signed-in faculty can manage rows they own;
 - authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage all records and upload photos.
 
-If the website reports that `facility_ids` or `profile_photo` cannot be found in the faculty schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
+If the website reports that `facility_ids`, faculty `profile_photo`, or student `profile_photo` cannot be found in the schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
 
 ```sql
 alter table if exists public.faculty
 add column if not exists facility_ids jsonb not null default '[]'::jsonb;
 
 alter table if exists public.faculty
+add column if not exists profile_photo jsonb;
+
+alter table if exists public.students
 add column if not exists profile_photo jsonb;
 
 notify pgrst, 'reload schema';

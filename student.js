@@ -6,6 +6,7 @@ let currentSession = null;
 let currentRecord = null;
 let facultyProfiles = [];
 let researchGroups = [];
+let pendingProfilePhoto = null;
 let toastTimer;
 
 const $ = selector => document.querySelector(selector);
@@ -14,6 +15,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const normalizeList = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
 const normalizeKeywords = value => normalizeList(value).slice(0, 5);
 const wordCount = value => String(value || "").trim().split(/\s+/).filter(Boolean).length;
+const photoSrc = photo => photo?.url || photo?.data || "";
+const clone = value => JSON.parse(JSON.stringify(value));
 const STUDY_PROGRAMS = {
   "bsc-physics": { label: "B.Sc. Physics", level: "Bachelor" },
   "msc-physics": { label: "M.Sc. Physics", level: "Master" },
@@ -100,6 +103,44 @@ function setBusy(button, busy, label = "Working...") {
   }
 }
 
+function resizeImage(file, maxDimension = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Could not decode image"));
+      image.onload = () => {
+        const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve({ data: canvas.toDataURL("image/jpeg", quality), alt: "", name: file.name });
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderProfilePhotoPreview() {
+  const preview = $("#student-profile-photo-preview");
+  const altLabel = $("#student-profile-photo-alt-label");
+  const altInput = $("#student-profile-photo-alt");
+  if (photoSrc(pendingProfilePhoto)) {
+    preview.classList.remove("empty");
+    preview.innerHTML = `<img src="${clean(photoSrc(pendingProfilePhoto))}" alt="" /><button class="media-remove" type="button" data-remove-student-profile-photo aria-label="Remove profile picture">×</button>`;
+    altLabel.hidden = false;
+    altInput.value = pendingProfilePhoto.alt || "";
+  } else {
+    preview.classList.add("empty");
+    preview.innerHTML = `<span>No profile picture selected</span>`;
+    altLabel.hidden = true;
+    altInput.value = "";
+  }
+}
+
 function verificationText(record) {
   const status = record?.verificationStatus || "Pending";
   if (status === "Verified") return ["Verified", `Verified by ${record.verifiedByEmail || "faculty"}${record.verifiedAt ? ` on ${new Date(record.verifiedAt).toLocaleDateString()}` : ""}.`];
@@ -149,6 +190,10 @@ function formToRecord(form) {
     researchInterests: normalizeKeywords(data.researchInterests),
     skills: normalizeList(data.skills),
     notes: data.notes,
+    profilePhoto: pendingProfilePhoto ? {
+      ...pendingProfilePhoto,
+      alt: $("#student-profile-photo-alt").value.trim() || `${data.name || "Student"} profile picture`
+    } : null,
     programId: data.programId,
     studyProgress: currentRecord?.studyProgress || {},
     deadlineAlertsEnabled: form.elements.deadlineAlertsEnabled.checked,
@@ -177,6 +222,7 @@ function fillRecordForm(record = null) {
     publicReady: false,
     ...(record || {})
   };
+  pendingProfilePhoto = defaults.profilePhoto ? clone(defaults.profilePhoto) : null;
   ["studentCode", "name", "preferredName", "email", "level", "status", "programId", "advisorId", "coadvisor", "researchGroupId", "office", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
     const field = form.elements.namedItem(key);
     if (field) field.value = defaults[key] || "";
@@ -187,6 +233,7 @@ function fillRecordForm(record = null) {
   form.elements.publicReady.checked = Boolean(defaults.publicReady);
   populateAdvisorOptions(defaults.advisorId || "");
   populateResearchGroupOptions(defaults.researchGroupId || "");
+  renderProfilePhotoPreview();
   const [title, note] = verificationText(record);
   $("#student-verification-title").textContent = title;
   $("#student-verification-note").textContent = note;
@@ -312,6 +359,26 @@ $("#student-record-form").addEventListener("submit", async event => {
 $("#student-record-form").elements.namedItem("programId").addEventListener("change", event => {
   const level = STUDY_PROGRAMS[event.target.value]?.level;
   if (level) $("#student-record-form").elements.namedItem("level").value = level;
+});
+
+$("#student-profile-photo-input").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    pendingProfilePhoto = await resizeImage(file);
+    pendingProfilePhoto.alt = `${$("#student-record-form").elements.name.value || "Student"} profile picture`;
+    renderProfilePhotoPreview();
+  } catch {
+    setRecordMessage("The profile picture could not be processed.", "error");
+    showToast("The profile picture could not be processed");
+  }
+  event.target.value = "";
+});
+
+$("#student-profile-photo-preview").addEventListener("click", event => {
+  if (!event.target.closest("[data-remove-student-profile-photo]")) return;
+  pendingProfilePhoto = null;
+  renderProfilePhotoPreview();
 });
 
 $("#student-sign-out").addEventListener("click", async () => {

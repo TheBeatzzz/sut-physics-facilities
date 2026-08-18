@@ -97,6 +97,7 @@ create table if not exists public.students (
   graduation_year integer,
   office text,
   phone text,
+  profile_photo jsonb,
   short_bio text,
   research_interests jsonb not null default '[]'::jsonb,
   skills jsonb not null default '[]'::jsonb,
@@ -117,6 +118,9 @@ create table if not exists public.students (
 
 alter table if exists public.students
 add column if not exists owner_email text;
+
+alter table if exists public.students
+add column if not exists profile_photo jsonb;
 
 alter table if exists public.students
 add column if not exists skills jsonb not null default '[]'::jsonb;
@@ -1124,6 +1128,53 @@ using (
       (select faculty.owner_email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2)),
       (select faculty.email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2))
     )
+  )
+);
+
+drop policy if exists "Students can upload own profile photos" on storage.objects;
+create policy "Students can upload own profile photos"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'students'
+  and public.is_student_self(
+    (select students.owner_email from public.students where students.id = split_part(storage.objects.name, '/', 2)),
+    (select students.email from public.students where students.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Students can update own profile photos" on storage.objects;
+create policy "Students can update own profile photos"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'students'
+  and public.is_student_self(
+    (select students.owner_email from public.students where students.id = split_part(storage.objects.name, '/', 2)),
+    (select students.email from public.students where students.id = split_part(storage.objects.name, '/', 2))
+  )
+)
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'students'
+  and public.is_student_self(
+    (select students.owner_email from public.students where students.id = split_part(storage.objects.name, '/', 2)),
+    (select students.email from public.students where students.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Students can delete own profile photos" on storage.objects;
+create policy "Students can delete own profile photos"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'students'
+  and public.is_student_self(
+    (select students.owner_email from public.students where students.id = split_part(storage.objects.name, '/', 2)),
+    (select students.email from public.students where students.id = split_part(storage.objects.name, '/', 2))
   )
 );
 

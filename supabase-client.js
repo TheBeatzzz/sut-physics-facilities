@@ -181,6 +181,7 @@
     graduationYear: row.graduation_year || "",
     office: row.office || "",
     phone: row.phone || "",
+    profilePhoto: row.profile_photo || null,
     shortBio: row.short_bio || "",
     researchInterests: asArray(row.research_interests),
     skills: asArray(row.skills),
@@ -222,6 +223,7 @@
     graduation_year: optionalYear(student.graduationYear),
     office: student.office || null,
     phone: student.phone || null,
+    profile_photo: student.profilePhoto || null,
     short_bio: String(student.shortBio || "") || null,
     research_interests: asArray(student.researchInterests).slice(0, 5).filter(Boolean),
     skills: asArray(student.skills).filter(Boolean),
@@ -366,6 +368,11 @@
     profilePhoto: profile.profilePhoto ? await uploadPhoto(`faculty/${profile.id}`, profile.profilePhoto, "profile", 0) : null
   });
 
+  const uploadStudentMedia = async student => ({
+    ...student,
+    profilePhoto: student.profilePhoto ? await uploadPhoto(`students/${student.id}`, student.profilePhoto, "profile", 0) : null
+  });
+
   const loadRegistry = async ({ publicOnly = false } = {}) => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
@@ -470,6 +477,30 @@
 
   const saveStudent = async student => {
     const supabase = getClient();
+    const hasLocalProfilePhoto = student.profilePhoto?.data?.startsWith("data:image/");
+    if (hasLocalProfilePhoto) {
+      let uploadedStudent;
+      try {
+        uploadedStudent = await uploadStudentMedia(student);
+      } catch (uploadError) {
+        const policyBlocked = /row-level|policy|not authorized|unauthorized|forbidden/i.test(String(uploadError.message || ""));
+        if (!policyBlocked) throw uploadError;
+        const { data: initialData, error: initialError } = await supabase
+          .from("students")
+          .upsert(snakeStudent({ ...student, profilePhoto: null }), { onConflict: "id" })
+          .select()
+          .single();
+        if (initialError) throw initialError;
+        uploadedStudent = await uploadStudentMedia({ ...student, id: initialData.id });
+      }
+      const { data, error } = await supabase
+        .from("students")
+        .upsert(snakeStudent(uploadedStudent), { onConflict: "id" })
+        .select()
+        .single();
+      if (error) throw error;
+      return camelStudent(data);
+    }
     const { data, error } = await supabase
       .from("students")
       .upsert(snakeStudent(student), { onConflict: "id" })
@@ -503,7 +534,7 @@
   const loadPublicStudents = async () => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
-    const publicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
+    const publicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
     const legacyPublicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
     const loadStudentRows = columns => supabase
       .from("students")
@@ -513,7 +544,7 @@
       .order("name", { ascending: true });
     const studentsPromise = loadStudentRows(publicStudentColumns).then(result => {
       const message = String(result.error?.message || "");
-      return /research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
+      return /profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
     });
     const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
       studentsPromise,

@@ -12,6 +12,7 @@ const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
 }[character]));
 const list = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
 const keywords = value => list(value).slice(0, 5);
+const photoSrc = photo => photo?.url || photo?.data || "";
 
 let students = [];
 let faculty = [];
@@ -44,6 +45,7 @@ const normalizeStudent = student => ({
   thesisTitle: student.thesisTitle || "",
   startTerm: student.startTerm || "",
   startYear: student.startYear || "",
+  profilePhoto: student.profilePhoto || null,
   shortBio: student.shortBio || "",
   researchInterests: keywords(student.researchInterests),
   skills: list(student.skills),
@@ -133,8 +135,10 @@ function studentCard(student) {
   const project = student.projectTitle || student.thesisTitle || "Research topic to be announced";
   const interests = student.researchInterests.length ? student.researchInterests : student.skills.slice(0, 5);
   const tags = [student.level, programLabel(student.programId), ...interests].filter(Boolean);
+  const portrait = photoSrc(student.profilePhoto);
   return `
     <article class="service-card student-public-card">
+      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
       <div class="service-card-top"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>
       <h3>${clean(student.preferredName || student.name)}</h3>
       <p>${clean(student.shortBio || "Short bio coming soon.")}</p>

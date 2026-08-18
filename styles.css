@@ -316,6 +316,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .student-select-filters label { display: grid; gap: 7px; color: var(--ink-soft); font: 9px var(--mono); text-transform: uppercase; }
 .student-select-filters select { min-height: 42px; padding: 0 12px; color: var(--ink); border: 1px solid var(--line); background: var(--paper); font: 12px var(--sans); }
 .student-public-card { min-height: 430px; }
+.student-public-photo {
+  width: 92px; height: 92px; margin-bottom: 22px; display: block;
+  border: 1px solid var(--line); border-radius: 50%; object-fit: cover; background: #edf0e8;
+}
 .student-public-card .faculty-tags { margin-bottom: 24px; }
 .services-coming-soon {
   grid-column: 1 / -1; min-height: 520px; padding: clamp(34px, 6vw, 76px); position: relative;
@@ -610,6 +614,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .profile-advisee-tags small {
   padding: 5px 7px; border: 1px solid var(--line); background: #edf0e8;
   color: var(--ink-soft); font: 9px/1.2 var(--mono); text-transform: uppercase;
+}
+.profile-advisee-photo {
+  width: 86px; height: 86px; margin-bottom: 18px; display: block;
+  border: 1px solid var(--line); border-radius: 50%; object-fit: cover; background: #edf0e8;
 }
 
 @keyframes slow-spin { to { transform: rotate(360deg); } }

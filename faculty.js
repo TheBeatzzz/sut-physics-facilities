@@ -294,6 +294,7 @@ const normalizeStudent = student => ({
   thesisTitle: student.thesisTitle || "",
   startTerm: student.startTerm || "",
   startYear: student.startYear || "",
+  profilePhoto: student.profilePhoto || null,
   shortBio: student.shortBio || "",
   researchInterests: list(student.researchInterests).slice(0, 5),
   skills: list(student.skills),
@@ -397,8 +398,10 @@ const adviseeHeadline = student => student.projectTitle || student.thesisTitle |
 
 const adviseeCard = student => {
   const interests = list(student.researchInterests).slice(0, 5);
+  const portrait = photoSrc(student.profilePhoto);
   return `
     <article>
+      ${portrait ? `<img class="profile-advisee-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
       <span>${clean(programLabel(student.programId))}</span>
       <h3>${clean(student.preferredName || student.name)}</h3>
       <p>${clean(student.shortBio || adviseeHeadline(student))}</p>

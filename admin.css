@@ -228,6 +228,9 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 .student-register .auth-card { width: min(720px, 100%); }
 .student-portal .workspace { max-width: 1120px; margin: 0 auto; padding-left: clamp(22px, 3.4vw, 52px); }
 .student-portal #student-record-form { overflow: hidden; }
+.student-profile-photo-field { min-width: 0; }
+.student-profile-photo-preview { min-height: 260px; }
+.student-profile-photo-preview img { width: min(100%, 260px); height: 260px; padding: 0; border-radius: 50%; object-fit: cover; }
 .description-label { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #description-counter { color: var(--muted); font: 500 11px var(--mono); }
 #description-counter.is-near-limit { color: #8b5e08; }

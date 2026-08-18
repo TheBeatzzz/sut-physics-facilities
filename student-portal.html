@@ -83,6 +83,11 @@
               <label>Study program<select name="programId"><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
               <label>Status<select name="status"><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
               <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public student list</strong><small>Your record must be verified before your short bio appears publicly.</small></span></label>
+              <div class="media-field student-profile-photo-field span-2">
+                <div class="media-field-head"><div><strong>Profile picture</strong><small>Shown with your public student profile after verification.</small></div><label class="media-upload">Choose photo<input id="student-profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp" /></label></div>
+                <div id="student-profile-photo-preview" class="feature-photo-preview student-profile-photo-preview empty"><span>No profile picture selected</span></div>
+                <label id="student-profile-photo-alt-label" class="media-alt" hidden>Profile picture description<input id="student-profile-photo-alt" type="text" placeholder="Describe your profile picture" /></label>
+              </div>
             </div>
           </div>
 
