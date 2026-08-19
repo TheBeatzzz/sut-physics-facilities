@@ -14,6 +14,7 @@ const STUDY_PROGRAMS = {
   "phd-physics": { label: "Ph.D. Physics", level: "PhD" },
   "phd-applied-physics": { label: "Ph.D. Applied Physics", level: "PhD" }
 };
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
   id,
@@ -1097,6 +1098,7 @@ function openStudentDialog(id = null) {
     form.elements.programId.value = "bsc-physics";
     form.elements.status.value = "Active";
     form.elements.verificationStatus.value = "Pending";
+    form.elements.advisorId.value = faculty?.id || DEFAULT_STUDENT_ADVISOR_ID;
     form.elements.advisorRole.value = "Primary advisor";
     form.elements.startTerm.value = "1";
     form.elements.deadlineAlertsEnabled.checked = true;
@@ -1127,7 +1129,7 @@ function studentFromForm(form) {
     recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
-    advisorId: data.advisorId,
+    advisorId: data.advisorId || DEFAULT_STUDENT_ADVISOR_ID,
     advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,

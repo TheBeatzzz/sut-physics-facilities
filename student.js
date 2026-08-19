@@ -26,6 +26,7 @@ const STUDY_PROGRAMS = {
 };
 const TERM_VALUES = ["1", "2", "3"];
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 const PROGRESS_MILESTONES = [
   "coreCourses",
   "comprehensiveExam",
@@ -235,7 +236,7 @@ function formToRecord(form) {
     recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
-    advisorId: data.advisorId,
+    advisorId: data.advisorId || DEFAULT_STUDENT_ADVISOR_ID,
     advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,

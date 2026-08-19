@@ -1,5 +1,6 @@
 const STUDENT_STORAGE_KEY = "sut-physics-student-draft-v1";
 const TERM_VALUES = ["1", "2", "3"];
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const backend = window.SUTSupabase;
 const emailCooldown = window.SUTStudentEmailCooldown;
@@ -36,6 +37,7 @@ function studentDraft(data) {
     recordType: "physics",
     level: "Bachelor",
     programId: "bsc-physics",
+    advisorId: DEFAULT_STUDENT_ADVISOR_ID,
     startTerm: normalizeTerm(data.startTerm),
     startYear: data.startYear,
     status: "Active",

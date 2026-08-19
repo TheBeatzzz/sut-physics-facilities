@@ -197,6 +197,8 @@ add column if not exists home_program text;
 notify pgrst, 'reload schema';
 ```
 
+The latest schema also restricts registered faculty student access to their own advisees. Student records without an advisor are assigned to `FACULTY-011` for verification and management.
+
 ## Password login troubleshooting
 
 If a faculty member cannot sign in:

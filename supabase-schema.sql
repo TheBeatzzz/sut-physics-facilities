@@ -571,6 +571,17 @@ $$;
 revoke all on function public.is_registered_sut_faculty() from public;
 grant execute on function public.is_registered_sut_faculty() to anon, authenticated;
 
+create or replace function public.default_student_advisor_id()
+returns text
+language sql
+stable
+as $$
+  select 'FACULTY-011'::text;
+$$;
+
+revoke all on function public.default_student_advisor_id() from public;
+grant execute on function public.default_student_advisor_id() to anon, authenticated;
+
 create or replace function public.is_student_self(target_owner_email text, target_email text)
 returns boolean
 language sql
@@ -643,6 +654,36 @@ $$;
 revoke all on function public.is_student_owner(text, text, text) from public;
 grant execute on function public.is_student_owner(text, text, text) to anon, authenticated;
 
+create or replace function public.is_student_advisor(target_advisor_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select public.current_sut_email() as email
+  )
+  select public.is_sut_editor()
+  or exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and btrim(coalesce(target_advisor_id, '')) = btrim(coalesce(faculty.id, ''))
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_student_advisor(text) from public;
+grant execute on function public.is_student_advisor(text) to anon, authenticated;
+
 create or replace function public.protect_student_verification_fields()
 returns trigger
 language plpgsql
@@ -654,6 +695,7 @@ declare
   faculty_editor boolean := public.is_registered_sut_faculty();
 begin
   if faculty_editor then
+    new.advisor_id := coalesce(nullif(new.advisor_id, ''), public.default_student_advisor_id());
     if new.verification_status = 'Verified' and (tg_op = 'INSERT' or old.verification_status is distinct from 'Verified') then
       new.verified_by_email := coalesce(nullif(new.verified_by_email, ''), current_email);
       new.verified_at := coalesce(new.verified_at, now());
@@ -672,6 +714,7 @@ begin
     new.verification_status := 'Pending';
     new.verified_by_email := null;
     new.verified_at := null;
+    new.advisor_id := coalesce(nullif(new.advisor_id, ''), public.default_student_advisor_id());
     return new;
   end if;
 
@@ -889,18 +932,30 @@ drop policy if exists "Owners and advisors can insert students" on public.studen
 drop policy if exists "Owners and advisors can update students" on public.students;
 drop policy if exists "Owners and advisors can delete students" on public.students;
 
+update public.students
+set advisor_id = public.default_student_advisor_id()
+where advisor_id is null or btrim(advisor_id) = '';
+
 drop policy if exists "Registered faculty can read all students" on public.students;
-create policy "Registered faculty can read all students"
+drop policy if exists "Registered faculty can read own advisee students" on public.students;
+create policy "Registered faculty can read own advisee students"
 on public.students for select
 to authenticated
-using (public.is_registered_sut_faculty());
+using (public.is_student_advisor(advisor_id));
 
 drop policy if exists "Registered faculty can update students" on public.students;
-create policy "Registered faculty can update students"
+drop policy if exists "Registered faculty can update own advisee students" on public.students;
+create policy "Registered faculty can update own advisee students"
 on public.students for update
 to authenticated
-using (public.is_registered_sut_faculty())
-with check (public.is_registered_sut_faculty());
+using (public.is_student_advisor(advisor_id))
+with check (public.is_student_advisor(advisor_id));
+
+drop policy if exists "Registered faculty can create own advisee students" on public.students;
+create policy "Registered faculty can create own advisee students"
+on public.students for insert
+to authenticated
+with check (public.is_student_advisor(advisor_id));
 
 drop policy if exists "Students can read own student record" on public.students;
 create policy "Students can read own student record"
