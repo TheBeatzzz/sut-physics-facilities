@@ -26,6 +26,15 @@ const STUDY_PROGRAMS = {
 };
 const TERM_VALUES = ["1", "2", "3"];
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
+const PROGRESS_MILESTONES = [
+  "coreCourses",
+  "comprehensiveExam",
+  "qualifyingExam",
+  "proposalDefense",
+  "thesisDefense",
+  "turnitinCheck",
+  "publicationRequirement"
+];
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -152,6 +161,44 @@ function renderProfilePhotoPreview() {
   }
 }
 
+function progressMilestones(progress = {}) {
+  return progress && typeof progress === "object" && progress.milestones && typeof progress.milestones === "object"
+    ? progress.milestones
+    : {};
+}
+
+function collectStudyProgress(form) {
+  const existing = currentRecord?.studyProgress && typeof currentRecord.studyProgress === "object"
+    ? clone(currentRecord.studyProgress)
+    : {};
+  const milestones = {};
+  PROGRESS_MILESTONES.forEach(id => {
+    const completed = Boolean(form.elements.namedItem(`progress_${id}`)?.checked);
+    const completedAt = form.elements.namedItem(`progress_${id}_date`)?.value || "";
+    milestones[id] = { completed, completedAt };
+  });
+  return { ...existing, milestones };
+}
+
+function fillProgressChecklist(progress = {}) {
+  const milestones = progressMilestones(progress);
+  PROGRESS_MILESTONES.forEach(id => {
+    const item = milestones[id] || {};
+    const checkbox = $("#student-record-form").elements.namedItem(`progress_${id}`);
+    const date = $("#student-record-form").elements.namedItem(`progress_${id}_date`);
+    if (checkbox) checkbox.checked = Boolean(item.completed);
+    if (date) date.value = item.completedAt || "";
+  });
+}
+
+function syncProgressChecklist() {
+  const level = $("#student-record-form").elements.namedItem("level").value || "Bachelor";
+  document.querySelectorAll(".progress-checkitem[data-progress-levels]").forEach(item => {
+    const levels = String(item.dataset.progressLevels || "").split(/\s+/).filter(Boolean);
+    item.hidden = !levels.includes(level);
+  });
+}
+
 function verificationText(record) {
   const status = record?.verificationStatus || "Pending";
   if (status === "Verified") return ["Verified", `Verified by ${record.verifiedByEmail || "faculty"}${record.verifiedAt ? ` on ${new Date(record.verifiedAt).toLocaleDateString()}` : ""}.`];
@@ -211,7 +258,7 @@ function formToRecord(form) {
       alt: $("#student-profile-photo-alt").value.trim() || `${data.name || "Student"} profile picture`
     } : null,
     programId: data.programId,
-    studyProgress: currentRecord?.studyProgress || {},
+    studyProgress: collectStudyProgress(form),
     deadlineAlertsEnabled: form.elements.deadlineAlertsEnabled.checked,
     deadlineLeadDays: currentRecord?.deadlineLeadDays || [30, 14, 7, 1],
     verificationStatus: currentRecord?.verificationStatus || "Pending",
@@ -248,6 +295,8 @@ function fillRecordForm(record = null) {
   form.elements.skills.value = normalizeList(defaults.skills).join("\n");
   form.elements.deadlineAlertsEnabled.checked = defaults.deadlineAlertsEnabled !== false;
   form.elements.publicReady.checked = Boolean(defaults.publicReady);
+  fillProgressChecklist(defaults.studyProgress || {});
+  syncProgressChecklist();
   populateAdvisorOptions(defaults.advisorId || "");
   populateResearchGroupOptions(defaults.researchGroupId || "");
   renderProfilePhotoPreview();
@@ -375,7 +424,19 @@ $("#student-record-form").addEventListener("submit", async event => {
 
 $("#student-record-form").elements.namedItem("programId").addEventListener("change", event => {
   const level = STUDY_PROGRAMS[event.target.value]?.level;
-  if (level) $("#student-record-form").elements.namedItem("level").value = level;
+  if (level) {
+    $("#student-record-form").elements.namedItem("level").value = level;
+    syncProgressChecklist();
+  }
+});
+
+$("#student-record-form").elements.namedItem("level").addEventListener("change", syncProgressChecklist);
+
+document.querySelector(".progress-checklist").addEventListener("change", event => {
+  if (event.target.type !== "checkbox" || !event.target.name.startsWith("progress_")) return;
+  const date = $("#student-record-form").elements.namedItem(`${event.target.name}_date`);
+  if (!date) return;
+  date.value = event.target.checked ? date.value || today() : "";
 });
 
 $("#student-profile-photo-input").addEventListener("change", async event => {

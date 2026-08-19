@@ -122,6 +122,19 @@
             </div>
           </div>
 
+          <div class="form-section">
+            <div class="form-section-title"><span>04</span><div><h3>Milestone checklist</h3><p>Mark study requirements as they are completed.</p></div></div>
+            <div class="progress-checklist" aria-label="Student progress milestone checklist">
+              <label class="progress-checkitem" data-progress-levels="Bachelor Master PhD"><input type="checkbox" name="progress_coreCourses" /><span><strong>Core courses</strong><small>Required core coursework completed.</small></span><input type="date" name="progress_coreCourses_date" aria-label="Core courses completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="Master"><input type="checkbox" name="progress_comprehensiveExam" /><span><strong>Comprehensive exam</strong><small>Master's comprehensive examination completed.</small></span><input type="date" name="progress_comprehensiveExam_date" aria-label="Comprehensive exam completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="PhD"><input type="checkbox" name="progress_qualifyingExam" /><span><strong>Qualifying exam</strong><small>PhD qualifying examination completed.</small></span><input type="date" name="progress_qualifyingExam_date" aria-label="Qualifying exam completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="Master PhD"><input type="checkbox" name="progress_proposalDefense" /><span><strong>Proposal defense</strong><small>Thesis or dissertation proposal approved.</small></span><input type="date" name="progress_proposalDefense_date" aria-label="Proposal defense completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="Master PhD"><input type="checkbox" name="progress_thesisDefense" /><span><strong>Thesis defense</strong><small>Final thesis or dissertation defense completed.</small></span><input type="date" name="progress_thesisDefense_date" aria-label="Thesis defense completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="Master PhD"><input type="checkbox" name="progress_turnitinCheck" /><span><strong>Turnitin check</strong><small>Similarity report checked before final submission.</small></span><input type="date" name="progress_turnitinCheck_date" aria-label="Turnitin check completion date" /></label>
+              <label class="progress-checkitem" data-progress-levels="Master PhD"><input type="checkbox" name="progress_publicationRequirement" /><span><strong>Publication requirement</strong><small>Program publication requirement satisfied.</small></span><input type="date" name="progress_publicationRequirement_date" aria-label="Publication requirement completion date" /></label>
+            </div>
+          </div>
+
           <div class="modal-foot">
             <p id="student-record-message" role="status" aria-live="polite"></p>
             <div><button class="button button-primary" id="student-record-submit" type="submit">Save study record</button></div>
