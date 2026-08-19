@@ -243,6 +243,21 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 .progress-checkitem > input[type="date"] {
   min-height: 36px; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); font-size: 8px;
 }
+.student-progress-cell { min-width: 260px; }
+.student-milestones { margin-top: 8px; display: grid; gap: 7px; }
+.student-milestones-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.student-milestones-head strong { color: var(--green); font-size: 9px; }
+.student-milestones-head small { color: var(--muted); font: 7px var(--mono); text-transform: uppercase; }
+.student-milestone-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.student-milestone-chip {
+  max-width: 118px; min-height: 24px; padding: 4px 7px; display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--line); color: var(--muted); background: var(--surface-2); font: 700 8px var(--mono); text-transform: uppercase;
+}
+.student-milestone-chip.is-complete { border-color: rgba(23, 83, 59, .24); color: var(--green); background: #dfeae4; }
+.student-milestone-chip.is-pending { border-style: dashed; }
+.student-milestone-chip b,
+.student-milestone-chip time { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.student-milestone-chip time { color: inherit; font-weight: 500; opacity: .75; }
 .description-label { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #description-counter { color: var(--muted); font: 500 11px var(--mono); }
 #description-counter.is-near-limit { color: #8b5e08; }

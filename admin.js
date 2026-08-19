@@ -14,6 +14,15 @@ const STUDY_PROGRAMS = {
   "phd-physics": { label: "Ph.D. Physics", level: "PhD" },
   "phd-applied-physics": { label: "Ph.D. Applied Physics", level: "PhD" }
 };
+const STUDENT_MILESTONES = [
+  { id: "coreCourses", label: "Core courses", shortLabel: "Core", levels: ["Bachelor", "Master", "PhD"] },
+  { id: "comprehensiveExam", label: "Comprehensive exam", shortLabel: "Comp", levels: ["Master"] },
+  { id: "qualifyingExam", label: "Qualifying exam", shortLabel: "Qual", levels: ["PhD"] },
+  { id: "proposalDefense", label: "Proposal defense", shortLabel: "Proposal", levels: ["Master", "PhD"] },
+  { id: "thesisDefense", label: "Thesis defense", shortLabel: "Defense", levels: ["Master", "PhD"] },
+  { id: "turnitinCheck", label: "Turnitin check", shortLabel: "Turnitin", levels: ["Master", "PhD"] },
+  { id: "publicationRequirement", label: "Publication requirement", shortLabel: "Publication", levels: ["Master", "PhD"] }
+];
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
@@ -287,6 +296,40 @@ const researchGroupName = student => facilityFor(student.researchGroupId)?.name 
 const serviceCategoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
 const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
+const milestoneLevelFor = student => student.level || STUDY_PROGRAMS[student.programId]?.level || "Bachelor";
+const milestonesForStudent = student => {
+  const level = milestoneLevelFor(student);
+  const progress = student.studyProgress && typeof student.studyProgress === "object" ? student.studyProgress : {};
+  const milestoneData = progress.milestones && typeof progress.milestones === "object" ? progress.milestones : {};
+  return STUDENT_MILESTONES
+    .filter(milestone => milestone.levels.includes(level))
+    .map(milestone => {
+      const record = milestoneData[milestone.id] && typeof milestoneData[milestone.id] === "object" ? milestoneData[milestone.id] : {};
+      return {
+        ...milestone,
+        completed: Boolean(record.completed),
+        completedAt: record.completedAt || ""
+      };
+    });
+};
+const studentMilestoneSummary = student => {
+  const milestones = milestonesForStudent(student);
+  const completed = milestones.filter(milestone => milestone.completed).length;
+  const total = milestones.length;
+  const percent = total ? Math.round((completed / total) * 100) : 0;
+  return { milestones, completed, total, percent };
+};
+const studentMilestoneMarkup = student => {
+  const { milestones, completed, total, percent } = studentMilestoneSummary(student);
+  if (!total) return `<div class="student-milestones"><small>No milestones assigned</small></div>`;
+  return `<div class="student-milestones">
+    <div class="student-milestones-head"><strong>${completed}/${total} milestones</strong><small>${percent}% complete</small></div>
+    <div class="student-milestone-list">${milestones.map(milestone => {
+      const dateLabel = milestone.completedAt ? formatDate(milestone.completedAt) : "";
+      return `<span class="student-milestone-chip ${milestone.completed ? "is-complete" : "is-pending"}" title="${clean(milestone.label)}${dateLabel ? ` completed ${clean(dateLabel)}` : " pending"}"><b>${clean(milestone.shortLabel)}</b>${dateLabel ? `<time datetime="${clean(milestone.completedAt)}">${clean(dateLabel)}</time>` : ""}</span>`;
+    }).join("")}</div>
+  </div>`;
+};
 const photoSrc = photo => backend?.photoSrc?.(photo) || photo?.url || photo?.data || "";
 const save = () => {
   try {
@@ -994,7 +1037,7 @@ function renderStudents() {
       <td><div class="cell-stack"><strong>${clean(program)}</strong><small>${clean(typeLabel)} · ${studentStatusPill(student.status || "Active")} ${verificationPill(student.verificationStatus || "Pending")}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId))}</strong><small>${clean(student.advisorRole || "Primary advisor")}${student.coadvisor ? ` · ${clean(student.coadvisor)}` : ""}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(project)}</strong><small>${clean(researchGroupName(student))}</small></div></td>
-      <td><div class="cell-stack"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small></div></td>
+      <td><div class="cell-stack student-progress-cell"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small>${studentMilestoneMarkup(student)}</div></td>
       <td><div class="row-actions"><button type="button" data-edit-student="${clean(student.id)}" aria-label="Edit ${clean(student.name)}">✎</button><button type="button" data-delete-student="${clean(student.id)}" aria-label="Delete ${clean(student.name)}">×</button></div></td>
     </tr>`;
   }).join("");
