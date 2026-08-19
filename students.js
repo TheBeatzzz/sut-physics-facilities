@@ -26,21 +26,26 @@ const facilityFor = id => facilities.find(group => group.id === id);
 const advisorName = id => facultyFor(id)?.name || "TBD";
 const groupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "TBD";
 const visibleStudent = student => student.verificationStatus === "Verified" && student.publicReady === true;
+const physicsStudent = student => (student.recordType || "physics") === "physics";
 
 const normalizeStudent = student => ({
   id: student.id || `student-${students.length + 1}`,
   studentCode: student.studentCode || "",
   name: student.name || "Student name to confirm",
   preferredName: student.preferredName || "",
+  recordType: student.recordType || "physics",
   level: student.level === "Undergraduate" ? "Bachelor" : student.level || STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
   status: student.status || "Active",
   verificationStatus: student.verificationStatus || "Pending",
   publicReady: Boolean(student.publicReady),
   programId: student.programId || "",
   advisorId: student.advisorId || "",
+  advisorRole: student.advisorRole || "Primary advisor",
   coadvisor: student.coadvisor || "",
   researchGroupId: student.researchGroupId || "",
   researchGroup: student.researchGroup || "",
+  homeSchool: student.homeSchool || "",
+  homeProgram: student.homeProgram || "",
   projectTitle: student.projectTitle || "",
   thesisTitle: student.thesisTitle || "",
   startTerm: student.startTerm || "",
@@ -56,7 +61,7 @@ const loadLocalStudents = () => {
   try {
     const registry = JSON.parse(localStorage.getItem(REGISTRY_STORAGE_KEY) || "{}");
     return {
-      students: Array.isArray(registry.students) ? registry.students.map(normalizeStudent).filter(visibleStudent) : [],
+      students: Array.isArray(registry.students) ? registry.students.map(normalizeStudent).filter(student => visibleStudent(student) && physicsStudent(student)) : [],
       faculty: Array.isArray(registry.faculty) ? registry.faculty : [],
       facilities: Array.isArray(registry.facilities) ? registry.facilities : []
     };
@@ -70,7 +75,7 @@ const loadStudents = async () => {
     try {
       const result = await window.SUTSupabase.loadPublicStudents();
       return {
-        students: Array.isArray(result.students) ? result.students.map(normalizeStudent) : [],
+        students: Array.isArray(result.students) ? result.students.map(normalizeStudent).filter(physicsStudent) : [],
         faculty: Array.isArray(result.faculty) ? result.faculty : [],
         facilities: Array.isArray(result.facilities) ? result.facilities : []
       };

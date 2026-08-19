@@ -281,15 +281,19 @@ const normalizeStudent = student => ({
   studentCode: student.studentCode || "",
   name: student.name || "Student name to confirm",
   preferredName: student.preferredName || "",
+  recordType: student.recordType || "physics",
   level: student.level === "Undergraduate" ? "Bachelor" : student.level || STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
   status: student.status || "Active",
   verificationStatus: student.verificationStatus || "Pending",
   publicReady: Boolean(student.publicReady),
   programId: student.programId || "",
   advisorId: student.advisorId || "",
+  advisorRole: student.advisorRole || "Primary advisor",
   coadvisor: student.coadvisor || "",
   researchGroupId: student.researchGroupId || "",
   researchGroup: student.researchGroup || "",
+  homeSchool: student.homeSchool || "",
+  homeProgram: student.homeProgram || "",
   projectTitle: student.projectTitle || "",
   thesisTitle: student.thesisTitle || "",
   startTerm: student.startTerm || "",
@@ -395,6 +399,12 @@ const adviseesFor = profile => {
 };
 
 const adviseeHeadline = student => student.projectTitle || student.thesisTitle || student.researchGroup || "Research topic to be announced";
+const adviseeProgramLabel = student => student.recordType === "sut-external"
+  ? student.homeProgram || "SUT external program"
+  : programLabel(student.programId);
+const adviseeTypeLabel = student => student.recordType === "sut-external"
+  ? `${student.homeSchool || "SUT"} · ${student.advisorRole || "External advisee"}`
+  : student.level || "Bachelor";
 
 const adviseeCard = student => {
   const interests = list(student.researchInterests).slice(0, 5);
@@ -402,11 +412,11 @@ const adviseeCard = student => {
   return `
     <article>
       ${portrait ? `<img class="profile-advisee-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
-      <span>${clean(programLabel(student.programId))}</span>
+      <span>${clean(adviseeProgramLabel(student))}</span>
       <h3>${clean(student.preferredName || student.name)}</h3>
       <p>${clean(student.shortBio || adviseeHeadline(student))}</p>
       <dl class="profile-advisee-meta">
-        <div><dt>Level</dt><dd>${clean(student.level || "TBD")}</dd></div>
+        <div><dt>Type</dt><dd>${clean(adviseeTypeLabel(student))}</dd></div>
         <div><dt>Started</dt><dd>${clean(startLabel(student))}</dd></div>
         <div><dt>Status</dt><dd>${clean(student.status || "Active")}</dd></div>
       </dl>

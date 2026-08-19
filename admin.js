@@ -985,10 +985,13 @@ function renderStudents() {
     const started = student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
     const years = [started, student.expectedGraduationYear || student.graduationYear].filter(Boolean).join(" - ") || "Timeline TBD";
     const project = student.projectTitle || student.thesisTitle || "Project title to add";
+    const external = student.recordType === "sut-external";
+    const program = external ? student.homeProgram || "SUT external program" : programLabel(student.programId);
+    const typeLabel = external ? `${student.homeSchool || "SUT"} · External advisee` : student.level || "Bachelor";
     return `<tr data-student-id="${clean(student.id)}">
       <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(student.name))}</span><div><strong>${clean(student.name)}</strong><small>${clean(student.studentCode || student.id)}${student.email ? ` · ${clean(student.email)}` : ""}</small></div></div></td>
-      <td><div class="cell-stack"><strong>${clean(programLabel(student.programId))}</strong><small>${clean(student.level || "Bachelor")} · ${studentStatusPill(student.status || "Active")} ${verificationPill(student.verificationStatus || "Pending")}</small></div></td>
-      <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId))}</strong><small>${clean(student.coadvisor || "No co-advisor")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(program)}</strong><small>${clean(typeLabel)} · ${studentStatusPill(student.status || "Active")} ${verificationPill(student.verificationStatus || "Pending")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId))}</strong><small>${clean(student.advisorRole || "Primary advisor")}${student.coadvisor ? ` · ${clean(student.coadvisor)}` : ""}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(project)}</strong><small>${clean(researchGroupName(student))}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small></div></td>
       <td><div class="row-actions"><button type="button" data-edit-student="${clean(student.id)}" aria-label="Edit ${clean(student.name)}">✎</button><button type="button" data-delete-student="${clean(student.id)}" aria-label="Delete ${clean(student.name)}">×</button></div></td>
@@ -1043,6 +1046,17 @@ function setStudentMessage(message = "", type = "") {
 }
 
 function validateStudentProfileFields(form) {
+  const recordType = form.elements.recordType.value;
+  if (recordType === "physics" && !form.elements.programId.value) {
+    setStudentMessage("Choose a Physics study program for School of Physics student records.", "error");
+    form.elements.programId.focus();
+    return false;
+  }
+  if (recordType === "sut-external" && (!form.elements.homeSchool.value.trim() || !form.elements.homeProgram.value.trim())) {
+    setStudentMessage("Enter the SUT school and program for external-program advisees.", "error");
+    (form.elements.homeSchool.value.trim() ? form.elements.homeProgram : form.elements.homeSchool).focus();
+    return false;
+  }
   const interests = normalizeList(form.elements.researchInterests.value);
   if (interests.length > 5) {
     setStudentMessage("Use no more than 5 research interest keywords.", "error");
@@ -1069,7 +1083,7 @@ function openStudentDialog(id = null) {
   populateStudentAdvisorOptions(student?.advisorId || "");
   populateStudentResearchGroupOptions(student?.researchGroupId || "");
   if (student) {
-    ["studentCode", "name", "preferredName", "email", "level", "status", "verificationStatus", "programId", "advisorId", "coadvisor", "researchGroupId", "office", "phone", "ownerEmail", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
+    ["studentCode", "name", "preferredName", "email", "recordType", "level", "status", "verificationStatus", "programId", "homeSchool", "homeProgram", "advisorId", "advisorRole", "coadvisor", "researchGroupId", "office", "phone", "ownerEmail", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
       const field = form.elements.namedItem(key);
       if (field) field.value = student[key] || "";
     });
@@ -1078,10 +1092,12 @@ function openStudentDialog(id = null) {
     form.elements.deadlineAlertsEnabled.checked = student.deadlineAlertsEnabled !== false;
     form.elements.publicReady.checked = Boolean(student.publicReady);
   } else {
+    form.elements.recordType.value = "physics";
     form.elements.level.value = "Bachelor";
     form.elements.programId.value = "bsc-physics";
     form.elements.status.value = "Active";
     form.elements.verificationStatus.value = "Pending";
+    form.elements.advisorRole.value = "Primary advisor";
     form.elements.startTerm.value = "1";
     form.elements.deadlineAlertsEnabled.checked = true;
     form.elements.publicReady.checked = false;
@@ -1100,6 +1116,7 @@ function studentFromForm(form) {
   const advisor = facultyFor(data.advisorId);
   const group = facilityFor(data.researchGroupId);
   const program = STUDY_PROGRAMS[data.programId];
+  const recordType = data.recordType === "sut-external" ? "sut-external" : "physics";
   return {
     ...existing,
     id,
@@ -1107,12 +1124,16 @@ function studentFromForm(form) {
     name: data.name,
     preferredName: data.preferredName,
     email: data.email,
+    recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
     advisorId: data.advisorId,
+    advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,
     researchGroup: group?.name || existing?.researchGroup || "",
+    homeSchool: recordType === "sut-external" ? data.homeSchool : "",
+    homeProgram: recordType === "sut-external" ? data.homeProgram : "",
     projectTitle: data.projectTitle,
     thesisTitle: data.thesisTitle,
     startTerm: data.startTerm,

@@ -33,6 +33,7 @@ function studentDraft(data) {
     email,
     ownerEmail: email,
     verificationStatus: "Pending",
+    recordType: "physics",
     level: "Bachelor",
     programId: "bsc-physics",
     startTerm: normalizeTerm(data.startTerm),

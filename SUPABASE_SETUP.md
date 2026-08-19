@@ -170,7 +170,7 @@ Faculty members can also enter a fallback h-index and citation count in the facu
 - signed-in faculty can manage rows they own;
 - authenticated, active, pre-approved `@sut.ac.th` or `@g.sut.ac.th` users in `registry_admins` can manage all records and upload photos.
 
-If the website reports that `facility_ids`, faculty `profile_photo`, or student `profile_photo` cannot be found in the schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
+If the website reports that `facility_ids`, faculty `profile_photo`, student `profile_photo`, or SUT external advisee fields cannot be found in the schema cache, rerun the latest [`supabase-schema.sql`](supabase-schema.sql) in Supabase SQL Editor. At minimum, run:
 
 ```sql
 alter table if exists public.faculty
@@ -181,6 +181,18 @@ add column if not exists profile_photo jsonb;
 
 alter table if exists public.students
 add column if not exists profile_photo jsonb;
+
+alter table if exists public.students
+add column if not exists record_type text not null default 'physics';
+
+alter table if exists public.students
+add column if not exists advisor_role text not null default 'Primary advisor';
+
+alter table if exists public.students
+add column if not exists home_school text;
+
+alter table if exists public.students
+add column if not exists home_program text;
 
 notify pgrst, 'reload schema';
 ```

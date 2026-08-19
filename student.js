@@ -77,6 +77,17 @@ function showPasswordReset() {
 }
 
 function validateProfileFields(form, setMessage) {
+  const recordType = form.elements.recordType.value;
+  if (recordType === "physics" && !form.elements.programId.value) {
+    setMessage("Choose a Physics study program for School of Physics student records.", "error");
+    form.elements.programId.focus();
+    return false;
+  }
+  if (recordType === "sut-external" && (!form.elements.homeSchool.value.trim() || !form.elements.homeProgram.value.trim())) {
+    setMessage("Enter the SUT school and program for external-program advisees.", "error");
+    (form.elements.homeSchool.value.trim() ? form.elements.homeProgram : form.elements.homeSchool).focus();
+    return false;
+  }
   const interests = normalizeList(form.elements.researchInterests.value);
   if (interests.length > 5) {
     setMessage("Use no more than 5 research interest keywords.", "error");
@@ -166,6 +177,7 @@ function formToRecord(form) {
   const email = String(currentSession?.user?.email || data.email || "").trim().toLowerCase();
   const program = STUDY_PROGRAMS[data.programId];
   const group = researchGroups.find(item => item.id === data.researchGroupId);
+  const recordType = data.recordType === "sut-external" ? "sut-external" : "physics";
   return {
     ...currentRecord,
     id: currentRecord?.id || `STU-${Date.now().toString(36).toUpperCase()}`,
@@ -173,12 +185,16 @@ function formToRecord(form) {
     name: data.name,
     preferredName: data.preferredName,
     email,
+    recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
     advisorId: data.advisorId,
+    advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,
     researchGroup: group?.name || currentRecord?.researchGroup || "",
+    homeSchool: recordType === "sut-external" ? data.homeSchool : "",
+    homeProgram: recordType === "sut-external" ? data.homeProgram : "",
     projectTitle: data.projectTitle,
     thesisTitle: data.thesisTitle,
     startTerm: normalizeTerm(data.startTerm),
@@ -215,6 +231,7 @@ function fillRecordForm(record = null) {
   const email = String(currentSession?.user?.email || "").trim().toLowerCase();
   const defaults = {
     email,
+    recordType: "physics",
     level: "Bachelor",
     programId: "bsc-physics",
     status: "Active",
@@ -223,7 +240,7 @@ function fillRecordForm(record = null) {
     ...(record || {})
   };
   pendingProfilePhoto = defaults.profilePhoto ? clone(defaults.profilePhoto) : null;
-  ["studentCode", "name", "preferredName", "email", "level", "status", "programId", "advisorId", "coadvisor", "researchGroupId", "office", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
+  ["studentCode", "name", "preferredName", "email", "recordType", "level", "status", "programId", "homeSchool", "homeProgram", "advisorId", "advisorRole", "coadvisor", "researchGroupId", "office", "projectTitle", "thesisTitle", "startTerm", "startYear", "expectedGraduationYear", "graduationYear", "shortBio", "notes"].forEach(key => {
     const field = form.elements.namedItem(key);
     if (field) field.value = defaults[key] || "";
   });

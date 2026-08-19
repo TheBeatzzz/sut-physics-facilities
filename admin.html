@@ -385,14 +385,18 @@
             <label>Full name <span aria-hidden="true">*</span><input name="name" required placeholder="Student full name" /></label>
             <label>Preferred name<input name="preferredName" placeholder="Optional" /></label>
             <label>Email<input name="email" type="email" placeholder="student@g.sut.ac.th" /></label>
+            <label>Student record type<select name="recordType"><option value="physics">School of Physics student</option><option value="sut-external">SUT external-program advisee</option></select></label>
             <label>Program level <span aria-hidden="true">*</span><select name="level" required><option>Bachelor</option><option>Master</option><option>PhD</option></select></label>
-            <label>Study program <span aria-hidden="true">*</span><select name="programId" required><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+            <label>Physics study program<select name="programId"><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+            <label>External SUT school<input name="homeSchool" placeholder="For SUT external-program advisees only" /></label>
+            <label>External SUT program<input name="homeProgram" placeholder="For SUT external-program advisees only" /></label>
             <label>Status <span aria-hidden="true">*</span><select name="status" required><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
             <label>Verification<select name="verificationStatus"><option>Pending</option><option>Verified</option><option>Rejected</option></select></label>
-            <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public student list</strong><small>Only verified records with a short bio appear publicly.</small></span></label>
+            <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show publicly after verification</strong><small>Physics students appear in the student list. SUT external advisees appear only on faculty profile pages.</small></span></label>
           </div></div>
           <div class="form-section"><div class="form-section-title"><span>02</span><div><h3>Advising</h3><p>Assign the academic owner and the research context for this student.</p></div></div><div class="form-grid">
             <label>Primary advisor<select id="student-advisor" name="advisorId"><option value="">TBD</option></select></label>
+            <label>Advisor role<select name="advisorRole"><option>Primary advisor</option><option>Co-advisor</option><option>Committee member</option><option>Research supervisor</option></select></label>
             <label>Co-advisor<input name="coadvisor" placeholder="Optional co-advisor or committee" /></label>
             <label>Research lab / group<select id="student-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
             <label>Office / lab<input name="office" placeholder="Building and room" /></label>

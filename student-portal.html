@@ -79,8 +79,11 @@
               <label>Full name <span aria-hidden="true">*</span><input name="name" required /></label>
               <label>Preferred name<input name="preferredName" /></label>
               <label>Email<input name="email" type="email" readonly /></label>
+              <label>Student record type<select name="recordType"><option value="physics">School of Physics student</option><option value="sut-external">SUT external-program advisee</option></select></label>
               <label>Program level<select name="level"><option>Bachelor</option><option>Master</option><option>PhD</option></select></label>
               <label>Study program<select name="programId"><option value="">Choose study program</option><option value="bsc-physics">B.Sc. Physics</option><option value="msc-physics">M.Sc. Physics</option><option value="msc-applied-physics">M.Sc. Applied Physics</option><option value="phd-physics">Ph.D. Physics</option><option value="phd-applied-physics">Ph.D. Applied Physics</option></select></label>
+              <label>External SUT school<input name="homeSchool" placeholder="For SUT external-program advisees only" /></label>
+              <label>External SUT program<input name="homeProgram" placeholder="For SUT external-program advisees only" /></label>
               <label>Status<select name="status"><option>Active</option><option>Leave</option><option>Graduated</option><option>Withdrawn</option></select></label>
               <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public student list</strong><small>Your record must be verified before your short bio appears publicly.</small></span></label>
               <div class="media-field student-profile-photo-field span-2">
@@ -95,6 +98,7 @@
             <div class="form-section-title"><span>02</span><div><h3>Advising</h3><p>Your advisor, group, and project context.</p></div></div>
             <div class="form-grid">
               <label>Primary advisor<select id="student-self-advisor" name="advisorId"><option value="">TBD</option></select></label>
+              <label>Advisor role<select name="advisorRole"><option>Primary advisor</option><option>Co-advisor</option><option>Committee member</option><option>Research supervisor</option></select></label>
               <label>Co-advisor<input name="coadvisor" /></label>
               <label>Research lab / group<select id="student-self-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
               <label>Office / lab<input name="office" /></label>

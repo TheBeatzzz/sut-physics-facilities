@@ -83,12 +83,16 @@ create table if not exists public.students (
   name text not null,
   preferred_name text,
   email text,
+  record_type text not null default 'physics' check (record_type in ('physics', 'sut-external')),
   level text not null default 'Bachelor' check (level in ('Bachelor', 'Master', 'PhD')),
   status text not null default 'Active' check (status in ('Active', 'Leave', 'Graduated', 'Withdrawn')),
   advisor_id text references public.faculty(id) on update cascade on delete set null,
+  advisor_role text not null default 'Primary advisor' check (advisor_role in ('Primary advisor', 'Co-advisor', 'Committee member', 'Research supervisor')),
   coadvisor text,
   research_group_id text references public.facilities(id) on update cascade on delete set null,
   research_group text,
+  home_school text,
+  home_program text,
   project_title text,
   thesis_title text,
   start_term integer check (start_term in (1, 2, 3)),
@@ -121,6 +125,18 @@ add column if not exists owner_email text;
 
 alter table if exists public.students
 add column if not exists profile_photo jsonb;
+
+alter table if exists public.students
+add column if not exists record_type text not null default 'physics';
+
+alter table if exists public.students
+add column if not exists advisor_role text not null default 'Primary advisor';
+
+alter table if exists public.students
+add column if not exists home_school text;
+
+alter table if exists public.students
+add column if not exists home_program text;
 
 alter table if exists public.students
 add column if not exists skills jsonb not null default '[]'::jsonb;
@@ -187,6 +203,20 @@ alter table public.students
 alter table public.students
   add constraint students_start_term_check
   check (start_term is null or start_term in (1, 2, 3));
+
+alter table public.students
+  drop constraint if exists students_record_type_check;
+
+alter table public.students
+  add constraint students_record_type_check
+  check (record_type in ('physics', 'sut-external'));
+
+alter table public.students
+  drop constraint if exists students_advisor_role_check;
+
+alter table public.students
+  add constraint students_advisor_role_check
+  check (advisor_role in ('Primary advisor', 'Co-advisor', 'Committee member', 'Research supervisor'));
 
 alter table public.students
   drop constraint if exists students_verification_status_check;

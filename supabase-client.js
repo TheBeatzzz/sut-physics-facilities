@@ -167,12 +167,16 @@
     name: row.name,
     preferredName: row.preferred_name || "",
     email: row.email || "",
+    recordType: row.record_type || "physics",
     level: row.level === "Undergraduate" ? "Bachelor" : row.level || "Bachelor",
     status: row.status || "Active",
     advisorId: row.advisor_id || "",
+    advisorRole: row.advisor_role || "Primary advisor",
     coadvisor: row.coadvisor || "",
     researchGroupId: row.research_group_id || "",
     researchGroup: row.research_group || "",
+    homeSchool: row.home_school || "",
+    homeProgram: row.home_program || "",
     projectTitle: row.project_title || "",
     thesisTitle: row.thesis_title || "",
     startTerm: row.start_term || "",
@@ -209,12 +213,16 @@
     name: student.name,
     preferred_name: student.preferredName || null,
     email: student.email || null,
+    record_type: student.recordType || "physics",
     level: student.level === "Undergraduate" ? "Bachelor" : student.level || "Bachelor",
     status: student.status || "Active",
     advisor_id: student.advisorId || null,
+    advisor_role: student.advisorRole || "Primary advisor",
     coadvisor: student.coadvisor || null,
     research_group_id: student.researchGroupId || null,
     research_group: student.researchGroup || null,
+    home_school: student.recordType === "sut-external" ? student.homeSchool || null : null,
+    home_program: student.recordType === "sut-external" ? student.homeProgram || null : null,
     project_title: student.projectTitle || null,
     thesis_title: student.thesisTitle || null,
     start_term: optionalTerm(student.startTerm),
@@ -534,7 +542,7 @@
   const loadPublicStudents = async () => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
-    const publicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
+    const publicStudentColumns = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
     const legacyPublicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
     const loadStudentRows = columns => supabase
       .from("students")
@@ -544,7 +552,7 @@
       .order("name", { ascending: true });
     const studentsPromise = loadStudentRows(publicStudentColumns).then(result => {
       const message = String(result.error?.message || "");
-      return /profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
+      return /record_type|advisor_role|home_school|home_program|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
     });
     const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
       studentsPromise,
