@@ -249,7 +249,7 @@ alter table public.students
 create table if not exists public.researchers (
   id text primary key,
   name text not null,
-  type text not null default 'Postdoctoral Researcher' check (type in ('Postdoctoral Researcher', 'Research Fellow', 'Visiting Researcher', 'Research Assistant', 'Project Researcher')),
+  type text not null default 'Postdoctoral Researcher' check (type in ('Postdoctoral Researcher', 'Postgraduate Researcher', 'Research Fellow', 'Visiting Researcher', 'Research Assistant', 'Project Researcher')),
   email text,
   status text not null default 'Active' check (status in ('Active', 'Completed', 'Visiting', 'Inactive')),
   host_faculty_id text references public.faculty(id) on update cascade on delete set null,
@@ -280,6 +280,13 @@ add column if not exists owner_email text;
 
 alter table if exists public.researchers
 add column if not exists profile_photo jsonb;
+
+alter table public.researchers
+  drop constraint if exists researchers_type_check;
+
+alter table public.researchers
+  add constraint researchers_type_check
+  check (type in ('Postdoctoral Researcher', 'Postgraduate Researcher', 'Research Fellow', 'Visiting Researcher', 'Research Assistant', 'Project Researcher'));
 
 alter table public.researchers
   drop constraint if exists researchers_research_interests_limit;
@@ -917,6 +924,78 @@ $$;
 revoke all on function public.is_researcher_owner(text, text, text) from public;
 grant execute on function public.is_researcher_owner(text, text, text) to anon, authenticated;
 
+create or replace function public.is_researcher_self(target_owner_email text, target_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from current_identity
+    where (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_researcher_self(text, text) from public;
+grant execute on function public.is_researcher_self(text, text) to anon, authenticated;
+
+create or replace function public.protect_researcher_review_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_email text := public.current_sut_email();
+  faculty_editor boolean := public.is_sut_editor() or public.is_researcher_owner(new.owner_email, new.email, new.host_faculty_id);
+begin
+  if faculty_editor then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if not public.is_researcher_self(coalesce(new.owner_email, current_email), coalesce(new.email, current_email)) then
+      raise exception 'Researcher records must use the signed-in researcher email.';
+    end if;
+    new.owner_email := coalesce(nullif(new.owner_email, ''), current_email);
+    new.email := coalesce(nullif(new.email, ''), current_email);
+    if coalesce(new.review_status, '') not in ('Draft', 'Submitted') then
+      new.review_status := 'Submitted';
+    end if;
+    return new;
+  end if;
+
+  new.owner_email := old.owner_email;
+  new.email := old.email;
+  new.review_status := old.review_status;
+  return new;
+end;
+$$;
+
+revoke all on function public.protect_researcher_review_fields() from public;
+grant execute on function public.protect_researcher_review_fields() to authenticated;
+
+drop trigger if exists researchers_protect_review on public.researchers;
+create trigger researchers_protect_review
+before insert or update on public.researchers
+for each row execute function public.protect_researcher_review_fields();
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
@@ -1132,6 +1211,31 @@ create policy "Faculty can delete owned researchers"
 on public.researchers for delete
 to authenticated
 using (public.is_researcher_owner(owner_email, email, host_faculty_id));
+
+drop policy if exists "Researchers can read own researcher profile" on public.researchers;
+create policy "Researchers can read own researcher profile"
+on public.researchers for select
+to authenticated
+using (public.is_researcher_self(owner_email, email));
+
+drop policy if exists "Researchers can create own submitted researcher profile" on public.researchers;
+create policy "Researchers can create own submitted researcher profile"
+on public.researchers for insert
+to authenticated
+with check (public.is_researcher_self(owner_email, email));
+
+drop policy if exists "Researchers can update own researcher profile" on public.researchers;
+create policy "Researchers can update own researcher profile"
+on public.researchers for update
+to authenticated
+using (public.is_researcher_self(owner_email, email))
+with check (public.is_researcher_self(owner_email, email));
+
+drop policy if exists "Researchers can delete own unverified researcher profile" on public.researchers;
+create policy "Researchers can delete own unverified researcher profile"
+on public.researchers for delete
+to authenticated
+using (public.is_researcher_self(owner_email, email) and review_status <> 'Verified');
 
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"
@@ -1411,6 +1515,53 @@ using (
   and public.is_student_self(
     (select students.owner_email from public.students where students.id = split_part(storage.objects.name, '/', 2)),
     (select students.email from public.students where students.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Researchers can upload own profile photos" on storage.objects;
+create policy "Researchers can upload own profile photos"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'researchers'
+  and public.is_researcher_self(
+    (select researchers.owner_email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2)),
+    (select researchers.email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Researchers can update own profile photos" on storage.objects;
+create policy "Researchers can update own profile photos"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'researchers'
+  and public.is_researcher_self(
+    (select researchers.owner_email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2)),
+    (select researchers.email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2))
+  )
+)
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'researchers'
+  and public.is_researcher_self(
+    (select researchers.owner_email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2)),
+    (select researchers.email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Researchers can delete own profile photos" on storage.objects;
+create policy "Researchers can delete own profile photos"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'researchers'
+  and public.is_researcher_self(
+    (select researchers.owner_email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2)),
+    (select researchers.email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2))
   )
 );
 

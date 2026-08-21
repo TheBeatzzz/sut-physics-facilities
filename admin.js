@@ -23,7 +23,7 @@ const STUDENT_MILESTONES = [
   { id: "turnitinCheck", label: "Turnitin check", shortLabel: "Turnitin", levels: ["Master", "PhD"] },
   { id: "publicationRequirement", label: "Publication requirement", shortLabel: "Publication", levels: ["Master", "PhD"] }
 ];
-const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
+const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Postgraduate Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Researcher profile portal for postdocs, postgraduate researchers, fellows, visiting researchers, and research staff connected to the School of Physics at Suranaree University of Technology." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Physics Researcher Portal - SUT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="student-email-cooldown.js"></script>
+    <script src="researcher.js" defer></script>
+  </head>
+  <body class="student-portal researcher-portal">
+    <section id="researcher-auth" class="auth-gate" aria-labelledby="researcher-auth-title">
+      <div class="auth-card researcher-auth-card">
+        <p class="eyebrow">Researcher portal</p>
+        <h1 id="researcher-auth-title">Create or manage your researcher profile.</h1>
+        <p>Your profile uses your SUT email. It appears publicly only after faculty or registry manager verification.</p>
+
+        <div class="researcher-auth-layout">
+          <form id="researcher-signin-form" class="auth-form">
+            <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+            <button class="button button-primary" type="submit">Sign in</button>
+          </form>
+
+          <form id="researcher-signup-form" class="auth-form compact-auth-form">
+            <label>Full name<input name="name" autocomplete="name" required /></label>
+            <label>Researcher type<select name="type" required><option>Postdoctoral Researcher</option><option>Postgraduate Researcher</option><option>Research Fellow</option><option>Visiting Researcher</option><option>Research Assistant</option><option>Project Researcher</option></select></label>
+            <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <button class="button button-secondary" type="submit">Create account</button>
+          </form>
+        </div>
+
+        <p class="auth-cooldown" id="researcher-email-cooldown" role="status" aria-live="polite"></p>
+        <form id="researcher-recovery-form" class="auth-form compact-auth-form">
+          <label>Forgot password?<input name="email" type="email" autocomplete="email" placeholder="Enter your SUT email" required /></label>
+          <button class="button button-secondary" type="submit">Send reset link</button>
+        </form>
+        <p class="auth-help" id="researcher-auth-message">Use your SUT or g.sut.ac.th email address.</p>
+      </div>
+    </section>
+
+    <section id="researcher-password-reset" class="auth-gate" aria-labelledby="researcher-password-reset-title" hidden>
+      <div class="auth-card">
+        <p class="eyebrow">Account security</p>
+        <h1 id="researcher-password-reset-title">Set a new password.</h1>
+        <p>Enter a new password for your researcher portal account. After saving, you can sign in with the new password.</p>
+        <form id="researcher-password-reset-form" class="auth-form">
+          <label>New password<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters" /></label>
+          <label>Confirm new password<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Re-enter the new password" /></label>
+          <button class="button button-primary" type="submit">Update password</button>
+        </form>
+        <p class="auth-help" id="researcher-password-reset-message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <main id="researcher-workspace" class="workspace" hidden>
+      <section class="view is-visible" aria-labelledby="researcher-title">
+        <div class="view-heading compact-heading">
+          <div>
+            <p class="eyebrow">Researcher profile</p>
+            <h1 id="researcher-title">Your Physics researcher record</h1>
+            <p class="heading-description">Keep your host, project, research interests, skills, and public profile details current.</p>
+          </div>
+          <button class="button button-secondary" id="researcher-sign-out" type="button">Sign out</button>
+        </div>
+
+        <section class="panel visitor-panel">
+          <div class="panel-heading">
+            <div><p class="panel-kicker">Review</p><h2 id="researcher-review-title">Submitted</h2></div>
+            <span class="data-date" id="researcher-account-email"></span>
+          </div>
+          <p class="visitor-empty" id="researcher-review-note">Faculty or registry manager verification is required before this profile appears publicly.</p>
+        </section>
+
+        <form id="researcher-record-form" class="panel">
+          <div class="form-section">
+            <div class="form-section-title"><span>01</span><div><h3>Identity</h3><p>Your role and public display status.</p></div></div>
+            <div class="form-grid">
+              <label>Full name <span aria-hidden="true">*</span><input name="name" required /></label>
+              <label>Researcher type <span aria-hidden="true">*</span><select name="type" required><option>Postdoctoral Researcher</option><option>Postgraduate Researcher</option><option>Research Fellow</option><option>Visiting Researcher</option><option>Research Assistant</option><option>Project Researcher</option></select></label>
+              <label>Email<input name="email" type="email" readonly /></label>
+              <label>Status <span aria-hidden="true">*</span><select name="status" required><option>Active</option><option>Completed</option><option>Visiting</option><option>Inactive</option></select></label>
+              <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public Researchers page</strong><small>Your profile must be verified before it appears publicly.</small></span></label>
+              <div class="media-field student-profile-photo-field span-2">
+                <div class="media-field-head"><div><strong>Profile picture</strong><small>Shown with your public researcher profile after verification.</small></div><label class="media-upload">Choose photo<input id="researcher-profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp" /></label></div>
+                <div id="researcher-profile-photo-preview" class="feature-photo-preview student-profile-photo-preview empty"><span>No profile picture selected</span></div>
+                <label id="researcher-profile-photo-alt-label" class="media-alt" hidden>Profile picture description<input id="researcher-profile-photo-alt" type="text" placeholder="Describe your profile picture" /></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>02</span><div><h3>Host and group</h3><p>Connect your appointment to a host faculty member and lab.</p></div></div>
+            <div class="form-grid">
+              <label>Host faculty / PI<select id="researcher-self-host" name="hostFacultyId"><option value="">TBD</option></select></label>
+              <label>Host role<input name="hostRole" placeholder="Host faculty / PI" /></label>
+              <label>Research lab / group<select id="researcher-self-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
+              <label>Group name<input name="researchGroup" placeholder="Optional group name if not in database" /></label>
+              <label>Office / lab<input name="office" placeholder="Building and room" /></label>
+              <label>Phone<input name="phone" placeholder="Optional contact number" /></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>03</span><div><h3>Research profile</h3><p>Public project, appointment, and expertise details.</p></div></div>
+            <div class="form-grid">
+              <label class="span-2">Project title<textarea name="projectTitle" rows="2" placeholder="Research project, funded project, or appointment focus"></textarea></label>
+              <label>Funding / appointment source<input name="fundingSource" placeholder="Grant, project, fellowship, or unit" /></label>
+              <label>Start date<input name="startDate" type="date" /></label>
+              <label>End date<input name="endDate" type="date" /></label>
+              <label class="span-2">Research interests <span aria-hidden="true">*</span><textarea name="researchInterests" rows="3" required placeholder="Enter up to 5 keywords, one per line"></textarea></label>
+              <label class="span-2">Short bio<textarea name="shortBio" rows="5" placeholder="Short public bio, up to 500 words"></textarea></label>
+              <label class="span-2">Skills and methods<textarea name="skills" rows="3" placeholder="Enter one item per line"></textarea></label>
+              <label class="span-2">Notes<textarea name="notes" rows="3" placeholder="Private notes for faculty or registry manager follow-up"></textarea></label>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <p id="researcher-record-message" role="status" aria-live="polite"></p>
+            <div><button class="button button-primary" id="researcher-record-submit" type="submit">Save researcher profile</button></div>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span>OK</span><p></p></div>
+  </body>
+</html>

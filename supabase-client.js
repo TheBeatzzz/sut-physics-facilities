@@ -437,6 +437,11 @@
     profilePhoto: student.profilePhoto ? await uploadPhoto(`students/${student.id}`, student.profilePhoto, "profile", 0) : null
   });
 
+  const uploadResearcherMedia = async researcher => ({
+    ...researcher,
+    profilePhoto: researcher.profilePhoto ? await uploadPhoto(`researchers/${researcher.id}`, researcher.profilePhoto, "profile", 0) : null
+  });
+
   const loadRegistry = async ({ publicOnly = false } = {}) => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
@@ -633,6 +638,30 @@
 
   const saveResearcher = async researcher => {
     const supabase = getClient();
+    const hasLocalProfilePhoto = researcher.profilePhoto?.data?.startsWith("data:image/");
+    if (hasLocalProfilePhoto) {
+      let uploadedResearcher;
+      try {
+        uploadedResearcher = await uploadResearcherMedia(researcher);
+      } catch (uploadError) {
+        const policyBlocked = /row-level|policy|not authorized|unauthorized|forbidden/i.test(String(uploadError.message || ""));
+        if (!policyBlocked) throw uploadError;
+        const { data: initialData, error: initialError } = await supabase
+          .from("researchers")
+          .upsert(snakeResearcher({ ...researcher, profilePhoto: null }), { onConflict: "id" })
+          .select()
+          .single();
+        if (initialError) throw initialError;
+        uploadedResearcher = await uploadResearcherMedia({ ...researcher, id: initialData.id });
+      }
+      const { data, error } = await supabase
+        .from("researchers")
+        .upsert(snakeResearcher(uploadedResearcher), { onConflict: "id" })
+        .select()
+        .single();
+      if (error) throw error;
+      return camelResearcher(data);
+    }
     const { data, error } = await supabase
       .from("researchers")
       .upsert(snakeResearcher(researcher), { onConflict: "id" })
@@ -640,6 +669,21 @@
       .single();
     if (error) throw error;
     return camelResearcher(data);
+  };
+
+  const loadMyResearcherRecord = async () => {
+    const supabase = getClient();
+    const session = await getSession();
+    const email = String(session?.user?.email || "").trim().toLowerCase();
+    if (!email) throw new Error("Sign in before loading a researcher profile.");
+    const { data, error } = await supabase
+      .from("researchers")
+      .select("*")
+      .or(`owner_email.eq.${email},email.eq.${email}`)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] ? camelResearcher(data[0]) : null;
   };
 
   const deleteResearcher = async id => {
@@ -865,6 +909,7 @@
     deleteStudent,
     loadPublicStudents,
     saveResearcher,
+    loadMyResearcherRecord,
     deleteResearcher,
     loadPublicResearchers,
     saveService,

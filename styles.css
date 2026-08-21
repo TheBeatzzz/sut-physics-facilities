@@ -292,6 +292,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .pulse-c { right: 24%; bottom: 18%; background: var(--aqua); animation-delay: .7s; }
 .pulse-d { left: 16%; bottom: 28%; width: 12px; height: 12px; background: var(--acid); animation-delay: 1.05s; }
 .services-strip .signal-grid { grid-template-columns: repeat(4, 1fr) 1.4fr; }
+.researchers-page .services-strip .signal-grid { grid-template-columns: repeat(5, 1fr) 1.2fr; }
 .services-directory { border-top: 1px solid var(--line); }
 .services-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
 .service-card {
@@ -686,6 +687,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .services-hero { min-height: auto; grid-template-columns: 1fr; gap: 70px; padding-top: 75px; }
   .services-orbit { justify-self: center; width: min(88vw, 570px); }
   .services-strip .signal-grid { grid-template-columns: repeat(2, 1fr); }
+  .researchers-page .services-strip .signal-grid { grid-template-columns: repeat(2, 1fr); }
   .services-strip .signal-grid > p { grid-column: 1 / -1; }
   .services-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .survey-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -736,7 +738,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .hero h1 { font-size: clamp(54px, 17vw, 78px); }
   .hero-intro { margin-top: 28px; font-size: 15px; }
   .hero-actions { align-items: stretch; flex-direction: column; gap: 20px; }.button { width: 100%; }.text-link { align-self: flex-start; }
-  .signal-grid { grid-template-columns: 1fr; gap: 24px; }.signal-grid > p { grid-column: auto; }.signal-grid div { justify-content: space-between; }
+  .signal-grid { grid-template-columns: 1fr; gap: 24px; }.researchers-page .services-strip .signal-grid { grid-template-columns: 1fr; }.signal-grid > p { grid-column: auto; }.signal-grid div { justify-content: space-between; }
   .section-shell { padding-top: 78px; padding-bottom: 78px; }
   .section-heading h2, .access h2 { font-size: 48px; }
   .spectrum { grid-template-columns: 1fr; margin-top: 58px; }.spectrum-item { min-height: 320px; }.spectrum-glyph { height: 140px; }

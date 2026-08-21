@@ -1,6 +1,6 @@
 const REGISTRY_STORAGE_KEY = "sut-physics-equipment-registry-v3";
 
-const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
+const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Postgraduate Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
 
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
@@ -203,7 +203,7 @@ function renderResearchers() {
     ? filtered.length
       ? filtered.map(researcherCard).join("")
       : `<div class="public-empty"><h3>No researchers match these filters yet</h3><p>Try another role type, host faculty, group, or status.</p></div>`
-    : `<div class="services-coming-soon"><p class="section-index">Researcher profiles</p><h3>No public researcher profiles yet</h3><p>Postdocs, research fellows, visiting researchers, and research staff will appear here after verification.</p></div>`;
+    : `<div class="services-coming-soon"><p class="section-index">Researcher profiles</p><h3>No public researcher profiles yet</h3><p>Postdocs, postgraduate researchers, research fellows, visiting researchers, and research staff will appear here after verification.</p></div>`;
 }
 
 document.querySelector("#researchers-grid").addEventListener("click", event => {
