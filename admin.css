@@ -212,6 +212,9 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 #student-message { max-width: 360px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 #student-message.is-error { color: var(--red); }
 #student-message.is-success { color: var(--green-2); }
+#researcher-message { max-width: 360px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+#researcher-message.is-error { color: var(--red); }
+#researcher-message.is-success { color: var(--green-2); }
 #student-record-message { max-width: 420px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 #student-record-message.is-error { color: var(--red); }
 #student-record-message.is-success { color: var(--green-2); }

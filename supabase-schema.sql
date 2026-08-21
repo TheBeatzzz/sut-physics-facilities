@@ -246,6 +246,55 @@ alter table public.students
     or program_id in ('bsc-physics', 'msc-physics', 'msc-applied-physics', 'phd-physics', 'phd-applied-physics')
   );
 
+create table if not exists public.researchers (
+  id text primary key,
+  name text not null,
+  type text not null default 'Postdoctoral Researcher' check (type in ('Postdoctoral Researcher', 'Research Fellow', 'Visiting Researcher', 'Research Assistant', 'Project Researcher')),
+  email text,
+  status text not null default 'Active' check (status in ('Active', 'Completed', 'Visiting', 'Inactive')),
+  host_faculty_id text references public.faculty(id) on update cascade on delete set null,
+  host_role text not null default 'Host faculty / PI',
+  research_group_id text references public.facilities(id) on update cascade on delete set null,
+  research_group text,
+  office text,
+  phone text,
+  profile_photo jsonb,
+  project_title text,
+  funding_source text,
+  start_date date,
+  end_date date,
+  short_bio text,
+  research_interests jsonb not null default '[]'::jsonb,
+  skills jsonb not null default '[]'::jsonb,
+  notes text,
+  public_ready boolean not null default false,
+  review_status text not null default 'Draft' check (review_status in ('Draft', 'Submitted', 'Verified')),
+  owner_email text,
+  sample boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table if exists public.researchers
+add column if not exists owner_email text;
+
+alter table if exists public.researchers
+add column if not exists profile_photo jsonb;
+
+alter table public.researchers
+  drop constraint if exists researchers_research_interests_limit;
+
+alter table public.researchers
+  add constraint researchers_research_interests_limit
+  check (jsonb_typeof(research_interests) = 'array' and jsonb_array_length(research_interests) <= 5);
+
+alter table public.researchers
+  drop constraint if exists researchers_review_status_check;
+
+alter table public.researchers
+  add constraint researchers_review_status_check
+  check (review_status in ('Draft', 'Submitted', 'Verified'));
+
 create table if not exists public.equipment (
   id text primary key,
   name text not null,
@@ -343,6 +392,21 @@ create index if not exists students_owner_email_idx
 create index if not exists students_email_idx
   on public.students (lower(email));
 
+create index if not exists researchers_public_idx
+  on public.researchers (review_status, public_ready, type);
+
+create index if not exists researchers_host_idx
+  on public.researchers (host_faculty_id);
+
+create index if not exists researchers_group_idx
+  on public.researchers (research_group_id);
+
+create index if not exists researchers_owner_email_idx
+  on public.researchers (lower(owner_email));
+
+create index if not exists researchers_email_idx
+  on public.researchers (lower(email));
+
 create index if not exists facilities_owner_email_idx
   on public.facilities (lower(owner_email));
 
@@ -416,6 +480,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists students_set_updated_at on public.students;
 create trigger students_set_updated_at
 before update on public.students
+for each row execute function public.set_updated_at();
+
+drop trigger if exists researchers_set_updated_at on public.researchers;
+create trigger researchers_set_updated_at
+before update on public.researchers
 for each row execute function public.set_updated_at();
 
 drop trigger if exists services_set_updated_at on public.services;
@@ -811,10 +880,48 @@ $$;
 revoke all on function public.is_service_owner(text, text, text, text) from public;
 grant execute on function public.is_service_owner(text, text, text, text) to anon, authenticated;
 
+create or replace function public.is_researcher_owner(target_owner_email text, target_email text, target_host_faculty_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+        or btrim(coalesce(target_host_faculty_id, '')) = btrim(coalesce(faculty.id, ''))
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_researcher_owner(text, text, text) from public;
+grant execute on function public.is_researcher_owner(text, text, text) to anon, authenticated;
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
 alter table public.students enable row level security;
+alter table public.researchers enable row level security;
 alter table public.equipment enable row level security;
 alter table public.services enable row level security;
 alter table public.visitor_events enable row level security;
@@ -981,6 +1088,50 @@ create policy "Students can delete own unverified student record"
 on public.students for delete
 to authenticated
 using (public.is_student_self(owner_email, email) and verification_status <> 'Verified');
+
+drop policy if exists "Public can read verified public researchers" on public.researchers;
+create policy "Public can read verified public researchers"
+on public.researchers for select
+to anon, authenticated
+using (review_status = 'Verified' and public_ready = true);
+
+drop policy if exists "SUT editors can read all researchers" on public.researchers;
+create policy "SUT editors can read all researchers"
+on public.researchers for select
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "SUT editors can manage researchers" on public.researchers;
+create policy "SUT editors can manage researchers"
+on public.researchers for all
+to authenticated
+using (public.is_sut_editor())
+with check (public.is_sut_editor());
+
+drop policy if exists "Faculty can read owned researchers" on public.researchers;
+create policy "Faculty can read owned researchers"
+on public.researchers for select
+to authenticated
+using (public.is_researcher_owner(owner_email, email, host_faculty_id));
+
+drop policy if exists "Faculty can insert owned researchers" on public.researchers;
+create policy "Faculty can insert owned researchers"
+on public.researchers for insert
+to authenticated
+with check (public.is_researcher_owner(owner_email, email, host_faculty_id));
+
+drop policy if exists "Faculty can update owned researchers" on public.researchers;
+create policy "Faculty can update owned researchers"
+on public.researchers for update
+to authenticated
+using (public.is_researcher_owner(owner_email, email, host_faculty_id))
+with check (public.is_researcher_owner(owner_email, email, host_faculty_id));
+
+drop policy if exists "Faculty can delete owned researchers" on public.researchers;
+create policy "Faculty can delete owned researchers"
+on public.researchers for delete
+to authenticated
+using (public.is_researcher_owner(owner_email, email, host_faculty_id));
 
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"

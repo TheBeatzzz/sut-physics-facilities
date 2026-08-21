@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Postdoctoral researchers, research fellows, visiting researchers, and research staff connected to the School of Physics at Suranaree University of Technology." />
+    <meta name="keywords" content="Physics SUT researchers, SUT Physics postdoctoral researchers, research fellows, visiting researchers, Suranaree University of Technology Physics" />
+    <meta name="author" content="School of Physics, Suranaree University of Technology" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://physics-sut-portal.org/researchers.html" />
+    <meta property="og:site_name" content="Physics SUT Research Infrastructure" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Physics SUT Researchers" />
+    <meta property="og:description" content="Public researcher profiles, host faculty, projects, and research groups from the School of Physics at SUT." />
+    <meta property="og:url" content="https://physics-sut-portal.org/researchers.html" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Physics SUT Researchers" />
+    <meta name="twitter:description" content="Postdocs, research fellows, visiting researchers, and research staff at Physics SUT." />
+    <title>Physics SUT Researchers · Postdocs, Fellows, and Research Staff</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=researchers-20260820" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="analytics.js" defer></script>
+    <script src="public-i18n.js?v=researchers-20260820" defer></script>
+    <script src="researchers.js?v=researchers-20260820" defer></script>
+  </head>
+  <body class="students-page researchers-page">
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <a class="identity" href="index.html" aria-label="Research facilities overview">
+        <span class="identity-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="identity-copy">
+          <strong>School of Physics</strong>
+          <small>RESEARCHERS</small>
+          <small class="identity-institute"><span>Institute of Science,</span><span>Suranaree University of Technology</span></small>
+        </span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><span>Menu</span><i aria-hidden="true"></i></button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="index.html#facilities">Facilities</a>
+        <a href="faculty.html">Faculty</a>
+        <a href="students.html">Students</a>
+        <a href="researchers.html">Researchers</a>
+        <a href="services.html">Services</a>
+        <a class="nav-cta" href="faculty.html">Find host faculty <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section id="top" class="services-hero students-hero" aria-labelledby="researchers-title">
+        <div class="services-hero-copy">
+          <p class="eyebrow"><span>Physics researchers</span><span>Postdocs · Fellows · Research staff</span></p>
+          <h1 id="researchers-title">Researchers advancing<br /><em>new measurements.</em></h1>
+          <p class="hero-intro">Browse public researcher profiles by role type, host faculty, project, and research lab or group.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#researcher-list">View researchers <span aria-hidden="true">↓</span></a>
+            <a class="text-link" href="faculty.html">Browse faculty hosts <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+
+        <div class="services-orbit" aria-label="Researcher profile count indicator">
+          <div class="service-core"><span id="researchers-count">00</span><small>public<br />researchers</small></div>
+          <i class="service-pulse pulse-a"></i>
+          <i class="service-pulse pulse-b"></i>
+          <i class="service-pulse pulse-c"></i>
+          <i class="service-pulse pulse-d"></i>
+        </div>
+      </section>
+
+      <section class="signal-strip services-strip" aria-label="Researcher role summary">
+        <p class="section-index">01 / Research roles</p>
+        <div class="signal-grid">
+          <div><strong data-researcher-type-count="Postdoctoral Researcher">00</strong><span>postdocs</span></div>
+          <div><strong data-researcher-type-count="Research Fellow">00</strong><span>fellows</span></div>
+          <div><strong data-researcher-type-count="Visiting Researcher">00</strong><span>visitors</span></div>
+          <div><strong data-researcher-type-count="all">00</strong><span>public profiles</span></div>
+          <p id="researchers-status-summary">Public researcher profiles will appear here after records are verified and marked public.</p>
+        </div>
+      </section>
+
+      <section id="researcher-list" class="services-directory section-shell" aria-labelledby="researcher-list-title">
+        <div class="section-heading">
+          <p class="section-index">02 / Directory</p>
+          <div>
+            <h2 id="researcher-list-title">Researcher profiles<br />by host and group.</h2>
+            <p>Use filters to see postdocs, research fellows, visiting researchers, research assistants, and project researchers connected to the School of Physics at SUT.</p>
+          </div>
+        </div>
+
+        <div id="researcher-directory-filters" class="filters" role="group" aria-label="Filter researchers">
+          <button type="button" class="filter is-active" data-researcher-type="all" aria-pressed="true">All roles <span data-researcher-filter-count="all">00</span></button>
+          <button type="button" class="filter" data-researcher-type="Postdoctoral Researcher" aria-pressed="false">Postdocs <span data-researcher-filter-count="Postdoctoral Researcher">00</span></button>
+          <button type="button" class="filter" data-researcher-type="Research Fellow" aria-pressed="false">Fellows <span data-researcher-filter-count="Research Fellow">00</span></button>
+          <button type="button" class="filter" data-researcher-type="Visiting Researcher" aria-pressed="false">Visitors <span data-researcher-filter-count="Visiting Researcher">00</span></button>
+          <button type="button" class="filter" data-researcher-type="Research Assistant" aria-pressed="false">Research assistants <span data-researcher-filter-count="Research Assistant">00</span></button>
+        </div>
+
+        <div class="student-select-filters">
+          <label>Host / PI<select id="researcher-host-public-filter"><option value="all">All hosts</option></select></label>
+          <label>Lab / group<select id="researcher-group-public-filter"><option value="all">All groups</option></select></label>
+          <label>Status<select id="researcher-status-public-filter"><option value="all">All statuses</option></select></label>
+        </div>
+
+        <div id="researchers-grid" class="services-grid students-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <dialog id="researcher-profile-dialog" class="person-profile-dialog" aria-labelledby="researcher-profile-title">
+      <div id="researcher-profile-content"></div>
+    </dialog>
+  </body>
+</html>

@@ -248,6 +248,62 @@
     sample: Boolean(student.sample)
   });
 
+  const camelResearcher = row => ({
+    id: row.id,
+    name: row.name,
+    type: row.type || "Postdoctoral Researcher",
+    email: row.email || "",
+    status: row.status || "Active",
+    hostFacultyId: row.host_faculty_id || "",
+    hostRole: row.host_role || "Host faculty / PI",
+    researchGroupId: row.research_group_id || "",
+    researchGroup: row.research_group || "",
+    office: row.office || "",
+    phone: row.phone || "",
+    profilePhoto: row.profile_photo || null,
+    projectTitle: row.project_title || "",
+    fundingSource: row.funding_source || "",
+    startDate: row.start_date || "",
+    endDate: row.end_date || "",
+    shortBio: row.short_bio || "",
+    researchInterests: asArray(row.research_interests),
+    skills: asArray(row.skills),
+    notes: row.notes || "",
+    publicReady: Boolean(row.public_ready),
+    reviewStatus: row.review_status || "Draft",
+    ownerEmail: row.owner_email || "",
+    sample: Boolean(row.sample),
+    createdAt: String(row.created_at || "").slice(0, 10),
+    updatedAt: String(row.updated_at || "").slice(0, 10)
+  });
+
+  const snakeResearcher = researcher => ({
+    id: researcher.id,
+    name: researcher.name,
+    type: researcher.type || "Postdoctoral Researcher",
+    email: researcher.email || null,
+    status: researcher.status || "Active",
+    host_faculty_id: researcher.hostFacultyId || null,
+    host_role: researcher.hostRole || "Host faculty / PI",
+    research_group_id: researcher.researchGroupId || null,
+    research_group: researcher.researchGroup || null,
+    office: researcher.office || null,
+    phone: researcher.phone || null,
+    profile_photo: researcher.profilePhoto || null,
+    project_title: researcher.projectTitle || null,
+    funding_source: researcher.fundingSource || null,
+    start_date: researcher.startDate || null,
+    end_date: researcher.endDate || null,
+    short_bio: String(researcher.shortBio || "") || null,
+    research_interests: asArray(researcher.researchInterests).slice(0, 5).filter(Boolean),
+    skills: asArray(researcher.skills).filter(Boolean),
+    notes: researcher.notes || null,
+    public_ready: Boolean(researcher.publicReady),
+    review_status: researcher.reviewStatus || "Draft",
+    owner_email: researcher.ownerEmail || researcher.email || null,
+    sample: Boolean(researcher.sample)
+  });
+
   const camelService = row => ({
     id: row.id,
     title: row.title,
@@ -389,18 +445,21 @@
     let facultyQuery = supabase.from("faculty").select("*").order("name", { ascending: true });
     let equipmentQuery = supabase.from("equipment").select("*").order("updated_at", { ascending: false });
     let servicesQuery = supabase.from("services").select("*").order("updated_at", { ascending: false });
+    let researchersQuery = supabase.from("researchers").select("*").order("updated_at", { ascending: false });
     let studentsQuery = publicOnly ? null : supabase.from("students").select("*").order("updated_at", { ascending: false });
     if (publicOnly) {
       facultyQuery = facultyQuery.eq("public_ready", true);
       equipmentQuery = equipmentQuery.eq("review_status", "Verified").eq("public_ready", true);
       servicesQuery = servicesQuery.eq("review_status", "Verified").eq("public_ready", true);
+      researchersQuery = researchersQuery.eq("review_status", "Verified").eq("public_ready", true);
     }
 
-    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, studentsResult] = await Promise.all([
+    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, { data: researchers, error: researchersError }, studentsResult] = await Promise.all([
       facilitiesQuery,
       facultyQuery,
       equipmentQuery,
       servicesQuery,
+      researchersQuery,
       studentsQuery || Promise.resolve({ data: [], error: null })
     ]);
     const { data: students, error: studentsError } = studentsResult;
@@ -408,10 +467,12 @@
     if (facilityError) throw facilityError;
     const facultyTableMissing = facultyError && ["42P01", "PGRST205"].includes(facultyError.code);
     const servicesTableMissing = servicesError && ["42P01", "PGRST205"].includes(servicesError.code);
+    const researchersTableMissing = researchersError && ["42P01", "PGRST205"].includes(researchersError.code);
     const studentsTableMissing = studentsError && ["42P01", "PGRST205"].includes(studentsError.code);
     if (facultyError && !facultyTableMissing) throw facultyError;
     if (equipmentError) throw equipmentError;
     if (servicesError && !servicesTableMissing) throw servicesError;
+    if (researchersError && !researchersTableMissing) throw researchersError;
     if (studentsError && !studentsTableMissing) throw studentsError;
 
     return {
@@ -425,6 +486,7 @@
       facilities: (facilities || []).map(camelFacility),
       faculty: facultyTableMissing ? [] : (faculty || []).map(camelFaculty),
       students: studentsTableMissing ? [] : (students || []).map(camelStudent),
+      researchers: researchersTableMissing ? [] : (researchers || []).map(camelResearcher),
       equipment: (equipment || []).map(camelEquipment),
       services: servicesTableMissing ? [] : (services || []).map(camelService)
     };
@@ -564,6 +626,46 @@
     if (facilityError) throw facilityError;
     return {
       students: (students || []).map(camelStudent),
+      faculty: (faculty || []).map(camelFaculty),
+      facilities: (facilities || []).map(camelFacility)
+    };
+  };
+
+  const saveResearcher = async researcher => {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from("researchers")
+      .upsert(snakeResearcher(researcher), { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return camelResearcher(data);
+  };
+
+  const deleteResearcher = async id => {
+    const supabase = getClient();
+    const { error } = await supabase.from("researchers").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const loadPublicResearchers = async () => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const [{ data: researchers, error: researchersError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
+      supabase
+        .from("researchers")
+        .select("*")
+        .eq("review_status", "Verified")
+        .eq("public_ready", true)
+        .order("name", { ascending: true }),
+      supabase.from("faculty").select("*").eq("public_ready", true).order("name", { ascending: true }),
+      supabase.from("facilities").select("*").order("id", { ascending: true })
+    ]);
+    if (researchersError) throw researchersError;
+    if (facultyError) throw facultyError;
+    if (facilityError) throw facilityError;
+    return {
+      researchers: (researchers || []).map(camelResearcher),
       faculty: (faculty || []).map(camelFaculty),
       facilities: (facilities || []).map(camelFacility)
     };
@@ -762,6 +864,9 @@
     loadMyStudentRecord,
     deleteStudent,
     loadPublicStudents,
+    saveResearcher,
+    deleteResearcher,
+    loadPublicResearchers,
     saveService,
     deleteService,
     trackVisit,

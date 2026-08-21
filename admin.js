@@ -23,6 +23,7 @@ const STUDENT_MILESTONES = [
   { id: "turnitinCheck", label: "Turnitin check", shortLabel: "Turnitin", levels: ["Master", "PhD"] },
   { id: "publicationRequirement", label: "Publication requirement", shortLabel: "Publication", levels: ["Master", "PhD"] }
 ];
+const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
@@ -140,6 +141,7 @@ const sampleDatabase = {
     { id: "FAC-07", name: "AI, Machine Vision & Medical Intelligence Laboratory", building: "To be verified", room: "To be verified", lead: "Faculty lead to verify", description: "Example facility cluster for deep learning, machine vision, and AI-assisted medical diagnosis system design and implementation.", color: "#7fc5b2" }
   ],
   students: [],
+  researchers: [],
   services: [],
   equipment: [
     sampleRecord("EQ-001", "Photon Counting Scanning Confocal Microscopy", "Imaging", "FAC-01", "Biomedical photonics"),
@@ -202,6 +204,18 @@ const normalizeStudents = students => students.map(student => ({
   verifiedByEmail: student.verifiedByEmail || "",
   verifiedAt: student.verifiedAt || ""
 }));
+const normalizeResearchers = researchers => researchers.map(researcher => ({
+  ...researcher,
+  type: RESEARCHER_TYPES.includes(researcher.type) ? researcher.type : "Postdoctoral Researcher",
+  status: researcher.status || "Active",
+  hostFacultyId: researcher.hostFacultyId || "",
+  researchGroupId: researcher.researchGroupId || "",
+  researchInterests: normalizeKeywords(researcher.researchInterests),
+  skills: normalizeList(researcher.skills),
+  shortBio: researcher.shortBio || "",
+  reviewStatus: researcher.reviewStatus || "Draft",
+  publicReady: Boolean(researcher.publicReady)
+}));
 const isGenericSampleFaculty = profiles =>
   Array.isArray(profiles) &&
   profiles.length > 0 &&
@@ -213,6 +227,7 @@ const normalizeDatabase = value => ({
   faculty: isGenericSampleFaculty(value?.faculty) ? clone(sampleDatabase.faculty) : Array.isArray(value?.faculty) ? normalizeFacultyNames(value.faculty) : [],
   facilities: Array.isArray(value?.facilities) ? value.facilities : [],
   students: Array.isArray(value?.students) ? normalizeStudents(value.students) : [],
+  researchers: Array.isArray(value?.researchers) ? normalizeResearchers(value.researchers) : [],
   services: Array.isArray(value?.services) ? value.services : [],
   equipment: Array.isArray(value?.equipment) ? value.equipment : []
 });
@@ -241,6 +256,8 @@ let lastFacultyError = null;
 let editingFacultyId = null;
 let lastStudentError = null;
 let editingStudentId = null;
+let lastResearcherError = null;
+let editingResearcherId = null;
 let lastServiceError = null;
 let editingServiceId = null;
 let visitorEvents = [];
@@ -433,7 +450,7 @@ function showAuthGate(message = "", options = {}) {
   document.body.classList.add("auth-required");
   $("#auth-message").textContent = message || "Sign in with a registered SUT faculty account to manage the shared registry.";
   hideAccessIssuePanel();
-  db = { ...clone(sampleDatabase), faculty: [], students: [], equipment: [], facilities: [], services: [] };
+  db = { ...clone(sampleDatabase), faculty: [], students: [], researchers: [], equipment: [], facilities: [], services: [] };
   backendReady = false;
   visitorEvents = [];
   visitorStatsError = "";
@@ -595,6 +612,33 @@ async function persistStudent(student) {
   }
 }
 
+async function persistResearcher(researcher) {
+  lastResearcherError = null;
+  if (!backendReady) {
+    const index = db.researchers.findIndex(item => item.id === researcher.id);
+    if (index >= 0) db.researchers[index] = researcher; else db.researchers.unshift(researcher);
+    save();
+    return true;
+  }
+  try {
+    const savedResearcher = await backend.saveResearcher(researcher);
+    const index = db.researchers.findIndex(item => item.id === savedResearcher.id);
+    if (index >= 0) db.researchers[index] = savedResearcher; else db.researchers.unshift(savedResearcher);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    return true;
+  } catch (error) {
+    const schemaMessage = /schema cache|researchers|PGRST|42P01/i.test(String(error.message || ""))
+      ? "Supabase needs the latest researchers schema. Run supabase-schema.sql in SQL Editor, then try saving this researcher again."
+      : "";
+    const rlsMessage = /row-level security|violates.*policy/i.test(String(error.message || ""))
+      ? "Supabase blocked this researcher save. Confirm your faculty profile owner email matches your sign-in email, or assign yourself as the host faculty."
+      : "";
+    lastResearcherError = new Error(schemaMessage || rlsMessage || error.message || "Could not save researcher to Supabase");
+    showToast(lastResearcherError.message);
+    return false;
+  }
+}
+
 async function persistService(service) {
   lastServiceError = null;
   if (!backendReady) {
@@ -633,7 +677,7 @@ function showView(view, options = {}) {
   activeView = view;
   $$(".nav-item").forEach(item => item.classList.toggle("is-active", item.dataset.view === view));
   $$(".view").forEach(panel => panel.classList.toggle("is-visible", panel.dataset.viewPanel === view));
-  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", students: "Student database", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
+  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", students: "Student database", researchers: "Researchers directory", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
   $("#page-context").textContent = labels[view];
   $("#sidebar").classList.remove("is-open");
   $(".mobile-menu").setAttribute("aria-expanded", "false");
@@ -651,6 +695,7 @@ function renderAll() {
   renderFacultyProfiles();
   populateStudentStartYearOptions();
   renderStudents();
+  renderResearchers();
   renderEquipmentTable();
   renderSubmissions();
   renderFacilities();
@@ -664,6 +709,8 @@ function renderNavigationCounts() {
   if (facultyCount) facultyCount.textContent = db.faculty.length;
   const studentsCount = $("#students-nav-count");
   if (studentsCount) studentsCount.textContent = db.students.length;
+  const researchersCount = $("#researchers-nav-count");
+  if (researchersCount) researchersCount.textContent = db.researchers.length;
   const servicesCount = $("#services-nav-count");
   if (servicesCount) servicesCount.textContent = db.services.length;
 }
@@ -673,10 +720,12 @@ function renderOverview() {
   const pending = db.equipment.filter(item => item.reviewStatus === "Submitted").length;
   const publicReady = db.equipment.filter(item => item.publicReady && item.reviewStatus === "Verified").length;
   const activeStudents = db.students.filter(item => item.status === "Active").length;
+  const activeResearchers = db.researchers.filter(item => item.status === "Active").length;
   const metrics = [
     ["Equipment records", db.equipment.length, "total", "+ Registry"],
     ["Faculty profiles", db.faculty.length, "total", "People"],
     ["Student records", db.students.length, `${activeStudents} active`, "Students"],
+    ["Researchers", db.researchers.length, `${activeResearchers} active`, "People"],
     ["Public-ready", publicReady, "systems", "Website"]
   ];
   $("#metric-grid").innerHTML = metrics.map(([label, value, note, tag]) => `<article class="metric-card"><div class="metric-label"><span>${label}</span><span>${tag}</span></div><div class="metric-value"><strong>${value}</strong><small>${note}</small></div></article>`).join("");
@@ -740,6 +789,7 @@ function pageLabel(path) {
   if (cleanPath === "/" || cleanPath.endsWith("/index.html")) return "Facilities overview";
   if (cleanPath.includes("faculty.html?id=")) return "Faculty profile";
   if (cleanPath.includes("faculty.html")) return "Faculty directory";
+  if (cleanPath.includes("researchers.html")) return "Researchers";
   if (cleanPath.includes("services.html")) return "Services";
   return cleanPath;
 }
@@ -829,6 +879,8 @@ function populateFacilityOptions() {
   populateServiceFacultyOptions();
   populateStudentAdvisorOptions();
   populateStudentResearchGroupOptions();
+  populateResearcherHostOptions();
+  populateResearcherGroupOptions();
 }
 
 function populateServiceFacultyOptions(selected = "") {
@@ -864,6 +916,38 @@ function populateStudentResearchGroupOptions(selected = "") {
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#student-group-filter");
+  if (filterTarget) {
+    const previous = filterTarget.value;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
+  }
+}
+
+function populateResearcherHostOptions(selected = "") {
+  const options = db.faculty.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("");
+  const formTarget = $("#researcher-host");
+  if (formTarget) {
+    const previous = selected || formTarget.value;
+    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
+  }
+  const filterTarget = $("#researcher-host-filter");
+  if (filterTarget) {
+    const previous = filterTarget.value;
+    filterTarget.innerHTML = `<option value="all">All hosts</option><option value="">TBD</option>${options}`;
+    if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
+  }
+}
+
+function populateResearcherGroupOptions(selected = "") {
+  const options = db.facilities.map(facility => `<option value="${clean(facility.id)}">${clean(facility.name)}</option>`).join("");
+  const formTarget = $("#researcher-group");
+  if (formTarget) {
+    const previous = selected || formTarget.value;
+    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
+  }
+  const filterTarget = $("#researcher-group-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
     filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
@@ -1039,6 +1123,56 @@ function renderStudents() {
       <td><div class="cell-stack"><strong>${clean(project)}</strong><small>${clean(researchGroupName(student))}</small></div></td>
       <td><div class="cell-stack student-progress-cell"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small>${studentMilestoneMarkup(student)}</div></td>
       <td><div class="row-actions"><button type="button" data-edit-student="${clean(student.id)}" aria-label="Edit ${clean(student.name)}">✎</button><button type="button" data-delete-student="${clean(student.id)}" aria-label="Delete ${clean(student.name)}">×</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
+function filteredResearchers() {
+  const query = $("#researcher-search")?.value.trim().toLowerCase() || "";
+  const type = $("#researcher-type-filter")?.value || "all";
+  const status = $("#researcher-status-filter")?.value || "all";
+  const review = $("#researcher-review-filter")?.value || "all";
+  const host = $("#researcher-host-filter")?.value || "all";
+  const group = $("#researcher-group-filter")?.value || "all";
+  return db.researchers.filter(researcher => {
+    const haystack = [
+      researcher.name,
+      researcher.type,
+      researcher.email,
+      researcher.status,
+      researcher.reviewStatus,
+      researcher.projectTitle,
+      researcher.shortBio,
+      normalizeList(researcher.researchInterests).join(" "),
+      normalizeList(researcher.skills).join(" "),
+      advisorName(researcher.hostFacultyId),
+      researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup })
+    ].join(" ").toLowerCase();
+    return (!query || haystack.includes(query)) &&
+      (type === "all" || researcher.type === type) &&
+      (status === "all" || researcher.status === status) &&
+      (review === "all" || researcher.reviewStatus === review) &&
+      (host === "all" || (researcher.hostFacultyId || "") === host) &&
+      (group === "all" || (researcher.researchGroupId || "") === group);
+  });
+}
+
+function renderResearchers() {
+  const table = $("#researcher-table");
+  if (!table) return;
+  const researchers = filteredResearchers();
+  $("#researcher-result-count").textContent = researchers.length;
+  $("#researcher-empty").hidden = researchers.length > 0;
+  table.innerHTML = researchers.map(researcher => {
+    const interests = normalizeList(researcher.researchInterests).slice(0, 3);
+    const dates = [researcher.startDate ? formatDate(researcher.startDate) : "", researcher.endDate ? formatDate(researcher.endDate) : ""].filter(Boolean).join(" - ") || "Dates TBD";
+    return `<tr data-researcher-id="${clean(researcher.id)}">
+      <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(researcher.name))}</span><div><strong>${clean(researcher.name)}</strong><small>${clean(researcher.email || researcher.id)}</small></div></div></td>
+      <td><div class="cell-stack"><strong>${clean(researcher.type || "Researcher")}</strong><small>${clean(researcher.status || "Active")} · ${reviewPill(researcher.reviewStatus || "Draft")} ${researcher.publicReady ? verificationPill("Verified") : verificationPill("Pending")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(advisorName(researcher.hostFacultyId))}</strong><small>${clean(researcher.hostRole || "Host faculty / PI")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup }))}</strong><small>${clean(interests.join(" · ") || "Interests to add")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(researcher.projectTitle || "Project to add")}</strong><small>${clean(dates)}</small></div></td>
+      <td><div class="row-actions"><button type="button" data-edit-researcher="${clean(researcher.id)}" aria-label="Edit ${clean(researcher.name)}">✎</button><button type="button" data-delete-researcher="${clean(researcher.id)}" aria-label="Delete ${clean(researcher.name)}">×</button></div></td>
     </tr>`;
   }).join("");
 }
@@ -1228,6 +1362,122 @@ async function deleteStudent(id) {
   }
   renderAll();
   showToast("Student record deleted");
+}
+
+function setResearcherMessage(message = "", type = "") {
+  const target = $("#researcher-message");
+  if (!target) return;
+  target.textContent = message;
+  target.className = type ? `is-${type}` : "";
+}
+
+function validateResearcherProfileFields(form) {
+  const interests = normalizeList(form.elements.researchInterests.value);
+  if (interests.length > 5) {
+    setResearcherMessage("Use no more than 5 research interest keywords.", "error");
+    form.elements.researchInterests.focus();
+    return false;
+  }
+  if (wordCount(form.elements.shortBio.value) > 500) {
+    setResearcherMessage("Short bio must be 500 words or fewer.", "error");
+    form.elements.shortBio.focus();
+    return false;
+  }
+  return true;
+}
+
+function openResearcherDialog(id = null) {
+  const form = $("#researcher-form");
+  const researcher = id ? db.researchers.find(item => item.id === id) : null;
+  const faculty = currentFacultyProfile();
+  editingResearcherId = researcher?.id || null;
+  form.reset();
+  setResearcherMessage();
+  $("#researcher-form-title").textContent = researcher ? "Edit researcher" : "Add researcher";
+  $("#researcher-primary-action").textContent = researcher ? "Save researcher" : "Add researcher";
+  populateResearcherHostOptions(researcher?.hostFacultyId || faculty?.id || "");
+  populateResearcherGroupOptions(researcher?.researchGroupId || "");
+  if (researcher) {
+    ["name", "type", "email", "status", "reviewStatus", "hostFacultyId", "hostRole", "researchGroupId", "researchGroup", "office", "phone", "projectTitle", "fundingSource", "startDate", "endDate", "shortBio", "ownerEmail", "notes"].forEach(key => {
+      const field = form.elements.namedItem(key);
+      if (field) field.value = researcher[key] || "";
+    });
+    form.elements.researchInterests.value = normalizeList(researcher.researchInterests).join("\n");
+    form.elements.skills.value = normalizeList(researcher.skills).join("\n");
+    form.elements.publicReady.checked = Boolean(researcher.publicReady);
+  } else {
+    form.elements.type.value = "Postdoctoral Researcher";
+    form.elements.status.value = "Active";
+    form.elements.reviewStatus.value = "Draft";
+    form.elements.hostFacultyId.value = faculty?.id || "";
+    form.elements.hostRole.value = "Host faculty / PI";
+    form.elements.publicReady.checked = false;
+    form.elements.ownerEmail.value = signedInEmail() || faculty?.ownerEmail || faculty?.email || "";
+  }
+  $("#researcher-dialog").showModal();
+  setTimeout(() => form.elements.namedItem("name")?.focus(), 50);
+}
+
+function researcherFromForm(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  Object.keys(data).forEach(key => { data[key] = String(data[key] || "").trim(); });
+  const existing = editingResearcherId ? db.researchers.find(item => item.id === editingResearcherId) : null;
+  const numericIds = db.researchers.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
+  const id = existing?.id || `RES-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
+  const host = facultyFor(data.hostFacultyId);
+  const group = facilityFor(data.researchGroupId);
+  return {
+    ...existing,
+    id,
+    name: data.name,
+    type: RESEARCHER_TYPES.includes(data.type) ? data.type : "Postdoctoral Researcher",
+    email: data.email,
+    status: data.status || "Active",
+    reviewStatus: data.reviewStatus || "Draft",
+    publicReady: form.elements.publicReady.checked,
+    hostFacultyId: data.hostFacultyId,
+    hostRole: data.hostRole || "Host faculty / PI",
+    researchGroupId: data.researchGroupId,
+    researchGroup: group?.name || data.researchGroup || existing?.researchGroup || "",
+    office: data.office,
+    phone: data.phone,
+    projectTitle: data.projectTitle,
+    fundingSource: data.fundingSource,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    shortBio: data.shortBio,
+    researchInterests: normalizeKeywords(data.researchInterests),
+    skills: normalizeList(data.skills),
+    ownerEmail: data.ownerEmail || host?.ownerEmail || host?.email || signedInEmail(),
+    notes: data.notes,
+    createdAt: existing?.createdAt || today(),
+    updatedAt: today(),
+    sample: existing?.sample || false
+  };
+}
+
+async function deleteResearcher(id) {
+  const researcher = db.researchers.find(item => item.id === id);
+  if (!researcher) return;
+  const confirmed = await askConfirm("Delete researcher?", `“${researcher.name}” will be removed from ${backendReady ? "the shared Supabase registry" : "this browser database"}.`);
+  if (!confirmed) return;
+  const previousResearchers = clone(db.researchers);
+  db.researchers = db.researchers.filter(item => item.id !== id);
+  if (backendReady) {
+    try {
+      await backend.deleteResearcher(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch (error) {
+      db.researchers = previousResearchers;
+      renderAll();
+      showToast(error.message || "Could not delete researcher from Supabase");
+      return;
+    }
+  } else {
+    save();
+  }
+  renderAll();
+  showToast("Researcher record deleted");
 }
 
 function setServiceMessage(message = "", type = "") {
@@ -1647,12 +1897,28 @@ function exportStudentCsv() {
   showToast("Student CSV export created");
 }
 
+function exportResearcherCsv() {
+  const fields = ["id","name","type","email","status","reviewStatus","publicReady","hostFaculty","hostRole","researchGroup","projectTitle","fundingSource","startDate","endDate","shortBio","researchInterests","skills","office","phone","ownerEmail","updatedAt"];
+  const quote = value => `"${String(value ?? "").replace(/"/g,'""')}"`;
+  const rows = db.researchers.map(researcher => ({
+    ...researcher,
+    hostFaculty: advisorName(researcher.hostFacultyId),
+    researchGroup: researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup }),
+    researchInterests: normalizeList(researcher.researchInterests).join("; "),
+    skills: normalizeList(researcher.skills).join("; ")
+  }));
+  const csv = [fields.join(","), ...rows.map(item => fields.map(field => quote(item[field])).join(","))].join("\n");
+  downloadFile(`sut-physics-researchers-${today()}.csv`, "text/csv;charset=utf-8", csv);
+  showToast("Researcher CSV export created");
+}
+
 $$('.nav-item').forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
 $$('[data-view-jump]').forEach(button => button.addEventListener("click", () => showView(button.dataset.viewJump)));
 $$('[data-action="new-record"]').forEach(button => button.addEventListener("click", () => openRecordDialog("manager")));
 $$('[data-action="faculty-submit"]').forEach(button => button.addEventListener("click", () => openRecordDialog("faculty")));
 $$('[data-action="new-faculty"]').forEach(button => button.addEventListener("click", () => openFacultyDialog()));
 $$('[data-action="new-student"]').forEach(button => button.addEventListener("click", () => openStudentDialog()));
+$$('[data-action="new-researcher"]').forEach(button => button.addEventListener("click", () => openResearcherDialog()));
 $$('[data-action="new-service"]').forEach(button => button.addEventListener("click", () => openServiceDialog()));
 function setFacilityMessage(message = "", type = "") {
   const target = $("#facility-message");
@@ -1849,6 +2115,23 @@ $("#student-table").addEventListener("click", event => {
   if (row) openStudentDialog(row.dataset.studentId);
 });
 
+$("#researcher-table").addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-researcher]");
+  const editButton = event.target.closest("[data-edit-researcher]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteResearcher(deleteButton.dataset.deleteResearcher);
+    return;
+  }
+  if (editButton) {
+    event.stopPropagation();
+    openResearcherDialog(editButton.dataset.editResearcher);
+    return;
+  }
+  const row = event.target.closest("[data-researcher-id]");
+  if (row) openResearcherDialog(row.dataset.researcherId);
+});
+
 $("#service-grid").addEventListener("click", event => {
   const deleteButton = event.target.closest("[data-delete-service]");
   if (deleteButton) {
@@ -1860,6 +2143,37 @@ $("#service-grid").addEventListener("click", event => {
   const card = event.target.closest("[data-service-id]");
   const id = editButton?.dataset.editService || card?.dataset.serviceId;
   if (id) openServiceDialog(id);
+});
+
+$("#researcher-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  if (!validateResearcherProfileFields(event.currentTarget)) return;
+  setBusy(event.submitter, true);
+  setResearcherMessage("Saving researcher…");
+  try {
+    const researcher = researcherFromForm(event.currentTarget);
+    const duplicate = db.researchers.find(item => item.id !== researcher.id && item.name.trim().toLowerCase() === researcher.name.trim().toLowerCase());
+    if (duplicate) {
+      setResearcherMessage(`A researcher record for “${duplicate.name}” already exists.`, "error");
+      showToast(`A researcher record for “${duplicate.name}” already exists`);
+      return;
+    }
+    if (await persistResearcher(researcher)) {
+      $("#researcher-dialog").close();
+      event.currentTarget.reset();
+      editingResearcherId = null;
+      renderAll();
+      showToast(`${researcher.name} researcher record saved`);
+    } else {
+      setResearcherMessage(lastResearcherError?.message || "Could not save this researcher.", "error");
+    }
+  } catch (error) {
+    setResearcherMessage(error.message || "Could not save this researcher.", "error");
+    showToast(error.message || "Could not save researcher");
+  } finally {
+    setBusy(event.submitter, false);
+  }
 });
 
 $("#student-form").addEventListener("submit", async event => {
@@ -2011,12 +2325,24 @@ $("#clear-student-filters").addEventListener("click", () => {
   renderStudents();
 });
 
+[$("#researcher-search"), $("#researcher-type-filter"), $("#researcher-status-filter"), $("#researcher-review-filter"), $("#researcher-host-filter"), $("#researcher-group-filter")].forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", renderResearchers));
+$("#clear-researcher-filters").addEventListener("click", () => {
+  $("#researcher-search").value = "";
+  $("#researcher-type-filter").value = "all";
+  $("#researcher-status-filter").value = "all";
+  $("#researcher-review-filter").value = "all";
+  $("#researcher-host-filter").value = "all";
+  $("#researcher-group-filter").value = "all";
+  renderResearchers();
+});
+
 $("#global-search").addEventListener("input", event => { if (event.target.value.trim()) showView("equipment", { query: event.target.value, preserveScroll: true }); });
 document.addEventListener("keydown", event => { if (event.key === "/" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); $("#global-search").focus(); } });
 
 $("#export-json").addEventListener("click", () => { downloadFile(`sut-physics-registry-${today()}.json`, "application/json", JSON.stringify(db, null, 2)); showToast("JSON backup created"); });
 $("#export-csv").addEventListener("click", exportCsv);
 $("#export-student-csv").addEventListener("click", exportStudentCsv);
+$("#export-researcher-csv").addEventListener("click", exportResearcherCsv);
 $("#import-json").addEventListener("change", async event => {
   const file = event.target.files[0]; if (!file) return;
   try {
@@ -2024,16 +2350,18 @@ $("#import-json").addEventListener("change", async event => {
     if (!Array.isArray(imported.equipment) || !Array.isArray(imported.facilities)) throw new Error("Invalid schema");
     imported.faculty = Array.isArray(imported.faculty) ? imported.faculty : [];
     imported.students = Array.isArray(imported.students) ? imported.students : [];
+    imported.researchers = Array.isArray(imported.researchers) ? imported.researchers : [];
     imported.services = Array.isArray(imported.services) ? imported.services : [];
     imported.equipment = imported.equipment.map(item => ({
       ...item,
       description: String(item.description || "").slice(0, DESCRIPTION_LIMIT)
     }));
-    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.students.length} student records, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
+    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.students.length} student records, ${imported.researchers.length} researcher records, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
     if (confirmed) {
       if (backendReady) {
         for (const profile of imported.faculty) await backend.saveFaculty(profile);
         for (const student of imported.students) await backend.saveStudent(student);
+        for (const researcher of imported.researchers) await backend.saveResearcher(researcher);
         for (const facility of imported.facilities) await backend.saveFacility(facility);
         for (const record of imported.equipment) await backend.saveEquipment(record);
         for (const service of imported.services) await backend.saveService(service);

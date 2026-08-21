@@ -315,6 +315,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .student-select-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
 .student-select-filters label { display: grid; gap: 7px; color: var(--ink-soft); font: 9px var(--mono); text-transform: uppercase; }
 .student-select-filters select { min-height: 42px; padding: 0 12px; color: var(--ink); border: 1px solid var(--line); background: var(--paper); font: 12px var(--sans); }
+.researchers-page .student-select-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .student-public-card { min-height: 430px; }
 .student-public-photo {
   width: 92px; height: 92px; margin-bottom: 22px; display: block;
@@ -382,7 +383,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .survey-foot p.is-success { color: #176244; }
 
 .inquiry-dialog { width: min(760px, calc(100vw - 30px)); max-height: 92vh; padding: 0; border: 0; color: var(--ink); background: var(--paper); box-shadow: 0 30px 100px rgba(0,0,0,.35); }
-.inquiry-dialog::backdrop, .gallery-dialog::backdrop { background: rgba(9,24,18,.72); backdrop-filter: blur(4px); }
+.inquiry-dialog::backdrop, .gallery-dialog::backdrop, .person-profile-dialog::backdrop { background: rgba(9,24,18,.72); backdrop-filter: blur(4px); }
 .inquiry-dialog form { max-height: 92vh; display: flex; flex-direction: column; }
 .inquiry-head { flex: 0 0 auto; padding: 27px 30px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .inquiry-head h2 { margin: 7px 0 0; font: 400 38px/1 var(--serif); letter-spacing: -.025em; }
@@ -409,6 +410,37 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .gallery-dialog-figure { min-height: 0; margin: 0; padding: 18px; display: grid; gap: 13px; }
 .gallery-dialog-figure img { max-width: 100%; max-height: min(72vh, 780px); justify-self: center; object-fit: contain; background: #111; }
 .gallery-dialog-figure figcaption { color: var(--ink-soft); font-size: 12px; line-height: 1.55; text-align: center; }
+.public-profile-trigger { cursor: pointer; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.public-profile-trigger:hover,
+.public-profile-trigger:focus-visible { transform: translateY(-3px); border-color: var(--ink); box-shadow: 0 18px 45px rgba(9,24,18,.12); outline: 0; }
+.person-profile-dialog {
+  width: min(980px, calc(100vw - 30px)); max-height: 94vh; padding: 0; border: 0;
+  color: var(--ink); background: var(--paper); box-shadow: 0 30px 100px rgba(0,0,0,.35);
+}
+.person-profile-shell { max-height: 94vh; display: flex; flex-direction: column; }
+.person-profile-head {
+  flex: 0 0 auto; padding: 22px 26px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.person-profile-kicker { display: flex; flex-wrap: wrap; gap: 8px; color: var(--ink-soft); font: 9px/1.45 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.person-profile-kicker span { padding: 5px 7px; border: 1px solid var(--line); }
+.person-profile-body { min-height: 0; padding: clamp(24px, 4vw, 38px); overflow-y: auto; }
+.person-profile-intro { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 28px; align-items: start; }
+.person-profile-photo,
+.person-profile-initials {
+  width: 140px; height: 140px; border: 1px solid var(--line); border-radius: 50%; background: #edf0e8;
+}
+.person-profile-photo { display: block; object-fit: cover; }
+.person-profile-initials { display: grid; place-items: center; color: var(--paper); background: var(--ink); font: 400 44px var(--serif); }
+.person-profile-intro h2 { margin: 10px 0 18px; font: 400 clamp(44px, 6vw, 72px)/.9 var(--serif); letter-spacing: -.045em; overflow-wrap: anywhere; }
+.person-profile-intro p:not(.section-index) { max-width: 680px; margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.75; }
+.person-profile-details { margin: 34px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.person-profile-details div { min-width: 0; padding: 12px 0 0; border-top: 1px solid var(--line); }
+.person-profile-details dt { color: var(--ink-soft); font: 9px/1.4 var(--mono); text-transform: uppercase; }
+.person-profile-details dd { margin: 5px 0 0; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.person-profile-lists { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.person-profile-lists section { padding-top: 16px; border-top: 1px solid var(--line); }
+.person-profile-lists h3 { margin: 0; font: 400 26px/1.05 var(--serif); }
 
 .faculty-hero {
   width: min(100%, var(--max)); min-height: 700px; margin: 0 auto;
@@ -716,6 +748,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .service-card { min-height: 430px; }
   .student-select-filters { grid-template-columns: 1fr; }
   .service-meta { grid-template-columns: 1fr; }
+  .person-profile-head { padding: 18px; }
+  .person-profile-body { padding: 22px 18px; }
+  .person-profile-intro { grid-template-columns: 1fr; gap: 18px; }
+  .person-profile-photo,
+  .person-profile-initials { width: 104px; height: 104px; }
+  .person-profile-initials { font-size: 34px; }
+  .person-profile-intro h2 { font-size: clamp(42px, 13vw, 58px); }
+  .person-profile-details,
+  .person-profile-lists { grid-template-columns: 1fr; }
   .services-coming-soon { min-height: 520px; }
   .coming-soon-animation { width: 560px; right: -300px; opacity: .3; }
   .service-survey-form { margin-top: 42px; padding: 18px; }

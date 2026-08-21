@@ -27,6 +27,11 @@ const advisorName = id => facultyFor(id)?.name || "TBD";
 const groupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "TBD";
 const visibleStudent = student => student.verificationStatus === "Verified" && student.publicReady === true;
 const physicsStudent = student => (student.recordType || "physics") === "physics";
+const detailMarkup = items => items
+  .filter(([, value]) => String(value || "").trim())
+  .map(([label, value]) => `<div><dt>${clean(label)}</dt><dd>${clean(value)}</dd></div>`)
+  .join("");
+const tagMarkup = tags => tags.length ? `<div class="faculty-tags">${tags.map(tag => `<span>${clean(tag)}</span>`).join("")}</div>` : "";
 
 const normalizeStudent = student => ({
   id: student.id || `student-${students.length + 1}`,
@@ -142,7 +147,7 @@ function studentCard(student) {
   const tags = [student.level, programLabel(student.programId), ...interests].filter(Boolean);
   const portrait = photoSrc(student.profilePhoto);
   return `
-    <article class="service-card student-public-card">
+    <article class="service-card student-public-card public-profile-trigger" role="button" tabindex="0" data-student-profile="${clean(student.id)}" aria-label="Open full profile for ${clean(student.preferredName || student.name)}">
       ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
       <div class="service-card-top"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>
       <h3>${clean(student.preferredName || student.name)}</h3>
@@ -159,6 +164,60 @@ function studentCard(student) {
   `;
 }
 
+function studentProfileMarkup(student) {
+  const displayName = student.preferredName || student.name;
+  const project = student.projectTitle || student.thesisTitle || "Research topic to be announced";
+  const interests = student.researchInterests.length ? student.researchInterests : [];
+  const skills = student.skills.length ? student.skills : [];
+  const portrait = photoSrc(student.profilePhoto);
+  const details = detailMarkup([
+    ["Program", programLabel(student.programId)],
+    ["Level", student.level],
+    ["Advisor", advisorName(student.advisorId)],
+    ["Advisor role", student.advisorRole || "Primary advisor"],
+    ["Co-advisor", student.coadvisor],
+    ["Started", startLabel(student)],
+    ["Lab / group", groupName(student)],
+    ["Status", student.status || "Active"],
+    ["Project", project],
+    ["Thesis title", student.thesisTitle]
+  ]);
+  return `
+    <div class="person-profile-shell">
+      <header class="person-profile-head">
+        <div class="person-profile-kicker"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>
+        <button class="inquiry-close" type="button" data-close-person-profile aria-label="Close profile">×</button>
+      </header>
+      <div class="person-profile-body">
+        <div class="person-profile-intro">
+          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${displayName} profile picture`)}" />` : `<span class="person-profile-initials">${clean(displayName.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "ST")}</span>`}
+          <div>
+            <p class="section-index">Student profile</p>
+            <h2 id="student-profile-title">${clean(displayName)}</h2>
+            <p>${clean(student.shortBio || "Short bio coming soon.")}</p>
+            ${tagMarkup([student.level, programLabel(student.programId), ...interests].filter(Boolean))}
+          </div>
+        </div>
+        <dl class="person-profile-details">${details}</dl>
+        ${(interests.length || skills.length) ? `<div class="person-profile-lists">
+          ${interests.length ? `<section><h3>Research interests</h3>${tagMarkup(interests)}</section>` : ""}
+          ${skills.length ? `<section><h3>Skills and methods</h3>${tagMarkup(skills)}</section>` : ""}
+        </div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function openStudentProfile(id) {
+  const student = students.find(item => item.id === id);
+  const dialog = document.querySelector("#student-profile-dialog");
+  const content = document.querySelector("#student-profile-content");
+  if (!student || !dialog || !content) return;
+  content.innerHTML = studentProfileMarkup(student);
+  dialog.showModal();
+  setTimeout(() => content.querySelector("[data-close-person-profile]")?.focus(), 30);
+}
+
 function renderStudents() {
   const target = document.querySelector("#students-grid");
   const filtered = filteredStudents();
@@ -168,6 +227,23 @@ function renderStudents() {
       : `<div class="public-empty"><h3>No students match these filters yet</h3><p>Try another study level, program, year, advisor, or group.</p></div>`
     : `<div class="services-coming-soon"><p class="section-index">Student profiles</p><h3>No verified student profiles yet</h3><p>Students who opt in will appear here after faculty verification.</p></div>`;
 }
+
+document.querySelector("#students-grid").addEventListener("click", event => {
+  const card = event.target.closest("[data-student-profile]");
+  if (card) openStudentProfile(card.dataset.studentProfile);
+});
+
+document.querySelector("#students-grid").addEventListener("keydown", event => {
+  if (!["Enter", " "].includes(event.key)) return;
+  const card = event.target.closest("[data-student-profile]");
+  if (!card) return;
+  event.preventDefault();
+  openStudentProfile(card.dataset.studentProfile);
+});
+
+document.querySelector("#student-profile-dialog").addEventListener("click", event => {
+  if (event.target === event.currentTarget || event.target.closest("[data-close-person-profile]")) event.currentTarget.close();
+});
 
 document.querySelectorAll("#student-directory-filters .filter").forEach(button => {
   button.addEventListener("click", () => {
