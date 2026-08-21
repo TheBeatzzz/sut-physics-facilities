@@ -275,6 +275,30 @@ create table if not exists public.researchers (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.staff (
+  id text primary key,
+  name text not null,
+  position text not null default 'Administrative Staff' check (position in ('Administrative Staff', 'Teaching Assistant', 'Laboratory Technician', 'Technical Staff', 'Academic Support Staff', 'Program Coordinator')),
+  email text,
+  status text not null default 'Active' check (status in ('Active', 'On leave', 'Former')),
+  unit text,
+  research_group_id text references public.facilities(id) on update cascade on delete set null,
+  research_group text,
+  office text,
+  phone text,
+  profile_photo jsonb,
+  short_bio text,
+  responsibilities jsonb not null default '[]'::jsonb,
+  service_areas jsonb not null default '[]'::jsonb,
+  notes text,
+  public_ready boolean not null default false,
+  review_status text not null default 'Draft' check (review_status in ('Draft', 'Submitted', 'Verified')),
+  owner_email text,
+  sample boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table if exists public.researchers
 add column if not exists owner_email text;
 
@@ -294,6 +318,33 @@ alter table public.researchers
 alter table public.researchers
   add constraint researchers_research_interests_limit
   check (jsonb_typeof(research_interests) = 'array' and jsonb_array_length(research_interests) <= 5);
+
+alter table if exists public.staff
+add column if not exists owner_email text;
+
+alter table if exists public.staff
+add column if not exists profile_photo jsonb;
+
+alter table public.staff
+  drop constraint if exists staff_position_check;
+
+alter table public.staff
+  add constraint staff_position_check
+  check (position in ('Administrative Staff', 'Teaching Assistant', 'Laboratory Technician', 'Technical Staff', 'Academic Support Staff', 'Program Coordinator'));
+
+alter table public.staff
+  drop constraint if exists staff_status_check;
+
+alter table public.staff
+  add constraint staff_status_check
+  check (status in ('Active', 'On leave', 'Former'));
+
+alter table public.staff
+  drop constraint if exists staff_responsibilities_limit;
+
+alter table public.staff
+  add constraint staff_responsibilities_limit
+  check (jsonb_typeof(responsibilities) = 'array');
 
 alter table public.researchers
   drop constraint if exists researchers_review_status_check;
@@ -414,6 +465,18 @@ create index if not exists researchers_owner_email_idx
 create index if not exists researchers_email_idx
   on public.researchers (lower(email));
 
+create index if not exists staff_public_idx
+  on public.staff (review_status, public_ready, position);
+
+create index if not exists staff_group_idx
+  on public.staff (research_group_id);
+
+create index if not exists staff_owner_email_idx
+  on public.staff (lower(owner_email));
+
+create index if not exists staff_email_idx
+  on public.staff (lower(email));
+
 create index if not exists facilities_owner_email_idx
   on public.facilities (lower(owner_email));
 
@@ -492,6 +555,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists researchers_set_updated_at on public.researchers;
 create trigger researchers_set_updated_at
 before update on public.researchers
+for each row execute function public.set_updated_at();
+
+drop trigger if exists staff_set_updated_at on public.staff;
+create trigger staff_set_updated_at
+before update on public.staff
 for each row execute function public.set_updated_at();
 
 drop trigger if exists services_set_updated_at on public.services;
@@ -996,11 +1064,84 @@ create trigger researchers_protect_review
 before insert or update on public.researchers
 for each row execute function public.protect_researcher_review_fields();
 
+create or replace function public.is_staff_self(target_owner_email text, target_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with current_identity as (
+    select lower(btrim(coalesce(
+      nullif(auth.jwt() ->> 'email', ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'email', ''),
+      ''
+    ))) as email
+  )
+  select exists (
+    select 1
+    from current_identity
+    where (
+        lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(target_email, ''))) = current_identity.email
+      )
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  );
+$$;
+
+revoke all on function public.is_staff_self(text, text) from public;
+grant execute on function public.is_staff_self(text, text) to anon, authenticated;
+
+create or replace function public.protect_staff_review_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_email text := public.current_sut_email();
+  staff_editor boolean := public.is_sut_editor();
+begin
+  if staff_editor then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if not public.is_staff_self(coalesce(new.owner_email, current_email), coalesce(new.email, current_email)) then
+      raise exception 'Staff profiles must use the signed-in staff email.';
+    end if;
+    new.owner_email := coalesce(nullif(new.owner_email, ''), current_email);
+    new.email := coalesce(nullif(new.email, ''), current_email);
+    if coalesce(new.review_status, '') not in ('Draft', 'Submitted') then
+      new.review_status := 'Submitted';
+    end if;
+    return new;
+  end if;
+
+  new.owner_email := old.owner_email;
+  new.email := old.email;
+  new.review_status := old.review_status;
+  return new;
+end;
+$$;
+
+revoke all on function public.protect_staff_review_fields() from public;
+grant execute on function public.protect_staff_review_fields() to authenticated;
+
+drop trigger if exists staff_protect_review on public.staff;
+create trigger staff_protect_review
+before insert or update on public.staff
+for each row execute function public.protect_staff_review_fields();
+
 alter table public.registry_admins enable row level security;
 alter table public.facilities enable row level security;
 alter table public.faculty enable row level security;
 alter table public.students enable row level security;
 alter table public.researchers enable row level security;
+alter table public.staff enable row level security;
 alter table public.equipment enable row level security;
 alter table public.services enable row level security;
 alter table public.visitor_events enable row level security;
@@ -1236,6 +1377,50 @@ create policy "Researchers can delete own unverified researcher profile"
 on public.researchers for delete
 to authenticated
 using (public.is_researcher_self(owner_email, email) and review_status <> 'Verified');
+
+drop policy if exists "Public can read verified public staff" on public.staff;
+create policy "Public can read verified public staff"
+on public.staff for select
+to anon, authenticated
+using (review_status = 'Verified' and public_ready = true);
+
+drop policy if exists "SUT editors can read all staff" on public.staff;
+create policy "SUT editors can read all staff"
+on public.staff for select
+to authenticated
+using (public.is_sut_editor());
+
+drop policy if exists "SUT editors can manage staff" on public.staff;
+create policy "SUT editors can manage staff"
+on public.staff for all
+to authenticated
+using (public.is_sut_editor())
+with check (public.is_sut_editor());
+
+drop policy if exists "Staff can read own staff profile" on public.staff;
+create policy "Staff can read own staff profile"
+on public.staff for select
+to authenticated
+using (public.is_staff_self(owner_email, email));
+
+drop policy if exists "Staff can create own submitted staff profile" on public.staff;
+create policy "Staff can create own submitted staff profile"
+on public.staff for insert
+to authenticated
+with check (public.is_staff_self(owner_email, email));
+
+drop policy if exists "Staff can update own staff profile" on public.staff;
+create policy "Staff can update own staff profile"
+on public.staff for update
+to authenticated
+using (public.is_staff_self(owner_email, email))
+with check (public.is_staff_self(owner_email, email));
+
+drop policy if exists "Staff can delete own unverified staff profile" on public.staff;
+create policy "Staff can delete own unverified staff profile"
+on public.staff for delete
+to authenticated
+using (public.is_staff_self(owner_email, email) and review_status <> 'Verified');
 
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"
@@ -1562,6 +1747,53 @@ using (
   and public.is_researcher_self(
     (select researchers.owner_email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2)),
     (select researchers.email from public.researchers where researchers.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Staff can upload own profile photos" on storage.objects;
+create policy "Staff can upload own profile photos"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'staff'
+  and public.is_staff_self(
+    (select staff.owner_email from public.staff where staff.id = split_part(storage.objects.name, '/', 2)),
+    (select staff.email from public.staff where staff.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Staff can update own profile photos" on storage.objects;
+create policy "Staff can update own profile photos"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'staff'
+  and public.is_staff_self(
+    (select staff.owner_email from public.staff where staff.id = split_part(storage.objects.name, '/', 2)),
+    (select staff.email from public.staff where staff.id = split_part(storage.objects.name, '/', 2))
+  )
+)
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'staff'
+  and public.is_staff_self(
+    (select staff.owner_email from public.staff where staff.id = split_part(storage.objects.name, '/', 2)),
+    (select staff.email from public.staff where staff.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Staff can delete own profile photos" on storage.objects;
+create policy "Staff can delete own profile photos"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'staff'
+  and public.is_staff_self(
+    (select staff.owner_email from public.staff where staff.id = split_part(storage.objects.name, '/', 2)),
+    (select staff.email from public.staff where staff.id = split_part(storage.objects.name, '/', 2))
   )
 );
 

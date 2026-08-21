@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Administrative staff, teaching assistants, laboratory technicians, and academic support staff at the School of Physics, Suranaree University of Technology." />
+    <meta name="keywords" content="Physics SUT staff, School of Physics SUT administrative staff, teaching assistants, laboratory technicians, Suranaree University of Technology Physics" />
+    <meta name="author" content="School of Physics, Suranaree University of Technology" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://physics-sut-portal.org/staff.html" />
+    <meta property="og:site_name" content="Physics SUT Research Infrastructure" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Physics SUT Staff" />
+    <meta property="og:description" content="Public staff profiles, roles, responsibilities, and support areas from the School of Physics at SUT." />
+    <meta property="og:url" content="https://physics-sut-portal.org/staff.html" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Physics SUT Staff" />
+    <meta name="twitter:description" content="Administrative staff, teaching assistants, technical staff, and academic support staff at Physics SUT." />
+    <title>Physics SUT Staff · Administration, Teaching, and Technical Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=staff-portal-20260821" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="analytics.js" defer></script>
+    <script src="public-i18n.js?v=staff-portal-20260821" defer></script>
+    <script src="staff.js?v=staff-portal-20260821" defer></script>
+  </head>
+  <body class="students-page researchers-page staff-page">
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <a class="identity" href="index.html" aria-label="Research facilities overview">
+        <span class="identity-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="identity-copy">
+          <strong>School of Physics</strong>
+          <small>STAFF</small>
+          <small class="identity-institute"><span>Institute of Science,</span><span>Suranaree University of Technology</span></small>
+        </span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><span>Menu</span><i aria-hidden="true"></i></button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Primary navigation">
+        <a href="index.html">Overview</a>
+        <a href="index.html#facilities">Facilities</a>
+        <a href="faculty.html">Faculty</a>
+        <a href="students.html">Students</a>
+        <a href="researchers.html">Researchers</a>
+        <a href="staff.html">Staff</a>
+        <a href="services.html">Services</a>
+        <a class="nav-cta" href="staff-portal.html">Staff portal <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section id="top" class="services-hero students-hero" aria-labelledby="staff-title">
+        <div class="services-hero-copy">
+          <p class="eyebrow"><span>Physics staff</span><span>Administration · Teaching · Technical support</span></p>
+          <h1 id="staff-title">Staff supporting<br /><em>learning, research, and service.</em></h1>
+          <p class="hero-intro">Browse public staff profiles by position type, unit, responsibilities, and linked lab or group.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#staff-list">View staff <span aria-hidden="true">↓</span></a>
+            <a class="button button-secondary" href="staff-portal.html">Staff portal <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="faculty.html">Browse faculty <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+
+        <div class="services-orbit" aria-label="Staff profile count indicator">
+          <div class="service-core"><span id="staff-count">00</span><small>public<br />staff</small></div>
+          <i class="service-pulse pulse-a"></i>
+          <i class="service-pulse pulse-b"></i>
+          <i class="service-pulse pulse-c"></i>
+          <i class="service-pulse pulse-d"></i>
+        </div>
+      </section>
+
+      <section class="signal-strip services-strip" aria-label="Staff role summary">
+        <p class="section-index">01 / Staff roles</p>
+        <div class="signal-grid">
+          <div><strong data-staff-position-count="Administrative Staff">00</strong><span>administration</span></div>
+          <div><strong data-staff-position-count="Teaching Assistant">00</strong><span>teaching assistants</span></div>
+          <div><strong data-staff-position-count="Laboratory Technician">00</strong><span>laboratory technicians</span></div>
+          <div><strong data-staff-position-count="Technical Staff">00</strong><span>technical staff</span></div>
+          <div><strong data-staff-position-count="all">00</strong><span>public profiles</span></div>
+          <p id="staff-status-summary">Public staff profiles will appear here after records are verified and marked public.</p>
+        </div>
+      </section>
+
+      <section id="staff-list" class="services-directory section-shell" aria-labelledby="staff-list-title">
+        <div class="section-heading">
+          <p class="section-index">02 / Directory</p>
+          <div>
+            <h2 id="staff-list-title">Staff profiles<br />by role and unit.</h2>
+            <p>Use filters to see administrative staff, teaching assistants, laboratory technicians, technical staff, and academic support staff connected to the School of Physics at SUT.</p>
+          </div>
+        </div>
+
+        <div id="staff-directory-filters" class="filters" role="group" aria-label="Filter staff">
+          <button type="button" class="filter is-active" data-staff-position="all" aria-pressed="true">All staff <span data-staff-filter-count="all">00</span></button>
+          <button type="button" class="filter" data-staff-position="Administrative Staff" aria-pressed="false">Administrative <span data-staff-filter-count="Administrative Staff">00</span></button>
+          <button type="button" class="filter" data-staff-position="Teaching Assistant" aria-pressed="false">Teaching assistants <span data-staff-filter-count="Teaching Assistant">00</span></button>
+          <button type="button" class="filter" data-staff-position="Laboratory Technician" aria-pressed="false">Lab technicians <span data-staff-filter-count="Laboratory Technician">00</span></button>
+          <button type="button" class="filter" data-staff-position="Technical Staff" aria-pressed="false">Technical staff <span data-staff-filter-count="Technical Staff">00</span></button>
+        </div>
+
+        <div class="student-select-filters">
+          <label>Unit<select id="staff-unit-public-filter"><option value="all">All units</option></select></label>
+          <label>Lab / group<select id="staff-group-public-filter"><option value="all">All groups</option></select></label>
+          <label>Status<select id="staff-status-public-filter"><option value="all">All statuses</option></select></label>
+        </div>
+
+        <div id="staff-grid" class="services-grid students-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <dialog id="staff-profile-dialog" class="person-profile-dialog" aria-labelledby="staff-profile-title">
+      <div id="staff-profile-content"></div>
+    </dialog>
+  </body>
+</html>

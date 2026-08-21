@@ -304,6 +304,52 @@
     sample: Boolean(researcher.sample)
   });
 
+  const camelStaff = row => ({
+    id: row.id,
+    name: row.name,
+    position: row.position || "Administrative Staff",
+    email: row.email || "",
+    status: row.status || "Active",
+    unit: row.unit || "",
+    office: row.office || "",
+    phone: row.phone || "",
+    profilePhoto: row.profile_photo || null,
+    shortBio: row.short_bio || "",
+    responsibilities: asArray(row.responsibilities),
+    serviceAreas: asArray(row.service_areas),
+    researchGroupId: row.research_group_id || "",
+    researchGroup: row.research_group || "",
+    notes: row.notes || "",
+    publicReady: Boolean(row.public_ready),
+    reviewStatus: row.review_status || "Draft",
+    ownerEmail: row.owner_email || "",
+    sample: Boolean(row.sample),
+    createdAt: String(row.created_at || "").slice(0, 10),
+    updatedAt: String(row.updated_at || "").slice(0, 10)
+  });
+
+  const snakeStaff = staff => ({
+    id: staff.id,
+    name: staff.name,
+    position: staff.position || "Administrative Staff",
+    email: staff.email || null,
+    status: staff.status || "Active",
+    unit: staff.unit || null,
+    office: staff.office || null,
+    phone: staff.phone || null,
+    profile_photo: staff.profilePhoto || null,
+    short_bio: String(staff.shortBio || "") || null,
+    responsibilities: asArray(staff.responsibilities).filter(Boolean),
+    service_areas: asArray(staff.serviceAreas).filter(Boolean),
+    research_group_id: staff.researchGroupId || null,
+    research_group: staff.researchGroup || null,
+    notes: staff.notes || null,
+    public_ready: Boolean(staff.publicReady),
+    review_status: staff.reviewStatus || "Draft",
+    owner_email: staff.ownerEmail || staff.email || null,
+    sample: Boolean(staff.sample)
+  });
+
   const camelService = row => ({
     id: row.id,
     title: row.title,
@@ -442,6 +488,11 @@
     profilePhoto: researcher.profilePhoto ? await uploadPhoto(`researchers/${researcher.id}`, researcher.profilePhoto, "profile", 0) : null
   });
 
+  const uploadStaffMedia = async staff => ({
+    ...staff,
+    profilePhoto: staff.profilePhoto ? await uploadPhoto(`staff/${staff.id}`, staff.profilePhoto, "profile", 0) : null
+  });
+
   const loadRegistry = async ({ publicOnly = false } = {}) => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
@@ -451,20 +502,23 @@
     let equipmentQuery = supabase.from("equipment").select("*").order("updated_at", { ascending: false });
     let servicesQuery = supabase.from("services").select("*").order("updated_at", { ascending: false });
     let researchersQuery = supabase.from("researchers").select("*").order("updated_at", { ascending: false });
+    let staffQuery = supabase.from("staff").select("*").order("updated_at", { ascending: false });
     let studentsQuery = publicOnly ? null : supabase.from("students").select("*").order("updated_at", { ascending: false });
     if (publicOnly) {
       facultyQuery = facultyQuery.eq("public_ready", true);
       equipmentQuery = equipmentQuery.eq("review_status", "Verified").eq("public_ready", true);
       servicesQuery = servicesQuery.eq("review_status", "Verified").eq("public_ready", true);
       researchersQuery = researchersQuery.eq("review_status", "Verified").eq("public_ready", true);
+      staffQuery = staffQuery.eq("review_status", "Verified").eq("public_ready", true);
     }
 
-    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, { data: researchers, error: researchersError }, studentsResult] = await Promise.all([
+    const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, { data: researchers, error: researchersError }, { data: staff, error: staffError }, studentsResult] = await Promise.all([
       facilitiesQuery,
       facultyQuery,
       equipmentQuery,
       servicesQuery,
       researchersQuery,
+      staffQuery,
       studentsQuery || Promise.resolve({ data: [], error: null })
     ]);
     const { data: students, error: studentsError } = studentsResult;
@@ -473,11 +527,13 @@
     const facultyTableMissing = facultyError && ["42P01", "PGRST205"].includes(facultyError.code);
     const servicesTableMissing = servicesError && ["42P01", "PGRST205"].includes(servicesError.code);
     const researchersTableMissing = researchersError && ["42P01", "PGRST205"].includes(researchersError.code);
+    const staffTableMissing = staffError && ["42P01", "PGRST205"].includes(staffError.code);
     const studentsTableMissing = studentsError && ["42P01", "PGRST205"].includes(studentsError.code);
     if (facultyError && !facultyTableMissing) throw facultyError;
     if (equipmentError) throw equipmentError;
     if (servicesError && !servicesTableMissing) throw servicesError;
     if (researchersError && !researchersTableMissing) throw researchersError;
+    if (staffError && !staffTableMissing) throw staffError;
     if (studentsError && !studentsTableMissing) throw studentsError;
 
     return {
@@ -492,6 +548,7 @@
       faculty: facultyTableMissing ? [] : (faculty || []).map(camelFaculty),
       students: studentsTableMissing ? [] : (students || []).map(camelStudent),
       researchers: researchersTableMissing ? [] : (researchers || []).map(camelResearcher),
+      staff: staffTableMissing ? [] : (staff || []).map(camelStaff),
       equipment: (equipment || []).map(camelEquipment),
       services: servicesTableMissing ? [] : (services || []).map(camelService)
     };
@@ -715,6 +772,82 @@
     };
   };
 
+  const saveStaff = async staff => {
+    const supabase = getClient();
+    const hasLocalProfilePhoto = staff.profilePhoto?.data?.startsWith("data:image/");
+    if (hasLocalProfilePhoto) {
+      let uploadedStaff;
+      try {
+        uploadedStaff = await uploadStaffMedia(staff);
+      } catch (uploadError) {
+        const policyBlocked = /row-level|policy|not authorized|unauthorized|forbidden/i.test(String(uploadError.message || ""));
+        if (!policyBlocked) throw uploadError;
+        const { data: initialData, error: initialError } = await supabase
+          .from("staff")
+          .upsert(snakeStaff({ ...staff, profilePhoto: null }), { onConflict: "id" })
+          .select()
+          .single();
+        if (initialError) throw initialError;
+        uploadedStaff = await uploadStaffMedia({ ...staff, id: initialData.id });
+      }
+      const { data, error } = await supabase
+        .from("staff")
+        .upsert(snakeStaff(uploadedStaff), { onConflict: "id" })
+        .select()
+        .single();
+      if (error) throw error;
+      return camelStaff(data);
+    }
+    const { data, error } = await supabase
+      .from("staff")
+      .upsert(snakeStaff(staff), { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return camelStaff(data);
+  };
+
+  const loadMyStaffRecord = async () => {
+    const supabase = getClient();
+    const session = await getSession();
+    const email = String(session?.user?.email || "").trim().toLowerCase();
+    if (!email) throw new Error("Sign in before loading a staff profile.");
+    const { data, error } = await supabase
+      .from("staff")
+      .select("*")
+      .or(`owner_email.eq.${email},email.eq.${email}`)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] ? camelStaff(data[0]) : null;
+  };
+
+  const deleteStaff = async id => {
+    const supabase = getClient();
+    const { error } = await supabase.from("staff").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const loadPublicStaff = async () => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const [{ data: staff, error: staffError }, { data: facilities, error: facilityError }] = await Promise.all([
+      supabase
+        .from("staff")
+        .select("*")
+        .eq("review_status", "Verified")
+        .eq("public_ready", true)
+        .order("name", { ascending: true }),
+      supabase.from("facilities").select("*").order("id", { ascending: true })
+    ]);
+    if (staffError) throw staffError;
+    if (facilityError) throw facilityError;
+    return {
+      staff: (staff || []).map(camelStaff),
+      facilities: (facilities || []).map(camelFacility)
+    };
+  };
+
   const saveService = async service => {
     const supabase = getClient();
     const { data, error } = await supabase
@@ -912,6 +1045,10 @@
     loadMyResearcherRecord,
     deleteResearcher,
     loadPublicResearchers,
+    saveStaff,
+    loadMyStaffRecord,
+    deleteStaff,
+    loadPublicStaff,
     saveService,
     deleteService,
     trackVisit,

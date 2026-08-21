@@ -83,6 +83,11 @@
           Researchers
           <span class="nav-count" id="researchers-nav-count">0</span>
         </button>
+        <button class="nav-item" data-view="staff" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20h16M6 20V8l6-4 6 4v12M9 12h6M9 16h6"/></svg>
+          Staff
+          <span class="nav-count" id="staff-nav-count">0</span>
+        </button>
         <button class="nav-item" data-view="facilities" type="button">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 12h2v2H9zM13 12h2v2h-2zM9 17h6"/></svg>
           Facilities
@@ -102,6 +107,7 @@
         <div class="storage-state" id="storage-state"><span></span><div><strong>Prototype storage</strong><small>Saved in this browser only</small></div></div>
         <a href="index.html">View public infographic <span aria-hidden="true">↗</span></a>
         <a href="student-portal.html">Student portal <span aria-hidden="true">↗</span></a>
+        <a href="staff-portal.html">Staff portal <span aria-hidden="true">↗</span></a>
       </div>
     </aside>
 
@@ -254,6 +260,26 @@
           <div class="panel table-panel"><div class="table-wrap"><table class="registry-table researcher-table"><thead><tr><th>Researcher</th><th>Type & status</th><th>Host / PI</th><th>Lab / interests</th><th>Project & dates</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="researcher-table"></tbody></table></div><div id="researcher-empty" class="empty-state" hidden><span>⌕</span><h2>No matching researchers</h2><p>Try changing the search or filters.</p></div></div>
         </section>
 
+        <section class="view" data-view-panel="staff" aria-labelledby="staff-title">
+          <div class="view-heading compact-heading">
+            <div><p class="eyebrow">Administrative, teaching & technical support</p><h1 id="staff-title">Staff directory</h1><p class="heading-description">Track administrative staff, teaching assistants, laboratory technicians, technical staff, academic support staff, and program coordinators separately from faculty, students, and researchers.</p></div>
+            <button class="button button-primary" type="button" data-action="new-staff"><span aria-hidden="true">＋</span> Add staff</button>
+          </div>
+
+          <div class="registry-tools">
+            <label class="table-search"><span class="sr-only">Search staff records</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="staff-search" type="search" placeholder="Search name, unit, responsibilities…" /></label>
+            <label>Position<select id="staff-position-filter"><option value="all">All positions</option><option>Administrative Staff</option><option>Teaching Assistant</option><option>Laboratory Technician</option><option>Technical Staff</option><option>Academic Support Staff</option><option>Program Coordinator</option></select></label>
+            <label>Status<select id="staff-status-filter"><option value="all">All statuses</option><option>Active</option><option>On leave</option><option>Former</option></select></label>
+            <label>Review<select id="staff-review-filter"><option value="all">All review</option><option>Draft</option><option>Submitted</option><option>Verified</option></select></label>
+            <label>Unit<select id="staff-unit-filter"><option value="all">All units</option></select></label>
+            <label>Group<select id="staff-group-filter"><option value="all">All groups</option></select></label>
+            <button class="icon-button" id="clear-staff-filters" type="button" title="Clear staff filters"><span class="sr-only">Clear staff filters</span>↺</button>
+          </div>
+
+          <div class="registry-summary"><p><strong id="staff-result-count">0</strong> staff</p><p><span class="legend-dot verified"></span> Verified public <span class="legend-dot submitted"></span> Submitted <span class="legend-dot draft"></span> Draft</p></div>
+          <div class="panel table-panel"><div class="table-wrap"><table class="registry-table staff-table"><thead><tr><th>Staff</th><th>Position & status</th><th>Unit / group</th><th>Responsibilities</th><th>Contact</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="staff-table"></tbody></table></div><div id="staff-empty" class="empty-state" hidden><span>⌕</span><h2>No matching staff</h2><p>Try changing the search or filters.</p></div></div>
+        </section>
+
         <section class="view" data-view-panel="facilities" aria-labelledby="facilities-title">
           <div class="view-heading compact-heading">
             <div><p class="eyebrow">Spaces & laboratories</p><h1 id="facilities-title">Facilities directory</h1><p class="heading-description">Group equipment by the physical spaces where research, teaching, and technical support happen.</p></div>
@@ -278,6 +304,7 @@
             <section class="panel data-card"><span class="data-icon">CSV</span><h2>Export equipment table</h2><p>Download a spreadsheet-ready CSV for checking and reporting.</p><button class="button button-secondary" type="button" id="export-csv">Download CSV <span>↓</span></button></section>
             <section class="panel data-card"><span class="data-icon">ST</span><h2>Export student table</h2><p>Download a spreadsheet-ready CSV of student records, advisors, project titles, and status fields.</p><button class="button button-secondary" type="button" id="export-student-csv">Download CSV <span>↓</span></button></section>
             <section class="panel data-card"><span class="data-icon">RS</span><h2>Export researcher table</h2><p>Download a spreadsheet-ready CSV of postdocs, research staff, hosts, groups, projects, and status fields.</p><button class="button button-secondary" type="button" id="export-researcher-csv">Download CSV <span>↓</span></button></section>
+            <section class="panel data-card"><span class="data-icon">SF</span><h2>Export staff table</h2><p>Download a spreadsheet-ready CSV of staff positions, units, responsibilities, contact details, and review status.</p><button class="button button-secondary" type="button" id="export-staff-csv">Download CSV <span>↓</span></button></section>
             <section class="panel data-card"><span class="data-icon">↥</span><h2>Import a backup</h2><p>Restore a JSON file created by this platform. In Supabase mode, imported records are uploaded into the shared database.</p><label class="button button-secondary file-button">Choose JSON <input type="file" id="import-json" accept="application/json,.json" /></label></section>
             <section class="panel data-card"><span class="data-icon">19</span><h2>Seed atlas equipment</h2><p>Add missing fallback Equipment Atlas records and facility clusters without creating faculty profiles or custodians.</p><button class="button button-secondary" type="button" id="seed-atlas-equipment">Seed atlas equipment</button></section>
             <section class="panel data-card"><span class="data-icon">Sc</span><h2>Refresh Scopus metrics</h2><p>Use each faculty member's Scopus profile link to update h-index, citation count, and document count.</p><button class="button button-secondary" type="button" id="refresh-scopus-metrics">Refresh metrics</button></section>
@@ -480,6 +507,37 @@
           </div></div>
         </div>
         <div class="modal-foot"><p id="researcher-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="researcher-dialog">Cancel</button><button class="button button-primary" id="researcher-primary-action" type="submit">Add researcher</button></div></div>
+      </form>
+    </dialog>
+
+    <dialog id="staff-dialog" class="modal">
+      <form id="staff-form" method="dialog">
+        <div class="modal-head"><div><p class="eyebrow">Staff profile</p><h2 id="staff-form-title">Add staff</h2></div><button class="close-button" type="button" data-close="staff-dialog"><span class="sr-only">Close</span>×</button></div>
+        <div class="modal-body">
+          <div class="form-section"><div class="form-section-title"><span>01</span><div><h3>Identity</h3><p>Record administrative, teaching, and technical support profiles separately from faculty, students, and researchers.</p></div></div><div class="form-grid">
+            <label>Full name <span aria-hidden="true">*</span><input name="name" required placeholder="Staff full name" /></label>
+            <label>Position <span aria-hidden="true">*</span><select name="position" required><option>Administrative Staff</option><option>Teaching Assistant</option><option>Laboratory Technician</option><option>Technical Staff</option><option>Academic Support Staff</option><option>Program Coordinator</option></select></label>
+            <label>Email<input name="email" type="email" placeholder="name@sut.ac.th or office email" /></label>
+            <label>Status <span aria-hidden="true">*</span><select name="status" required><option>Active</option><option>On leave</option><option>Former</option></select></label>
+            <label>Review status<select name="reviewStatus"><option>Draft</option><option>Submitted</option><option>Verified</option></select></label>
+            <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public Staff page</strong><small>Requires Verified review status to appear publicly.</small></span></label>
+          </div></div>
+          <div class="form-section"><div class="form-section-title"><span>02</span><div><h3>Unit and contact</h3><p>Connect the staff member to a unit, office, and optional lab or group.</p></div></div><div class="form-grid">
+            <label>Unit<input name="unit" placeholder="School of Physics office, teaching labs, or program office" /></label>
+            <label>Research lab / group<select id="staff-group" name="researchGroupId"><option value="">TBD</option></select></label>
+            <label>Group name<input name="researchGroup" placeholder="Optional group name if not in database" /></label>
+            <label>Office / location<input name="office" placeholder="Building and room" /></label>
+            <label>Phone<input name="phone" placeholder="Optional contact number" /></label>
+            <label>Owner login email<input name="ownerEmail" type="email" placeholder="Staff account allowed to manage this profile" /></label>
+          </div></div>
+          <div class="form-section"><div class="form-section-title"><span>03</span><div><h3>Public profile</h3><p>Publish a concise staff identity, responsibilities, and service areas.</p></div></div><div class="form-grid">
+            <label class="span-2">Responsibilities <span aria-hidden="true">*</span><textarea name="responsibilities" rows="4" required placeholder="Enter one responsibility per line"></textarea></label>
+            <label class="span-2">Service areas<textarea name="serviceAreas" rows="3" placeholder="Teaching labs, procurement, student records, outreach, scheduling..."></textarea></label>
+            <label class="span-2">Short bio<textarea name="shortBio" rows="5" placeholder="Short public bio, up to 500 words"></textarea></label>
+            <label class="span-2">Internal notes<textarea name="notes" rows="3" placeholder="Administrative notes or follow-up items"></textarea></label>
+          </div></div>
+        </div>
+        <div class="modal-foot"><p id="staff-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="staff-dialog">Cancel</button><button class="button button-primary" id="staff-primary-action" type="submit">Add staff</button></div></div>
       </form>
     </dialog>
 

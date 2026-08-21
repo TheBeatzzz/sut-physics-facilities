@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Staff profile portal for administrative staff, teaching assistants, technical staff, and academic support staff connected to the School of Physics at Suranaree University of Technology." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Physics Staff Portal - SUT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="student-email-cooldown.js"></script>
+    <script src="staff-portal.js" defer></script>
+  </head>
+  <body class="student-portal researcher-portal staff-portal">
+    <section id="staff-auth" class="auth-gate" aria-labelledby="staff-auth-title">
+      <div class="auth-card researcher-auth-card">
+        <p class="eyebrow">Staff portal</p>
+        <h1 id="staff-auth-title">Create or manage your staff profile.</h1>
+        <p>Your profile uses your SUT email. It appears publicly only after registry manager verification.</p>
+
+        <div class="researcher-auth-layout">
+          <form id="staff-signin-form" class="auth-form">
+            <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+            <button class="button button-primary" type="submit">Sign in</button>
+          </form>
+
+          <form id="staff-signup-form" class="auth-form compact-auth-form">
+            <label>Full name<input name="name" autocomplete="name" required /></label>
+            <label>Position<select name="position" required><option>Administrative Staff</option><option>Teaching Assistant</option><option>Laboratory Technician</option><option>Technical Staff</option><option>Academic Support Staff</option><option>Program Coordinator</option></select></label>
+            <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <button class="button button-secondary" type="submit">Create account</button>
+          </form>
+        </div>
+
+        <p class="auth-cooldown" id="staff-email-cooldown" role="status" aria-live="polite"></p>
+        <form id="staff-recovery-form" class="auth-form compact-auth-form">
+          <label>Forgot password?<input name="email" type="email" autocomplete="email" placeholder="Enter your SUT email" required /></label>
+          <button class="button button-secondary" type="submit">Send reset link</button>
+        </form>
+        <p class="auth-help" id="staff-auth-message">Use your SUT or g.sut.ac.th email address.</p>
+      </div>
+    </section>
+
+    <section id="staff-password-reset" class="auth-gate" aria-labelledby="staff-password-reset-title" hidden>
+      <div class="auth-card">
+        <p class="eyebrow">Account security</p>
+        <h1 id="staff-password-reset-title">Set a new password.</h1>
+        <p>Enter a new password for your staff portal account. After saving, you can sign in with the new password.</p>
+        <form id="staff-password-reset-form" class="auth-form">
+          <label>New password<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters" /></label>
+          <label>Confirm new password<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Re-enter the new password" /></label>
+          <button class="button button-primary" type="submit">Update password</button>
+        </form>
+        <p class="auth-help" id="staff-password-reset-message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <main id="staff-workspace" class="workspace" hidden>
+      <section class="view is-visible" aria-labelledby="staff-title">
+        <div class="view-heading compact-heading">
+          <div>
+            <p class="eyebrow">Staff profile</p>
+            <h1 id="staff-title">Your Physics staff record</h1>
+            <p class="heading-description">Keep your role, unit, responsibilities, contact details, and public profile current.</p>
+          </div>
+          <button class="button button-secondary" id="staff-sign-out" type="button">Sign out</button>
+        </div>
+
+        <section class="panel visitor-panel">
+          <div class="panel-heading">
+            <div><p class="panel-kicker">Review</p><h2 id="staff-review-title">Submitted</h2></div>
+            <span class="data-date" id="staff-account-email"></span>
+          </div>
+          <p class="visitor-empty" id="staff-review-note">Registry manager verification is required before this profile appears publicly.</p>
+        </section>
+
+        <form id="staff-record-form" class="panel">
+          <div class="form-section">
+            <div class="form-section-title"><span>01</span><div><h3>Identity</h3><p>Your staff role and public display status.</p></div></div>
+            <div class="form-grid">
+              <label>Full name <span aria-hidden="true">*</span><input name="name" required /></label>
+              <label>Position <span aria-hidden="true">*</span><select name="position" required><option>Administrative Staff</option><option>Teaching Assistant</option><option>Laboratory Technician</option><option>Technical Staff</option><option>Academic Support Staff</option><option>Program Coordinator</option></select></label>
+              <label>Email<input name="email" type="email" readonly /></label>
+              <label>Status <span aria-hidden="true">*</span><select name="status" required><option>Active</option><option>On leave</option><option>Former</option></select></label>
+              <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public Staff page</strong><small>Your profile must be verified before it appears publicly.</small></span></label>
+              <div class="media-field student-profile-photo-field span-2">
+                <div class="media-field-head"><div><strong>Profile picture</strong><small>Shown with your public staff profile after verification.</small></div><label class="media-upload">Choose photo<input id="staff-profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp" /></label></div>
+                <div id="staff-profile-photo-preview" class="feature-photo-preview student-profile-photo-preview empty"><span>No profile picture selected</span></div>
+                <label id="staff-profile-photo-alt-label" class="media-alt" hidden>Profile picture description<input id="staff-profile-photo-alt" type="text" placeholder="Describe your profile picture" /></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>02</span><div><h3>Unit and contact</h3><p>Connect your work to the school, office, and any linked lab or group.</p></div></div>
+            <div class="form-grid">
+              <label>Unit<input name="unit" placeholder="School of Physics office, teaching labs, or program office" /></label>
+              <label>Research lab / group<select id="staff-self-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
+              <label>Group name<input name="researchGroup" placeholder="Optional group name if not in database" /></label>
+              <label>Office / location<input name="office" placeholder="Building and room" /></label>
+              <label>Phone<input name="phone" placeholder="Optional contact number" /></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><span>03</span><div><h3>Public profile</h3><p>Describe responsibilities and support areas in concise public language.</p></div></div>
+            <div class="form-grid">
+              <label class="span-2">Responsibilities <span aria-hidden="true">*</span><textarea name="responsibilities" rows="4" required placeholder="Enter one responsibility per line"></textarea></label>
+              <label class="span-2">Service areas<textarea name="serviceAreas" rows="3" placeholder="Teaching labs, procurement, student records, outreach, scheduling..."></textarea></label>
+              <label class="span-2">Short bio<textarea name="shortBio" rows="5" placeholder="Short public bio, up to 500 words"></textarea></label>
+              <label class="span-2">Notes<textarea name="notes" rows="3" placeholder="Private notes for registry manager follow-up"></textarea></label>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <p id="staff-record-message" role="status" aria-live="polite"></p>
+            <div><button class="button button-primary" id="staff-record-submit" type="submit">Save staff profile</button></div>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span>OK</span><p></p></div>
+  </body>
+</html>

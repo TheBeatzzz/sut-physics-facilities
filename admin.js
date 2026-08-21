@@ -24,6 +24,7 @@ const STUDENT_MILESTONES = [
   { id: "publicationRequirement", label: "Publication requirement", shortLabel: "Publication", levels: ["Master", "PhD"] }
 ];
 const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Postgraduate Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
+const STAFF_POSITIONS = ["Administrative Staff", "Teaching Assistant", "Laboratory Technician", "Technical Staff", "Academic Support Staff", "Program Coordinator"];
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
@@ -142,6 +143,7 @@ const sampleDatabase = {
   ],
   students: [],
   researchers: [],
+  staff: [],
   services: [],
   equipment: [
     sampleRecord("EQ-001", "Photon Counting Scanning Confocal Microscopy", "Imaging", "FAC-01", "Biomedical photonics"),
@@ -216,6 +218,18 @@ const normalizeResearchers = researchers => researchers.map(researcher => ({
   reviewStatus: researcher.reviewStatus || "Draft",
   publicReady: Boolean(researcher.publicReady)
 }));
+const normalizeStaff = staff => staff.map(profile => ({
+  ...profile,
+  position: STAFF_POSITIONS.includes(profile.position) ? profile.position : "Administrative Staff",
+  status: profile.status || "Active",
+  unit: profile.unit || "",
+  researchGroupId: profile.researchGroupId || "",
+  responsibilities: normalizeList(profile.responsibilities),
+  serviceAreas: normalizeList(profile.serviceAreas),
+  shortBio: profile.shortBio || "",
+  reviewStatus: profile.reviewStatus || "Draft",
+  publicReady: Boolean(profile.publicReady)
+}));
 const isGenericSampleFaculty = profiles =>
   Array.isArray(profiles) &&
   profiles.length > 0 &&
@@ -228,6 +242,7 @@ const normalizeDatabase = value => ({
   facilities: Array.isArray(value?.facilities) ? value.facilities : [],
   students: Array.isArray(value?.students) ? normalizeStudents(value.students) : [],
   researchers: Array.isArray(value?.researchers) ? normalizeResearchers(value.researchers) : [],
+  staff: Array.isArray(value?.staff) ? normalizeStaff(value.staff) : [],
   services: Array.isArray(value?.services) ? value.services : [],
   equipment: Array.isArray(value?.equipment) ? value.equipment : []
 });
@@ -258,6 +273,8 @@ let lastStudentError = null;
 let editingStudentId = null;
 let lastResearcherError = null;
 let editingResearcherId = null;
+let lastStaffError = null;
+let editingStaffId = null;
 let lastServiceError = null;
 let editingServiceId = null;
 let visitorEvents = [];
@@ -450,7 +467,7 @@ function showAuthGate(message = "", options = {}) {
   document.body.classList.add("auth-required");
   $("#auth-message").textContent = message || "Sign in with a registered SUT faculty account to manage the shared registry.";
   hideAccessIssuePanel();
-  db = { ...clone(sampleDatabase), faculty: [], students: [], researchers: [], equipment: [], facilities: [], services: [] };
+  db = { ...clone(sampleDatabase), faculty: [], students: [], researchers: [], staff: [], equipment: [], facilities: [], services: [] };
   backendReady = false;
   visitorEvents = [];
   visitorStatsError = "";
@@ -639,6 +656,33 @@ async function persistResearcher(researcher) {
   }
 }
 
+async function persistStaff(profile) {
+  lastStaffError = null;
+  if (!backendReady) {
+    const index = db.staff.findIndex(item => item.id === profile.id);
+    if (index >= 0) db.staff[index] = profile; else db.staff.unshift(profile);
+    save();
+    return true;
+  }
+  try {
+    const savedProfile = await backend.saveStaff(profile);
+    const index = db.staff.findIndex(item => item.id === savedProfile.id);
+    if (index >= 0) db.staff[index] = savedProfile; else db.staff.unshift(savedProfile);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    return true;
+  } catch (error) {
+    const schemaMessage = /schema cache|staff|PGRST|42P01/i.test(String(error.message || ""))
+      ? "Supabase needs the latest staff schema. Run supabase-schema.sql in SQL Editor, then try saving this staff profile again."
+      : "";
+    const rlsMessage = /row-level security|violates.*policy/i.test(String(error.message || ""))
+      ? "Supabase blocked this staff save. Confirm the owner email matches the staff sign-in email, or ask a registry manager to approve it."
+      : "";
+    lastStaffError = new Error(schemaMessage || rlsMessage || error.message || "Could not save staff profile to Supabase");
+    showToast(lastStaffError.message);
+    return false;
+  }
+}
+
 async function persistService(service) {
   lastServiceError = null;
   if (!backendReady) {
@@ -677,7 +721,7 @@ function showView(view, options = {}) {
   activeView = view;
   $$(".nav-item").forEach(item => item.classList.toggle("is-active", item.dataset.view === view));
   $$(".view").forEach(panel => panel.classList.toggle("is-visible", panel.dataset.viewPanel === view));
-  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", students: "Student database", researchers: "Researchers directory", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
+  const labels = { overview: "Registry overview", equipment: "Equipment registry", submissions: "Faculty submissions", faculty: "Faculty profiles", students: "Student database", researchers: "Researchers directory", staff: "Staff directory", facilities: "Facilities directory", services: "Services directory", data: "Data & export" };
   $("#page-context").textContent = labels[view];
   $("#sidebar").classList.remove("is-open");
   $(".mobile-menu").setAttribute("aria-expanded", "false");
@@ -696,6 +740,8 @@ function renderAll() {
   populateStudentStartYearOptions();
   renderStudents();
   renderResearchers();
+  populateStaffGroupOptions();
+  renderStaff();
   renderEquipmentTable();
   renderSubmissions();
   renderFacilities();
@@ -711,6 +757,8 @@ function renderNavigationCounts() {
   if (studentsCount) studentsCount.textContent = db.students.length;
   const researchersCount = $("#researchers-nav-count");
   if (researchersCount) researchersCount.textContent = db.researchers.length;
+  const staffCount = $("#staff-nav-count");
+  if (staffCount) staffCount.textContent = db.staff.length;
   const servicesCount = $("#services-nav-count");
   if (servicesCount) servicesCount.textContent = db.services.length;
 }
@@ -721,11 +769,13 @@ function renderOverview() {
   const publicReady = db.equipment.filter(item => item.publicReady && item.reviewStatus === "Verified").length;
   const activeStudents = db.students.filter(item => item.status === "Active").length;
   const activeResearchers = db.researchers.filter(item => item.status === "Active").length;
+  const activeStaff = db.staff.filter(item => item.status === "Active").length;
   const metrics = [
     ["Equipment records", db.equipment.length, "total", "+ Registry"],
     ["Faculty profiles", db.faculty.length, "total", "People"],
     ["Student records", db.students.length, `${activeStudents} active`, "Students"],
     ["Researchers", db.researchers.length, `${activeResearchers} active`, "People"],
+    ["Staff", db.staff.length, `${activeStaff} active`, "People"],
     ["Public-ready", publicReady, "systems", "Website"]
   ];
   $("#metric-grid").innerHTML = metrics.map(([label, value, note, tag]) => `<article class="metric-card"><div class="metric-label"><span>${label}</span><span>${tag}</span></div><div class="metric-value"><strong>${value}</strong><small>${note}</small></div></article>`).join("");
@@ -790,6 +840,7 @@ function pageLabel(path) {
   if (cleanPath.includes("faculty.html?id=")) return "Faculty profile";
   if (cleanPath.includes("faculty.html")) return "Faculty directory";
   if (cleanPath.includes("researchers.html")) return "Researchers";
+  if (cleanPath.includes("staff.html")) return "Staff";
   if (cleanPath.includes("services.html")) return "Services";
   return cleanPath;
 }
@@ -948,6 +999,22 @@ function populateResearcherGroupOptions(selected = "") {
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#researcher-group-filter");
+  if (filterTarget) {
+    const previous = filterTarget.value;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
+  }
+}
+
+function populateStaffGroupOptions(selected = "") {
+  const options = db.facilities.map(facility => `<option value="${clean(facility.id)}">${clean(facility.name)}</option>`).join("");
+  const formTarget = $("#staff-group");
+  if (formTarget) {
+    const previous = selected || formTarget.value;
+    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
+  }
+  const filterTarget = $("#staff-group-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
     filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
@@ -1173,6 +1240,65 @@ function renderResearchers() {
       <td><div class="cell-stack"><strong>${clean(researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup }))}</strong><small>${clean(interests.join(" · ") || "Interests to add")}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(researcher.projectTitle || "Project to add")}</strong><small>${clean(dates)}</small></div></td>
       <td><div class="row-actions"><button type="button" data-edit-researcher="${clean(researcher.id)}" aria-label="Edit ${clean(researcher.name)}">✎</button><button type="button" data-delete-researcher="${clean(researcher.id)}" aria-label="Delete ${clean(researcher.name)}">×</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
+function filteredStaff() {
+  const query = $("#staff-search")?.value.trim().toLowerCase() || "";
+  const position = $("#staff-position-filter")?.value || "all";
+  const status = $("#staff-status-filter")?.value || "all";
+  const review = $("#staff-review-filter")?.value || "all";
+  const unit = $("#staff-unit-filter")?.value || "all";
+  const group = $("#staff-group-filter")?.value || "all";
+  return db.staff.filter(profile => {
+    const haystack = [
+      profile.name,
+      profile.position,
+      profile.email,
+      profile.status,
+      profile.reviewStatus,
+      profile.unit,
+      profile.shortBio,
+      normalizeList(profile.responsibilities).join(" "),
+      normalizeList(profile.serviceAreas).join(" "),
+      researchGroupName({ researchGroupId: profile.researchGroupId, researchGroup: profile.researchGroup })
+    ].join(" ").toLowerCase();
+    return (!query || haystack.includes(query)) &&
+      (position === "all" || profile.position === position) &&
+      (status === "all" || profile.status === status) &&
+      (review === "all" || profile.reviewStatus === review) &&
+      (unit === "all" || (profile.unit || "") === unit) &&
+      (group === "all" || (profile.researchGroupId || "") === group);
+  });
+}
+
+function populateStaffUnitOptions() {
+  const target = $("#staff-unit-filter");
+  if (!target) return;
+  const previous = target.value;
+  const units = [...new Set(db.staff.map(profile => profile.unit).filter(Boolean))].sort();
+  target.innerHTML = `<option value="all">All units</option>${units.map(unit => `<option>${clean(unit)}</option>`).join("")}`;
+  if ([...target.options].some(option => option.value === previous)) target.value = previous;
+}
+
+function renderStaff() {
+  const table = $("#staff-table");
+  if (!table) return;
+  populateStaffUnitOptions();
+  const profiles = filteredStaff();
+  $("#staff-result-count").textContent = profiles.length;
+  $("#staff-empty").hidden = profiles.length > 0;
+  table.innerHTML = profiles.map(profile => {
+    const responsibilities = normalizeList(profile.responsibilities).slice(0, 3);
+    const contact = [profile.email, profile.phone].filter(Boolean).join(" · ") || "Contact to add";
+    return `<tr data-staff-id="${clean(profile.id)}">
+      <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(profile.name))}</span><div><strong>${clean(profile.name)}</strong><small>${clean(profile.email || profile.id)}</small></div></div></td>
+      <td><div class="cell-stack"><strong>${clean(profile.position || "Staff")}</strong><small>${clean(profile.status || "Active")} · ${reviewPill(profile.reviewStatus || "Draft")} ${profile.publicReady ? verificationPill("Verified") : verificationPill("Pending")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(profile.unit || "School of Physics")}</strong><small>${clean(researchGroupName({ researchGroupId: profile.researchGroupId, researchGroup: profile.researchGroup }))}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(responsibilities.join(" · ") || "Responsibilities to add")}</strong><small>${clean(normalizeList(profile.serviceAreas).slice(0, 3).join(" · ") || "Service areas to add")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(profile.office || "Office to add")}</strong><small>${clean(contact)}</small></div></td>
+      <td><div class="row-actions"><button type="button" data-edit-staff="${clean(profile.id)}" aria-label="Edit ${clean(profile.name)}">✎</button><button type="button" data-delete-staff="${clean(profile.id)}" aria-label="Delete ${clean(profile.name)}">×</button></div></td>
     </tr>`;
   }).join("");
 }
@@ -1478,6 +1604,112 @@ async function deleteResearcher(id) {
   }
   renderAll();
   showToast("Researcher record deleted");
+}
+
+function setStaffMessage(message = "", type = "") {
+  const target = $("#staff-message");
+  if (!target) return;
+  target.textContent = message;
+  target.className = type ? `is-${type}` : "";
+}
+
+function validateStaffProfileFields(form) {
+  if (!normalizeList(form.elements.responsibilities.value).length) {
+    setStaffMessage("Add at least one responsibility.", "error");
+    form.elements.responsibilities.focus();
+    return false;
+  }
+  if (wordCount(form.elements.shortBio.value) > 500) {
+    setStaffMessage("Short bio must be 500 words or fewer.", "error");
+    form.elements.shortBio.focus();
+    return false;
+  }
+  return true;
+}
+
+function openStaffDialog(id = null) {
+  const form = $("#staff-form");
+  const profile = id ? db.staff.find(item => item.id === id) : null;
+  editingStaffId = profile?.id || null;
+  form.reset();
+  setStaffMessage();
+  $("#staff-form-title").textContent = profile ? "Edit staff profile" : "Add staff";
+  $("#staff-primary-action").textContent = profile ? "Save staff" : "Add staff";
+  populateStaffGroupOptions(profile?.researchGroupId || "");
+  if (profile) {
+    ["name", "position", "email", "status", "reviewStatus", "unit", "researchGroupId", "researchGroup", "office", "phone", "shortBio", "ownerEmail", "notes"].forEach(key => {
+      const field = form.elements.namedItem(key);
+      if (field) field.value = profile[key] || "";
+    });
+    form.elements.responsibilities.value = normalizeList(profile.responsibilities).join("\n");
+    form.elements.serviceAreas.value = normalizeList(profile.serviceAreas).join("\n");
+    form.elements.publicReady.checked = Boolean(profile.publicReady);
+  } else {
+    form.elements.position.value = "Administrative Staff";
+    form.elements.status.value = "Active";
+    form.elements.reviewStatus.value = "Draft";
+    form.elements.unit.value = "School of Physics";
+    form.elements.publicReady.checked = false;
+    form.elements.ownerEmail.value = signedInEmail();
+  }
+  $("#staff-dialog").showModal();
+  setTimeout(() => form.elements.namedItem("name")?.focus(), 50);
+}
+
+function staffFromForm(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  Object.keys(data).forEach(key => { data[key] = String(data[key] || "").trim(); });
+  const existing = editingStaffId ? db.staff.find(item => item.id === editingStaffId) : null;
+  const numericIds = db.staff.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
+  const id = existing?.id || `STAFF-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
+  const group = facilityFor(data.researchGroupId);
+  return {
+    ...existing,
+    id,
+    name: data.name,
+    position: STAFF_POSITIONS.includes(data.position) ? data.position : "Administrative Staff",
+    email: data.email,
+    status: data.status || "Active",
+    reviewStatus: data.reviewStatus || "Draft",
+    publicReady: form.elements.publicReady.checked,
+    unit: data.unit || "School of Physics",
+    researchGroupId: data.researchGroupId,
+    researchGroup: group?.name || data.researchGroup || existing?.researchGroup || "",
+    office: data.office,
+    phone: data.phone,
+    shortBio: data.shortBio,
+    responsibilities: normalizeList(data.responsibilities),
+    serviceAreas: normalizeList(data.serviceAreas),
+    ownerEmail: data.ownerEmail || data.email || signedInEmail(),
+    notes: data.notes,
+    createdAt: existing?.createdAt || today(),
+    updatedAt: today(),
+    sample: existing?.sample || false
+  };
+}
+
+async function deleteStaff(id) {
+  const profile = db.staff.find(item => item.id === id);
+  if (!profile) return;
+  const confirmed = await askConfirm("Delete staff profile?", `“${profile.name}” will be removed from ${backendReady ? "the shared Supabase registry" : "this browser database"}.`);
+  if (!confirmed) return;
+  const previousStaff = clone(db.staff);
+  db.staff = db.staff.filter(item => item.id !== id);
+  if (backendReady) {
+    try {
+      await backend.deleteStaff(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch (error) {
+      db.staff = previousStaff;
+      renderAll();
+      showToast(error.message || "Could not delete staff profile from Supabase");
+      return;
+    }
+  } else {
+    save();
+  }
+  renderAll();
+  showToast("Staff profile deleted");
 }
 
 function setServiceMessage(message = "", type = "") {
@@ -1912,6 +2144,20 @@ function exportResearcherCsv() {
   showToast("Researcher CSV export created");
 }
 
+function exportStaffCsv() {
+  const fields = ["id","name","position","email","status","reviewStatus","publicReady","unit","researchGroup","responsibilities","serviceAreas","shortBio","office","phone","ownerEmail","updatedAt"];
+  const quote = value => `"${String(value ?? "").replace(/"/g,'""')}"`;
+  const rows = db.staff.map(profile => ({
+    ...profile,
+    researchGroup: researchGroupName({ researchGroupId: profile.researchGroupId, researchGroup: profile.researchGroup }),
+    responsibilities: normalizeList(profile.responsibilities).join("; "),
+    serviceAreas: normalizeList(profile.serviceAreas).join("; ")
+  }));
+  const csv = [fields.join(","), ...rows.map(item => fields.map(field => quote(item[field])).join(","))].join("\n");
+  downloadFile(`sut-physics-staff-${today()}.csv`, "text/csv;charset=utf-8", csv);
+  showToast("Staff CSV export created");
+}
+
 $$('.nav-item').forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
 $$('[data-view-jump]').forEach(button => button.addEventListener("click", () => showView(button.dataset.viewJump)));
 $$('[data-action="new-record"]').forEach(button => button.addEventListener("click", () => openRecordDialog("manager")));
@@ -1919,6 +2165,7 @@ $$('[data-action="faculty-submit"]').forEach(button => button.addEventListener("
 $$('[data-action="new-faculty"]').forEach(button => button.addEventListener("click", () => openFacultyDialog()));
 $$('[data-action="new-student"]').forEach(button => button.addEventListener("click", () => openStudentDialog()));
 $$('[data-action="new-researcher"]').forEach(button => button.addEventListener("click", () => openResearcherDialog()));
+$$('[data-action="new-staff"]').forEach(button => button.addEventListener("click", () => openStaffDialog()));
 $$('[data-action="new-service"]').forEach(button => button.addEventListener("click", () => openServiceDialog()));
 function setFacilityMessage(message = "", type = "") {
   const target = $("#facility-message");
@@ -2132,6 +2379,23 @@ $("#researcher-table").addEventListener("click", event => {
   if (row) openResearcherDialog(row.dataset.researcherId);
 });
 
+$("#staff-table").addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-staff]");
+  const editButton = event.target.closest("[data-edit-staff]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteStaff(deleteButton.dataset.deleteStaff);
+    return;
+  }
+  if (editButton) {
+    event.stopPropagation();
+    openStaffDialog(editButton.dataset.editStaff);
+    return;
+  }
+  const row = event.target.closest("[data-staff-id]");
+  if (row) openStaffDialog(row.dataset.staffId);
+});
+
 $("#service-grid").addEventListener("click", event => {
   const deleteButton = event.target.closest("[data-delete-service]");
   if (deleteButton) {
@@ -2171,6 +2435,37 @@ $("#researcher-form").addEventListener("submit", async event => {
   } catch (error) {
     setResearcherMessage(error.message || "Could not save this researcher.", "error");
     showToast(error.message || "Could not save researcher");
+  } finally {
+    setBusy(event.submitter, false);
+  }
+});
+
+$("#staff-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  if (!validateStaffProfileFields(event.currentTarget)) return;
+  setBusy(event.submitter, true);
+  setStaffMessage("Saving staff profile…");
+  try {
+    const profile = staffFromForm(event.currentTarget);
+    const duplicate = db.staff.find(item => item.id !== profile.id && item.name.trim().toLowerCase() === profile.name.trim().toLowerCase());
+    if (duplicate) {
+      setStaffMessage(`A staff profile for “${duplicate.name}” already exists.`, "error");
+      showToast(`A staff profile for “${duplicate.name}” already exists`);
+      return;
+    }
+    if (await persistStaff(profile)) {
+      $("#staff-dialog").close();
+      event.currentTarget.reset();
+      editingStaffId = null;
+      renderAll();
+      showToast(`${profile.name} staff profile saved`);
+    } else {
+      setStaffMessage(lastStaffError?.message || "Could not save this staff profile.", "error");
+    }
+  } catch (error) {
+    setStaffMessage(error.message || "Could not save this staff profile.", "error");
+    showToast(error.message || "Could not save staff profile");
   } finally {
     setBusy(event.submitter, false);
   }
@@ -2336,6 +2631,17 @@ $("#clear-researcher-filters").addEventListener("click", () => {
   renderResearchers();
 });
 
+[$("#staff-search"), $("#staff-position-filter"), $("#staff-status-filter"), $("#staff-review-filter"), $("#staff-unit-filter"), $("#staff-group-filter")].forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", renderStaff));
+$("#clear-staff-filters").addEventListener("click", () => {
+  $("#staff-search").value = "";
+  $("#staff-position-filter").value = "all";
+  $("#staff-status-filter").value = "all";
+  $("#staff-review-filter").value = "all";
+  $("#staff-unit-filter").value = "all";
+  $("#staff-group-filter").value = "all";
+  renderStaff();
+});
+
 $("#global-search").addEventListener("input", event => { if (event.target.value.trim()) showView("equipment", { query: event.target.value, preserveScroll: true }); });
 document.addEventListener("keydown", event => { if (event.key === "/" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); $("#global-search").focus(); } });
 
@@ -2343,6 +2649,7 @@ $("#export-json").addEventListener("click", () => { downloadFile(`sut-physics-re
 $("#export-csv").addEventListener("click", exportCsv);
 $("#export-student-csv").addEventListener("click", exportStudentCsv);
 $("#export-researcher-csv").addEventListener("click", exportResearcherCsv);
+$("#export-staff-csv").addEventListener("click", exportStaffCsv);
 $("#import-json").addEventListener("change", async event => {
   const file = event.target.files[0]; if (!file) return;
   try {
@@ -2351,17 +2658,19 @@ $("#import-json").addEventListener("change", async event => {
     imported.faculty = Array.isArray(imported.faculty) ? imported.faculty : [];
     imported.students = Array.isArray(imported.students) ? imported.students : [];
     imported.researchers = Array.isArray(imported.researchers) ? imported.researchers : [];
+    imported.staff = Array.isArray(imported.staff) ? imported.staff : [];
     imported.services = Array.isArray(imported.services) ? imported.services : [];
     imported.equipment = imported.equipment.map(item => ({
       ...item,
       description: String(item.description || "").slice(0, DESCRIPTION_LIMIT)
     }));
-    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.students.length} student records, ${imported.researchers.length} researcher records, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
+    const confirmed = await askConfirm(backendReady ? "Import into the shared registry?" : "Replace the browser database?", `Import ${imported.faculty.length} faculty profiles, ${imported.students.length} student records, ${imported.researchers.length} researcher records, ${imported.staff.length} staff profiles, ${imported.equipment.length} equipment records, ${imported.facilities.length} facilities, and ${imported.services.length} services from “${file.name}”?`);
     if (confirmed) {
       if (backendReady) {
         for (const profile of imported.faculty) await backend.saveFaculty(profile);
         for (const student of imported.students) await backend.saveStudent(student);
         for (const researcher of imported.researchers) await backend.saveResearcher(researcher);
+        for (const profile of imported.staff) await backend.saveStaff(profile);
         for (const facility of imported.facilities) await backend.saveFacility(facility);
         for (const record of imported.equipment) await backend.saveEquipment(record);
         for (const service of imported.services) await backend.saveService(service);
