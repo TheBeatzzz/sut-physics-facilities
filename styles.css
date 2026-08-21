@@ -422,7 +422,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   flex: 0 0 auto; padding: 22px 26px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
   border-bottom: 1px solid var(--line);
 }
-.person-profile-kicker { display: flex; flex-wrap: wrap; gap: 8px; color: var(--ink-soft); font: 9px/1.45 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.person-profile-head .inquiry-close { flex: 0 0 auto; margin-left: auto; }
+.person-profile-kicker { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; color: var(--ink-soft); font: 9px/1.45 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
 .person-profile-kicker span { padding: 5px 7px; border: 1px solid var(--line); }
 .person-profile-body { min-height: 0; padding: clamp(24px, 4vw, 38px); overflow-y: auto; }
 .person-profile-intro { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 28px; align-items: start; }

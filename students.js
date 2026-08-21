@@ -185,7 +185,7 @@ function studentProfileMarkup(student) {
   return `
     <div class="person-profile-shell">
       <header class="person-profile-head">
-        <div class="person-profile-kicker"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>
+        <div class="person-profile-kicker"><span>${clean(programLabel(student.programId))}</span> <span>${clean(student.studentCode || student.id)}</span></div>
         <button class="inquiry-close" type="button" data-close-person-profile aria-label="Close profile">×</button>
       </header>
       <div class="person-profile-body">
