@@ -436,6 +436,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
 .person-profile-initials { display: grid; place-items: center; color: var(--paper); background: var(--ink); font: 400 44px var(--serif); }
 .person-profile-intro h2 { margin: 10px 0 18px; font: 400 clamp(44px, 6vw, 72px)/.9 var(--serif); letter-spacing: -.045em; overflow-wrap: anywhere; }
 .person-profile-intro p:not(.section-index) { max-width: 680px; margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.75; }
+.main-detail-mark {
+  width: 140px; height: 140px; display: grid; place-items: center; align-self: start;
+  border: 1px solid var(--ink); border-radius: 50%; color: var(--ink);
+  background: var(--detail-bg, var(--aqua)); font: 500 34px/1 var(--mono); overflow: hidden;
+}
+.main-detail-mark svg { width: 66px; height: 66px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.main-detail-actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
+.main-detail-actions .button { width: auto; }
+.main-detail-tags { margin-top: 16px; }
 .person-profile-details { margin: 34px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
 .person-profile-details div { min-width: 0; padding: 12px 0 0; border-top: 1px solid var(--line); }
 .person-profile-details dt { color: var(--ink-soft); font: 9px/1.4 var(--mono); text-transform: uppercase; }
@@ -755,7 +764,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .person-profile-body { padding: 22px 18px; }
   .person-profile-intro { grid-template-columns: 1fr; gap: 18px; }
   .person-profile-photo,
-  .person-profile-initials { width: 104px; height: 104px; }
+  .person-profile-initials,
+  .main-detail-mark { width: 104px; height: 104px; }
+  .main-detail-mark { font-size: 27px; }
+  .main-detail-mark svg { width: 52px; height: 52px; }
   .person-profile-initials { font-size: 34px; }
   .person-profile-intro h2 { font-size: clamp(42px, 13vw, 58px); }
   .person-profile-details,

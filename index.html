@@ -149,22 +149,22 @@
 
         <div class="spectrum" role="img" aria-label="Four research capabilities arranged from nanometer to system scale">
           <div class="spectrum-axis"><span>10<sup>−9</sup> m</span><span>Scale of inquiry</span><span>10<sup>3</sup> m</span></div>
-          <article class="spectrum-item spectrum-item-1">
+          <article class="spectrum-item spectrum-item-1 public-profile-trigger" role="button" tabindex="0" data-spectrum-detail="observe" aria-label="Open details for Observe">
             <span class="spectrum-number">01</span>
             <div class="spectrum-glyph glyph-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
             <h3>Observe</h3><p>Resolve structures and signals beyond ordinary vision.</p>
           </article>
-          <article class="spectrum-item spectrum-item-2">
+          <article class="spectrum-item spectrum-item-2 public-profile-trigger" role="button" tabindex="0" data-spectrum-detail="fabricate" aria-label="Open details for Fabricate">
             <span class="spectrum-number">02</span>
             <div class="spectrum-glyph glyph-layers" aria-hidden="true"><i></i><i></i><i></i></div>
             <h3>Fabricate</h3><p>Prepare samples and engineer controlled material systems.</p>
           </article>
-          <article class="spectrum-item spectrum-item-3">
+          <article class="spectrum-item spectrum-item-3 public-profile-trigger" role="button" tabindex="0" data-spectrum-detail="measure" aria-label="Open details for Measure">
             <span class="spectrum-number">03</span>
             <div class="spectrum-glyph glyph-pulse" aria-hidden="true"><i></i></div>
             <h3>Measure</h3><p>Capture optical, electrical, thermal, and radiation response.</p>
           </article>
-          <article class="spectrum-item spectrum-item-4">
+          <article class="spectrum-item spectrum-item-4 public-profile-trigger" role="button" tabindex="0" data-spectrum-detail="model" aria-label="Open details for Model">
             <span class="spectrum-number">04</span>
             <div class="spectrum-glyph glyph-grid" aria-hidden="true"></div>
             <h3>Model</h3><p>Connect experimental evidence with computation and theory.</p>
@@ -291,6 +291,16 @@
           <img id="gallery-dialog-image" src="" alt="" />
           <figcaption id="gallery-dialog-caption"></figcaption>
         </figure>
+      </div>
+    </dialog>
+
+    <dialog id="card-detail-dialog" class="person-profile-dialog" aria-labelledby="card-detail-title">
+      <div class="person-profile-shell">
+        <div class="person-profile-head">
+          <div id="card-detail-kicker" class="person-profile-kicker"></div>
+          <button class="inquiry-close" id="close-card-detail" type="button" aria-label="Close detail view">×</button>
+        </div>
+        <div id="card-detail-content" class="person-profile-body"></div>
       </div>
     </dialog>
 

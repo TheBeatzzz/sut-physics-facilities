@@ -118,6 +118,45 @@ const fallbackFacilityByEquipment = {
   "EQ-17": "FAC-07", "EQ-18": "FAC-07", "EQ-19": "FAC-07"
 };
 
+const capabilityDetails = {
+  observe: {
+    number: "01",
+    title: "Observe",
+    accent: "#74dfce",
+    summary: "Resolve structures, images, and signals that cannot be captured by ordinary visual inspection.",
+    methods: ["Microscopy", "Tomography", "Machine vision", "Biomedical imaging"],
+    questions: ["What structure is present?", "How does the signal vary across space?", "Can the image reveal a hidden pattern?"],
+    outputs: ["Images", "Spatial maps", "Feature measurements"]
+  },
+  fabricate: {
+    number: "02",
+    title: "Fabricate",
+    accent: "#8fc3ff",
+    summary: "Prepare samples, prototypes, fibers, materials, and controlled device structures for experiments.",
+    methods: ["Electrospinning", "3D printing", "Fiber fabrication", "Integrated photonics"],
+    questions: ["What structure needs to be made?", "Which preparation route is feasible?", "How reproducible is the process?"],
+    outputs: ["Samples", "Prototype devices", "Prepared test structures"]
+  },
+  measure: {
+    number: "03",
+    title: "Measure",
+    accent: "#ff8b5b",
+    summary: "Capture optical, electrical, thermal, spectral, and radiation responses with appropriate instrumentation.",
+    methods: ["Spectroscopy", "Optical sensing", "Laser measurements", "Data acquisition"],
+    questions: ["Which signal matters?", "What precision is required?", "How should the method be calibrated?"],
+    outputs: ["Spectra", "Response curves", "Measurement datasets"]
+  },
+  model: {
+    number: "04",
+    title: "Model",
+    accent: "#d7ff3f",
+    summary: "Connect experimental evidence with computation, simulation, data analysis, and theory.",
+    methods: ["Quantum systems", "Deep learning", "Computer vision", "Medical AI"],
+    questions: ["What model explains the result?", "Can computation guide the experiment?", "How robust is the prediction?"],
+    outputs: ["Models", "Predictions", "Analysis workflows"]
+  }
+};
+
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
 }[character]));
@@ -359,7 +398,7 @@ const renderFacilitiesInfographic = () => {
   facilitiesGrid.innerHTML = cards.length ? cards.map(({ facility, linked, capabilities, color }, index) => {
     const location = [facility.building, facility.room].filter(Boolean).join(" · ") || "Location to verify";
     return `
-      <article class="public-facility-card" style="--facility-bg:${color}">
+      <article class="public-facility-card public-profile-trigger" role="button" tabindex="0" data-facility-detail="${index}" style="--facility-bg:${color}" aria-label="Open details for ${clean(facility.name)}">
         <div class="facility-map-visual" aria-hidden="true"><span>${String(index + 1).padStart(2, "0")}</span><i></i><i></i><i></i></div>
         <div class="facility-map-meta"><span>${clean(facility.id)}</span><span>${clean(location)}</span></div>
         <h3>${clean(facility.name)}</h3>
@@ -403,7 +442,7 @@ const updatePublicSummary = () => {
 const renderEquipment = (filter = "all") => {
   const filtered = filter === "all" ? equipment : equipment.filter(item => item.category === filter);
   grid.innerHTML = filtered.length ? filtered.map(item => `
-    <article class="equipment-card" data-category="${item.category}">
+    <article class="equipment-card public-profile-trigger" role="button" tabindex="0" data-category="${item.category}" data-equipment-detail="${clean(item.id)}" aria-label="Open details for ${clean(item.name)}">
       <div class="card-top"><span>${clean(item.id)} · ${item.fromRegistry ? "Verified" : "Sample"}</span><span>${clean(item.category)}</span></div>
       <div class="equipment-visual" style="--visual-bg:${item.color}">${visualMarkup(item)}</div>
       ${galleryMarkup(item)}
@@ -437,6 +476,154 @@ const galleryDialog = document.querySelector("#gallery-dialog");
 const galleryDialogImage = document.querySelector("#gallery-dialog-image");
 const galleryDialogCaption = document.querySelector("#gallery-dialog-caption");
 const galleryDialogTitle = document.querySelector("#gallery-dialog-title");
+const cardDetailDialog = document.querySelector("#card-detail-dialog");
+const cardDetailKicker = document.querySelector("#card-detail-kicker");
+const cardDetailContent = document.querySelector("#card-detail-content");
+
+const list = value => Array.isArray(value) ? value.filter(Boolean) : [];
+const initials = value => String(value || "PS").split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
+const detailTags = tags => tags.filter(Boolean).map(tag => `<span>${clean(tag)}</span>`).join("");
+const detailRows = rows => rows
+  .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
+  .map(([label, value]) => `<div><dt>${clean(label)}</dt><dd>${clean(value)}</dd></div>`)
+  .join("");
+const detailList = (title, items, fallback = "Details to confirm") => `
+  <section>
+    <h3>${clean(title)}</h3>
+    <div class="facility-capabilities main-detail-tags">
+      ${(items.length ? items : [fallback]).map(item => `<span>${clean(item)}</span>`).join("")}
+    </div>
+  </section>
+`;
+
+const openCardDetail = ({ kicker = [], title, summary, accent = palette[0], mark = "", rows = [], lists = [], actions = "" }) => {
+  if (!cardDetailDialog || !cardDetailKicker || !cardDetailContent) return;
+  cardDetailKicker.innerHTML = detailTags(kicker);
+  cardDetailContent.innerHTML = `
+    <div class="person-profile-intro">
+      <div class="main-detail-mark" style="--detail-bg:${clean(accent)}">${mark || clean(initials(title))}</div>
+      <div>
+        <p class="section-index">Detail view</p>
+        <h2 id="card-detail-title">${clean(title)}</h2>
+        <p>${clean(summary)}</p>
+        ${actions ? `<div class="main-detail-actions">${actions}</div>` : ""}
+      </div>
+    </div>
+    ${rows.length ? `<dl class="person-profile-details">${detailRows(rows)}</dl>` : ""}
+    ${lists.length ? `<div class="person-profile-lists">${lists.join("")}</div>` : ""}
+  `;
+  cardDetailDialog.showModal();
+  setTimeout(() => document.querySelector("#close-card-detail")?.focus(), 30);
+};
+
+const openCapabilityDetail = key => {
+  const detail = capabilityDetails[key];
+  if (!detail) return;
+  openCardDetail({
+    kicker: ["Research spectrum", detail.number, key],
+    title: detail.title,
+    summary: detail.summary,
+    accent: detail.accent,
+    mark: detail.number,
+    rows: [
+      ["Capability area", detail.title],
+      ["Research scale", key === "model" ? "Data to systems" : key === "observe" ? "Nano to device" : key === "fabricate" ? "Sample to device" : "Signal to dataset"],
+      ["Equipment count", `${equipment.filter(item => item.category === key).length} public or example systems`]
+    ],
+    lists: [
+      detailList("Typical methods", detail.methods),
+      detailList("Useful questions", detail.questions),
+      detailList("Expected outputs", detail.outputs)
+    ]
+  });
+};
+
+const facilityByRenderedIndex = index => {
+  let cards = publicFacilityCards();
+  if (!cards.length && equipment.length) {
+    cards = [{
+      facility: {
+        id: "FAC-TBD",
+        name: "Physics Program Research Facilities",
+        building: "",
+        room: "",
+        lead: "Responsible faculty contacts",
+        description: "Public equipment records are available; facility assignments are being verified."
+      },
+      linked: equipment,
+      capabilities: [...new Set(equipment.map(item => item.method || item.category).filter(Boolean))].slice(0, 4),
+      color: palette[0]
+    }];
+  }
+  return cards[Number(index)];
+};
+
+const openFacilityDetail = index => {
+  const card = facilityByRenderedIndex(index);
+  if (!card) return;
+  const { facility, linked, capabilities, color } = card;
+  const location = [facility.building, facility.room].filter(Boolean).join(" · ") || "Location to verify";
+  openCardDetail({
+    kicker: ["Facility", facility.id || "FAC", `${linked.length} public systems`],
+    title: facility.name || "Physics Program facility",
+    summary: facility.description || "Facility information is being verified by the Physics Program.",
+    accent: safeColor(color),
+    mark: clean(String(Number(index) + 1).padStart(2, "0")),
+    rows: [
+      ["Location", location],
+      ["Lead", facility.lead || "Not assigned"],
+      ["Public systems", linked.length],
+      ["Facility ID", facility.id || "FAC-TBD"]
+    ],
+    lists: [
+      detailList("Capabilities", capabilities),
+      detailList("Linked equipment", linked.map(item => item.name), "Linked equipment to confirm")
+    ]
+  });
+};
+
+const openEquipmentDetail = id => {
+  const item = equipment.find(candidate => candidate.id === id);
+  if (!item) return;
+  const gallery = list(item.gallery).filter(validImage).slice(0, 5).map(photo => photo.alt || `${item.name} gallery image`);
+  const actions = validContactEmail(item.email)
+    ? `<button class="button button-primary" type="button" data-detail-inquiry="${clean(item.id)}">Discuss this equipment <span aria-hidden="true">↗</span></button>`
+    : "";
+  openCardDetail({
+    kicker: ["Equipment", item.id, item.fromRegistry ? "Verified record" : "Sample record"],
+    title: item.name || "Equipment record",
+    summary: item.description || "Contact the facility for equipment capabilities and use cases.",
+    accent: safeColor(item.color),
+    mark: iconFor(item.name),
+    rows: [
+      ["Category", item.category],
+      ["Method", item.method],
+      ["Access", item.access],
+      ["Facility", item.facilityName || "Physics Program facility"],
+      ["Responsible contact", item.custodian || "Responsible equipment contact"],
+      ["Email", item.email || "Contact email to add"],
+      ["Manufacturer", item.manufacturer],
+      ["Model", item.model],
+      ["Room", item.room],
+      ["Safety", item.safety],
+      ["Status", item.status]
+    ],
+    lists: [
+      detailList("Use cases", list(item.useCases), "Use cases to confirm"),
+      detailList("Gallery", gallery, "No gallery images yet")
+    ],
+    actions
+  });
+};
+
+const cardActivation = (event, selector, callback) => {
+  const card = event.target.closest(selector);
+  if (!card) return;
+  if (event.target.closest("a, button, input, select, textarea") && event.target !== card) return;
+  if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+  event.preventDefault();
+  callback(card);
+};
 
 const validContactEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
@@ -512,10 +699,34 @@ navigation.addEventListener("click", event => {
   }
 });
 
+document.querySelector(".spectrum").addEventListener("click", event => {
+  cardActivation(event, "[data-spectrum-detail]", card => openCapabilityDetail(card.dataset.spectrumDetail));
+});
+
+document.querySelector(".spectrum").addEventListener("keydown", event => {
+  cardActivation(event, "[data-spectrum-detail]", card => openCapabilityDetail(card.dataset.spectrumDetail));
+});
+
+facilitiesGrid.addEventListener("click", event => {
+  cardActivation(event, "[data-facility-detail]", card => openFacilityDetail(card.dataset.facilityDetail));
+});
+
+facilitiesGrid.addEventListener("keydown", event => {
+  cardActivation(event, "[data-facility-detail]", card => openFacilityDetail(card.dataset.facilityDetail));
+});
+
 grid.addEventListener("click", event => {
   const button = event.target.closest("[data-gallery-src]");
-  if (!button) return;
-  openGalleryImage(button);
+  if (button) {
+    event.stopPropagation();
+    openGalleryImage(button);
+    return;
+  }
+  cardActivation(event, "[data-equipment-detail]", card => openEquipmentDetail(card.dataset.equipmentDetail));
+});
+
+grid.addEventListener("keydown", event => {
+  cardActivation(event, "[data-equipment-detail]", card => openEquipmentDetail(card.dataset.equipmentDetail));
 });
 
 window.addEventListener("storage", async event => {
@@ -539,12 +750,27 @@ async function bootPublicPage() {
 document.querySelector("#open-inquiry").addEventListener("click", openInquiry);
 document.querySelector("#close-inquiry").addEventListener("click", () => inquiryDialog.close());
 document.querySelector("#close-gallery").addEventListener("click", () => galleryDialog.close());
+document.querySelector("#close-card-detail").addEventListener("click", () => cardDetailDialog.close());
 inquiryEquipment.addEventListener("change", updateInquiryRecipient);
 inquiryDialog.addEventListener("click", event => {
   if (event.target === inquiryDialog) inquiryDialog.close();
 });
 galleryDialog.addEventListener("click", event => {
   if (event.target === galleryDialog) galleryDialog.close();
+});
+cardDetailDialog.addEventListener("click", event => {
+  const inquiryButton = event.target.closest("[data-detail-inquiry]");
+  if (inquiryButton) {
+    const id = inquiryButton.dataset.detailInquiry;
+    cardDetailDialog.close();
+    populateInquiryEquipment();
+    inquiryEquipment.value = id;
+    updateInquiryRecipient();
+    inquiryDialog.showModal();
+    setTimeout(() => document.querySelector("#inquiry-name")?.focus(), 30);
+    return;
+  }
+  if (event.target === cardDetailDialog) cardDetailDialog.close();
 });
 
 inquiryForm.addEventListener("submit", event => {
