@@ -14,6 +14,7 @@ const list = value => Array.isArray(value) ? value.filter(Boolean) : String(valu
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 const categoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
 const serviceVisible = service => service.reviewStatus === "Verified" && service.publicReady === true;
+const photoSrc = photo => window.SUTSupabase?.photoSrc?.(photo) || photo?.url || photo?.data || "";
 
 let services = [];
 let faculty = [];
@@ -37,6 +38,7 @@ const normalizeService = service => ({
   publicReady: Boolean(service.publicReady),
   reviewStatus: service.reviewStatus || "Draft",
   submitterNotes: service.submitterNotes || "",
+  featurePhoto: service.featurePhoto || null,
   updatedAt: service.updatedAt || "",
   sample: Boolean(service.sample)
 });
@@ -131,8 +133,11 @@ const serviceCard = service => {
   const mailto = validEmail(contact)
     ? `mailto:${contact}?subject=${encodeURIComponent(`Service inquiry: ${service.title}`)}`
     : "faculty.html#directory";
+  const imageSrc = photoSrc(service.featurePhoto);
+  const imageAlt = service.featurePhoto?.alt || `${service.title} service photo`;
   return `
     <article class="service-card">
+      ${imageSrc ? `<img class="service-card-photo" src="${clean(imageSrc)}" alt="${clean(imageAlt)}" />` : ""}
       <div class="service-card-top"><span>${clean(categoryLabel(service.category))}</span><span>${clean(service.id)}</span></div>
       <h3>${clean(service.title)}</h3>
       <p>${clean(service.summary || service.details || "Contact the School of Physics to discuss the scope, timing, and expected outcome for this service.")}</p>

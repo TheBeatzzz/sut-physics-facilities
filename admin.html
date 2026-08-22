@@ -565,6 +565,13 @@
             <label class="checkbox-label"><input type="checkbox" name="publicReady" /><span><strong>Show on public Services page</strong><small>Requires Verified review status to appear publicly.</small></span></label>
             <label class="span-2">Notes for reviewer<textarea name="submitterNotes" rows="2" placeholder="Anything a manager should verify before publication"></textarea></label>
           </div></div>
+          <div class="form-section media-section"><div class="form-section-title"><span>03</span><div><h3>Service photo</h3><p>Add one image to display with this service card.</p></div></div><div class="media-fields">
+            <div class="media-field">
+              <div class="media-field-head"><div><strong>Card photo</strong><small>Shown on the public Services page and in this dashboard.</small></div><label class="media-upload">Choose photo<input id="service-photo-input" type="file" accept="image/jpeg,image/png,image/webp" /></label></div>
+              <div id="service-photo-preview" class="feature-photo-preview empty"><span>No service photo selected</span></div>
+              <label id="service-photo-alt-label" class="media-alt" hidden>Service photo description<input id="service-photo-alt" type="text" placeholder="Describe the service photo for people who cannot see it" /></label>
+            </div>
+          </div></div>
         </div>
         <div class="modal-foot"><p id="service-message" role="status" aria-live="polite"></p><div><button class="button button-quiet" type="button" data-close="service-dialog">Cancel</button><button class="button button-primary" id="service-primary-action" type="submit">Add service</button></div></div>
       </form>

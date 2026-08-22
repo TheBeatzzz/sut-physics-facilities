@@ -368,6 +368,7 @@
     publicReady: Boolean(row.public_ready),
     reviewStatus: row.review_status || "Draft",
     submitterNotes: row.submitter_notes || "",
+    featurePhoto: row.feature_photo || null,
     sample: Boolean(row.sample),
     createdAt: String(row.created_at || "").slice(0, 10),
     updatedAt: String(row.updated_at || "").slice(0, 10)
@@ -391,6 +392,7 @@
     public_ready: Boolean(service.publicReady),
     review_status: service.reviewStatus || "Draft",
     submitter_notes: service.submitterNotes || null,
+    feature_photo: service.featurePhoto || null,
     sample: Boolean(service.sample)
   });
 
@@ -491,6 +493,11 @@
   const uploadStaffMedia = async staff => ({
     ...staff,
     profilePhoto: staff.profilePhoto ? await uploadPhoto(`staff/${staff.id}`, staff.profilePhoto, "profile", 0) : null
+  });
+
+  const uploadServiceMedia = async service => ({
+    ...service,
+    featurePhoto: service.featurePhoto ? await uploadPhoto(`services/${service.id}`, service.featurePhoto, "feature", 0) : null
   });
 
   const loadRegistry = async ({ publicOnly = false } = {}) => {
@@ -850,6 +857,30 @@
 
   const saveService = async service => {
     const supabase = getClient();
+    const hasLocalFeaturePhoto = service.featurePhoto?.data?.startsWith("data:image/");
+    if (hasLocalFeaturePhoto) {
+      let uploadedService;
+      try {
+        uploadedService = await uploadServiceMedia(service);
+      } catch (uploadError) {
+        const policyBlocked = /row-level|policy|not authorized|unauthorized|forbidden/i.test(String(uploadError.message || ""));
+        if (!policyBlocked) throw uploadError;
+        const { data: initialData, error: initialError } = await supabase
+          .from("services")
+          .upsert(snakeService({ ...service, featurePhoto: null }), { onConflict: "id" })
+          .select()
+          .single();
+        if (initialError) throw initialError;
+        uploadedService = await uploadServiceMedia({ ...service, id: initialData.id });
+      }
+      const { data, error } = await supabase
+        .from("services")
+        .upsert(snakeService(uploadedService), { onConflict: "id" })
+        .select()
+        .single();
+      if (error) throw error;
+      return camelService(data);
+    }
     const { data, error } = await supabase
       .from("services")
       .upsert(snakeService(service), { onConflict: "id" })

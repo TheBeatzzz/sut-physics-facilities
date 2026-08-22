@@ -265,6 +265,7 @@ let toastTimer;
 let pendingFeaturePhoto = null;
 let pendingGallery = [];
 let pendingFacultyPhoto = null;
+let pendingServicePhoto = null;
 let lastFacilityError = null;
 let editingFacilityId = null;
 let lastFacultyError = null;
@@ -1327,6 +1328,7 @@ function renderServices() {
   $("#service-result-count").textContent = db.services.length;
   grid.innerHTML = db.services.length ? db.services.map(service => `
     <article class="service-admin-card" data-service-id="${clean(service.id)}">
+      ${photoSrc(service.featurePhoto) ? `<img class="service-admin-photo" src="${clean(photoSrc(service.featurePhoto))}" alt="${clean(service.featurePhoto?.alt || `${service.title} service photo`)}" />` : ""}
       <div class="service-admin-meta"><span>${clean(serviceCategoryLabel(service.category))}</span>${reviewPill(service.reviewStatus || "Draft")}</div>
       <h2>${clean(service.title)}</h2>
       <p>${clean(service.summary || service.details || "Service details have not been added yet.")}</p>
@@ -1724,6 +1726,7 @@ function openServiceDialog(id = null) {
   const service = id ? db.services.find(item => item.id === id) : null;
   const faculty = currentFacultyProfile();
   editingServiceId = service?.id || null;
+  pendingServicePhoto = service?.featurePhoto ? clone(service.featurePhoto) : null;
   form.reset();
   setServiceMessage();
   $("#service-form-title").textContent = service ? "Edit service" : "Add service";
@@ -1749,6 +1752,7 @@ function openServiceDialog(id = null) {
       form.elements.ownerEmail.value = signedInEmail();
     }
   }
+  renderServicePhotoPreview();
   $("#service-dialog").showModal();
   setTimeout(() => form.elements.namedItem("title")?.focus(), 50);
 }
@@ -1760,6 +1764,7 @@ function serviceFromForm(form) {
   const numericIds = db.services.map(item => Number(String(item.id).replace(/\D/g,""))).filter(Number.isFinite);
   const id = existing?.id || `SERV-${String(Math.max(0, ...numericIds) + 1).padStart(3, "0")}`;
   const profile = facultyFor(data.facultyId);
+  if (pendingServicePhoto) pendingServicePhoto.alt = $("#service-photo-alt").value.trim();
   return {
     ...existing,
     ...data,
@@ -1768,10 +1773,28 @@ function serviceFromForm(form) {
     contactEmail: data.contactEmail || profile?.email || signedInEmail(),
     ownerEmail: data.ownerEmail || profile?.ownerEmail || profile?.email || signedInEmail(),
     publicReady: form.elements.publicReady.checked,
+    featurePhoto: pendingServicePhoto,
     createdAt: existing?.createdAt || today(),
     updatedAt: today(),
     sample: existing?.sample || false
   };
+}
+
+function renderServicePhotoPreview() {
+  const preview = $("#service-photo-preview");
+  const altLabel = $("#service-photo-alt-label");
+  if (!preview || !altLabel) return;
+  if (photoSrc(pendingServicePhoto)) {
+    preview.classList.remove("empty");
+    preview.innerHTML = `<img src="${photoSrc(pendingServicePhoto)}" alt="" /><button class="media-remove" type="button" data-remove-service-photo aria-label="Remove service photo">×</button>`;
+    altLabel.hidden = false;
+    $("#service-photo-alt").value = pendingServicePhoto.alt || "";
+  } else {
+    preview.classList.add("empty");
+    preview.innerHTML = `<span>No service photo selected</span>`;
+    altLabel.hidden = true;
+    $("#service-photo-alt").value = "";
+  }
 }
 
 async function deleteService(id) {
@@ -2233,6 +2256,19 @@ $("#faculty-photo-input").addEventListener("change", async event => {
   event.target.value = "";
 });
 
+$("#service-photo-input").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    pendingServicePhoto = await resizeImage(file, 1400, 0.8);
+    pendingServicePhoto.alt = `${$("#service-form").elements.title.value || "Service"} photo`;
+    renderServicePhotoPreview();
+  } catch {
+    showToast("The service photo could not be processed");
+  }
+  event.target.value = "";
+});
+
 $("#feature-photo-preview").addEventListener("click", event => {
   if (!event.target.closest("[data-remove-feature]")) return;
   pendingFeaturePhoto = null;
@@ -2243,6 +2279,12 @@ $("#faculty-photo-preview").addEventListener("click", event => {
   if (!event.target.closest("[data-remove-faculty-photo]")) return;
   pendingFacultyPhoto = null;
   renderFacultyPhotoPreview();
+});
+
+$("#service-photo-preview").addEventListener("click", event => {
+  if (!event.target.closest("[data-remove-service-photo]")) return;
+  pendingServicePhoto = null;
+  renderServicePhotoPreview();
 });
 
 $("#gallery-photo-preview").addEventListener("click", event => {

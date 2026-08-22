@@ -158,8 +158,13 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
   min-height: 320px; padding: 23px; display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--line); cursor: pointer;
   transition: border-color .2s ease, transform .2s ease;
+  overflow: hidden;
 }
 .service-admin-card:hover { border-color: var(--green-2); transform: translateY(-2px); }
+.service-admin-photo {
+  width: calc(100% + 46px); height: 145px; margin: -23px -23px 18px;
+  display: block; object-fit: cover; border-bottom: 1px solid var(--line); background: #e6e0d4;
+}
 .service-admin-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .service-admin-meta > span {
   padding: 6px 9px; color: var(--green); border: 1px solid var(--line);

@@ -403,6 +403,7 @@ create table if not exists public.services (
   contact_email text,
   faculty_id text references public.faculty(id) on update cascade on delete set null,
   owner_email text,
+  feature_photo jsonb,
   public_ready boolean not null default false,
   review_status text not null default 'Draft' check (review_status in ('Draft', 'Submitted', 'Verified')),
   submitter_notes text,
@@ -413,6 +414,9 @@ create table if not exists public.services (
 
 alter table if exists public.services
 add column if not exists owner_email text;
+
+alter table if exists public.services
+add column if not exists feature_photo jsonb;
 
 create index if not exists equipment_public_idx
   on public.equipment (review_status, public_ready);
@@ -1653,6 +1657,61 @@ using (
       (select faculty.owner_email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2)),
       (select faculty.email from public.faculty where faculty.id = split_part(storage.objects.name, '/', 2))
     )
+  )
+);
+
+drop policy if exists "Faculty can upload owned service photos" on storage.objects;
+create policy "Faculty can upload owned service photos"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'services'
+  and public.is_service_owner(
+    (select services.owner_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_name from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.faculty_id from public.services where services.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Faculty can update owned service photos" on storage.objects;
+create policy "Faculty can update owned service photos"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'services'
+  and public.is_service_owner(
+    (select services.owner_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_name from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.faculty_id from public.services where services.id = split_part(storage.objects.name, '/', 2))
+  )
+)
+with check (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'services'
+  and public.is_service_owner(
+    (select services.owner_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_name from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.faculty_id from public.services where services.id = split_part(storage.objects.name, '/', 2))
+  )
+);
+
+drop policy if exists "Faculty can delete owned service photos" on storage.objects;
+create policy "Faculty can delete owned service photos"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'equipment-photos'
+  and split_part(storage.objects.name, '/', 1) = 'services'
+  and public.is_service_owner(
+    (select services.owner_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_email from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.contact_name from public.services where services.id = split_part(storage.objects.name, '/', 2)),
+    (select services.faculty_id from public.services where services.id = split_part(storage.objects.name, '/', 2))
   )
 );
 
