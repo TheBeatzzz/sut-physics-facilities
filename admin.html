@@ -44,14 +44,14 @@
     </section>
 
     <aside class="sidebar" id="sidebar">
-      <div class="brand">
+      <a class="brand" href="index.html" aria-label="Go to the main public page">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="brand-copy">
           <strong>School of Physics</strong>
           <small>Equipment Registry</small>
           <small class="brand-institute">Institute of Science, Suranaree University of Technology</small>
         </span>
-      </div>
+      </a>
 
       <nav class="side-nav" aria-label="Registry sections">
         <button class="nav-item is-active" data-view="overview" type="button">
@@ -115,11 +115,6 @@
           <span class="context-kicker">Physics Program · Suranaree University of Technology</span>
           <strong id="page-context">Registry overview</strong>
         </div>
-        <nav class="topbar-links" aria-label="Related pages">
-          <a href="index.html" aria-label="View public infographic">Public <span aria-hidden="true">↗</span></a>
-          <a href="student-portal.html" aria-label="Open student portal">Student <span aria-hidden="true">↗</span></a>
-          <a href="staff-portal.html" aria-label="Open staff portal">Staff <span aria-hidden="true">↗</span></a>
-        </nav>
         <div class="topbar-actions">
           <label class="global-search">
             <span class="sr-only">Search equipment</span>
@@ -223,7 +218,10 @@
         <section class="view" data-view-panel="students" aria-labelledby="students-title">
           <div class="view-heading compact-heading">
             <div><p class="eyebrow">Student records</p><h1 id="students-title">Students, advising, and projects</h1><p class="heading-description">Track enrolled students, alumni, advisors, research groups, and thesis or project progress for the Physics Program.</p></div>
-            <button class="button button-primary" type="button" data-action="new-student"><span aria-hidden="true">＋</span> Add student</button>
+            <div class="heading-actions">
+              <a class="button button-secondary" href="student-portal.html">Open student portal <span aria-hidden="true">↗</span></a>
+              <button class="button button-primary" type="button" data-action="new-student"><span aria-hidden="true">＋</span> Add student</button>
+            </div>
           </div>
 
           <div class="registry-tools">
@@ -245,7 +243,10 @@
         <section class="view" data-view-panel="researchers" aria-labelledby="researchers-title">
           <div class="view-heading compact-heading">
             <div><p class="eyebrow">Postgraduate, postdoctoral & research staff</p><h1 id="researchers-title">Researchers directory</h1><p class="heading-description">Track postgraduate researchers, postdocs, research fellows, visiting researchers, research assistants, and project researchers separately from faculty and students.</p></div>
-            <button class="button button-primary" type="button" data-action="new-researcher"><span aria-hidden="true">＋</span> Add researcher</button>
+            <div class="heading-actions">
+              <a class="button button-secondary" href="researcher-portal.html">Open researcher portal <span aria-hidden="true">↗</span></a>
+              <button class="button button-primary" type="button" data-action="new-researcher"><span aria-hidden="true">＋</span> Add researcher</button>
+            </div>
           </div>
 
           <div class="registry-tools">
@@ -265,7 +266,10 @@
         <section class="view" data-view-panel="staff" aria-labelledby="staff-title">
           <div class="view-heading compact-heading">
             <div><p class="eyebrow">Administrative, teaching & technical support</p><h1 id="staff-title">Staff directory</h1><p class="heading-description">Track administrative staff, teaching assistants, laboratory technicians, technical staff, academic support staff, and program coordinators separately from faculty, students, and researchers.</p></div>
-            <button class="button button-primary" type="button" data-action="new-staff"><span aria-hidden="true">＋</span> Add staff</button>
+            <div class="heading-actions">
+              <a class="button button-secondary" href="staff-portal.html">Open staff portal <span aria-hidden="true">↗</span></a>
+              <button class="button button-primary" type="button" data-action="new-staff"><span aria-hidden="true">＋</span> Add staff</button>
+            </div>
           </div>
 
           <div class="registry-tools">
