@@ -6,6 +6,7 @@ const backend = window.SUTSupabase;
 const emailCooldown = window.SUTStudentEmailCooldown;
 const $ = selector => document.querySelector(selector);
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
+const emailDeliveryErrorPattern = /confirmation email|send.*email|sending.*email|smtp|rate limit|too many/i;
 
 function setAuthMessage(message, type = "") {
   const target = $("#student-auth-message");
@@ -52,8 +53,19 @@ function updateEmailCooldownNotice() {
   const cooldown = emailCooldown.status();
   target.classList.toggle("is-waiting", cooldown.remaining === 0);
   target.textContent = cooldown.remaining
-    ? `Supabase built-in email can send about ${cooldown.remaining} more confirmation email${cooldown.remaining === 1 ? "" : "s"} from this browser in the current hour.`
-    : `Supabase built-in email may be cooling down for this browser. Try again in ${emailCooldown.formatWait(cooldown.waitMs)}, or ask faculty if the email does not arrive.`;
+    ? `This browser has ${cooldown.remaining} locally tracked signup email attempt${cooldown.remaining === 1 ? "" : "s"} left in the current hour. Supabase project limits or SMTP settings may still affect delivery.`
+    : `This browser has reached its locally tracked signup email attempts. Try again in ${emailCooldown.formatWait(cooldown.waitMs)}, or ask faculty if the email does not arrive.`;
+}
+
+function isEmailDeliveryError(error) {
+  return emailDeliveryErrorPattern.test(String(error?.message || error || ""));
+}
+
+function signupErrorMessage(error) {
+  if (isEmailDeliveryError(error)) {
+    return "Supabase could not send the confirmation email. This is usually an email rate limit or SMTP sender issue, not a problem with the student information. Please wait and try again, or ask faculty to create or verify the account.";
+  }
+  return error?.message || "Could not create account.";
 }
 
 $("#student-signup-form").addEventListener("submit", async event => {
@@ -89,7 +101,12 @@ $("#student-signup-form").addEventListener("submit", async event => {
       setAuthMessage("Account created. Check your email if Supabase requires confirmation, then sign in from the student portal.", "success");
     }
   } catch (error) {
-    setAuthMessage(error.message || "Could not create account.", "error");
+    console.error("Student signup failed", error);
+    if (isEmailDeliveryError(error)) {
+      emailCooldown?.record();
+      updateEmailCooldownNotice();
+    }
+    setAuthMessage(signupErrorMessage(error), "error");
   } finally {
     setBusy(event.submitter, false);
   }
