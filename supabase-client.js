@@ -119,13 +119,53 @@
   const PUBLIC_FACULTY_COLUMNS = "id,name,title,email,office,phone,bio,research_interests,highlights,activities,recognitions,profile_links,scopus_metrics,manual_metrics,facility_ids,profile_photo,color,public_ready,sample,created_at,updated_at";
   const PUBLIC_FACULTY_OPTION_COLUMNS = "id,name,title,color,public_ready,sample,created_at,updated_at";
   const PUBLIC_EQUIPMENT_COLUMNS = "id,name,asset_code,manufacturer,model,category,description,facility_id,room,custodian,email,research_group,acquisition_year,status,access,last_maintenance,next_maintenance,safety,public_ready,review_status,feature_photo,gallery,sample,created_at,updated_at";
-  const PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
+  const PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_name,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
   const LEGACY_PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
-  const PUBLIC_RESEARCHER_COLUMNS = "id,name,type,email,status,host_faculty_id,host_role,research_group_id,research_group,office,profile_photo,project_title,funding_source,start_date,end_date,short_bio,research_interests,skills,public_ready,review_status,sample,created_at,updated_at";
+  const PUBLIC_RESEARCHER_COLUMNS = "id,name,type,email,status,host_faculty_id,host_faculty_name,host_role,research_group_id,research_group,office,profile_photo,project_title,funding_source,start_date,end_date,short_bio,research_interests,skills,public_ready,review_status,sample,created_at,updated_at";
+  const LEGACY_PUBLIC_RESEARCHER_COLUMNS = "id,name,type,email,status,host_faculty_id,host_role,research_group_id,research_group,office,profile_photo,project_title,funding_source,start_date,end_date,short_bio,research_interests,skills,public_ready,review_status,sample,created_at,updated_at";
   const PUBLIC_STAFF_COLUMNS = "id,name,position,email,status,unit,research_group_id,research_group,office,profile_photo,short_bio,responsibilities,service_areas,public_ready,review_status,sample,created_at,updated_at";
   const PUBLIC_SERVICE_COLUMNS = "id,title,category,summary,details,audience,duration,schedule,fee,location,contact_name,contact_email,faculty_id,feature_photo,public_ready,review_status,sample,created_at,updated_at";
+  const FACULTY_OPTION_FALLBACKS = [
+    { id: "FACULTY-001", name: "Yupeng Yan", title: "Professor", color: "#8fd8c8", public_ready: true, sample: true, option_fallback: true },
+    { id: "FACULTY-002", name: "Santi Maensiri", title: "Professor", color: "#9bc7ee", public_ready: true, sample: true, option_fallback: true },
+    { id: "FACULTY-003", name: "Sirichoke Jungthawan", title: "Associate Professor", color: "#f4c26d", public_ready: true, sample: true, option_fallback: true },
+    { id: "FACULTY-004", name: "Ayut Limphirat", title: "Associate Professor", color: "#e8a89a", public_ready: true, sample: true },
+    { id: "FACULTY-005", name: "Prapan Maenyum", title: "Associate Professor", color: "#b8d276", public_ready: true, sample: true },
+    { id: "FACULTY-006", name: "Poemwai Chainakul", title: "Assistant Professor", color: "#c1b2df", public_ready: true, sample: true },
+    { id: "FACULTY-007", name: "Puangratana Pairo", title: "Associate Professor", color: "#7fc5b2", public_ready: true, sample: true },
+    { id: "FACULTY-008", name: "Wittawat Saenrang", title: "Associate Professor", color: "#74dfce", public_ready: true, sample: true },
+    { id: "FACULTY-009", name: "Worawat Meevassana", title: "Associate Professor", color: "#8fc3ff", public_ready: true, sample: true },
+    { id: "FACULTY-010", name: "Prayoon Songsiriritthikul", title: "Associate Professor", color: "#ff8b5b", public_ready: true, sample: true },
+    { id: "FACULTY-011", name: "Panomsak Meemon", title: "Associate Professor", color: "#d7ff3f", public_ready: true, sample: true },
+    { id: "FACULTY-012", name: "Chinorat Kobdaj", title: "Assistant Professor", color: "#b59cff", public_ready: true, sample: true },
+    { id: "FACULTY-013", name: "Khanchai Kosolthongkee", title: "Assistant Professor", color: "#ffc95c", public_ready: true, sample: true },
+    { id: "FACULTY-014", name: "Christoph Herold", title: "Assistant Professor", color: "#8fd8c8", public_ready: true, sample: true },
+    { id: "FACULTY-015", name: "Tirawut Worrakitpoonpol", title: "Assistant Professor", color: "#9bc7ee", public_ready: true, sample: true },
+    { id: "FACULTY-016", name: "Michael F. Smith", title: "Assistant Professor", color: "#f4c26d", public_ready: true, sample: true },
+    { id: "FACULTY-017", name: "Ittipon Fongkaew", title: "Assistant Professor", color: "#e8a89a", public_ready: true, sample: true },
+    { id: "FACULTY-018", name: "Warintorn Srithawong", title: "Dr.", color: "#b8d276", public_ready: true, sample: true },
+    { id: "FACULTY-019", name: "Narongrit Ritjoho", title: "Dr.", color: "#c1b2df", public_ready: true, sample: true },
+    { id: "FACULTY-020", name: "Wiwat Nuansing", title: "Dr.", color: "#7fc5b2", public_ready: true, sample: true },
+    { id: "FACULTY-021", name: "Monchai Jitvisate", title: "Dr.", color: "#74dfce", public_ready: true, sample: true },
+    { id: "FACULTY-022", name: "Artitsupa Boontan", title: "Dr.", color: "#8fc3ff", public_ready: true, sample: true },
+    { id: "FACULTY-023", name: "Sorawis Sangtawesin", title: "Dr.", color: "#ff8b5b", public_ready: true, sample: true },
+    { id: "FACULTY-024", name: "Wanvisa Talataisong", title: "Dr.", color: "#d7ff3f", public_ready: true, sample: true }
+  ];
 
   const applyOrder = (query, order) => order ? query.order(order.column, { ascending: order.ascending !== false }) : query;
+  const optionNameKey = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const mergeFacultyOptionRows = (...sources) => {
+    const rows = [];
+    const names = new Set();
+    sources.flat().filter(Boolean).forEach(row => {
+      const name = String(row.name || "").trim();
+      const key = optionNameKey(name);
+      if (!name || names.has(key)) return;
+      names.add(key);
+      rows.push(row);
+    });
+    return rows.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  };
 
   const readPublicRows = async (supabase, { view, table, columns, order, base }) => {
     const viewResult = await applyOrder(supabase.from(view).select(columns), order);
@@ -154,6 +194,7 @@
     color: row.color || "",
     publicReady: row.public_ready !== false,
     ownerEmail: row.owner_email || "",
+    optionFallback: Boolean(row.option_fallback),
     sample: Boolean(row.sample),
     createdAt: String(row.created_at || "").slice(0, 10),
     updatedAt: String(row.updated_at || "").slice(0, 10)
@@ -192,6 +233,7 @@
     level: row.level === "Undergraduate" ? "Bachelor" : row.level || "Bachelor",
     status: row.status || "Active",
     advisorId: row.advisor_id || "",
+    advisorName: row.advisor_name || "",
     advisorRole: row.advisor_role || "Primary advisor",
     coadvisor: row.coadvisor || "",
     researchGroupId: row.research_group_id || "",
@@ -238,6 +280,7 @@
     level: student.level === "Undergraduate" ? "Bachelor" : student.level || "Bachelor",
     status: student.status || "Active",
     advisor_id: student.advisorId || null,
+    advisor_name: student.advisorName || null,
     advisor_role: student.advisorRole || "Primary advisor",
     coadvisor: student.coadvisor || null,
     research_group_id: student.researchGroupId || null,
@@ -276,6 +319,7 @@
     email: row.email || "",
     status: row.status || "Active",
     hostFacultyId: row.host_faculty_id || "",
+    hostFacultyName: row.host_faculty_name || "",
     hostRole: row.host_role || "Host faculty / PI",
     researchGroupId: row.research_group_id || "",
     researchGroup: row.research_group || "",
@@ -305,6 +349,7 @@
     email: researcher.email || null,
     status: researcher.status || "Active",
     host_faculty_id: researcher.hostFacultyId || null,
+    host_faculty_name: researcher.hostFacultyName || null,
     host_role: researcher.hostRole || "Host faculty / PI",
     research_group_id: researcher.researchGroupId || null,
     research_group: researcher.researchGroup || null,
@@ -649,15 +694,16 @@
 
   const loadFacultyOptions = async () => {
     const supabase = getClient();
-    if (!supabase) throw new Error("Supabase is not configured");
+    const fallback = FACULTY_OPTION_FALLBACKS.map(row => camelFaculty({ ...row, option_fallback: true }));
+    if (!supabase) return fallback;
     const { data, error } = await readPublicRows(supabase, {
       view: "public_faculty_options",
       table: "faculty",
       columns: PUBLIC_FACULTY_OPTION_COLUMNS,
       order: { column: "name" }
     });
-    if (error) throw error;
-    return (data || []).map(camelFaculty);
+    if (error) return fallback;
+    return mergeFacultyOptionRows((data || []).map(camelFaculty), fallback);
   };
 
   const saveEquipment = async record => {
@@ -781,7 +827,7 @@
     });
     const studentsPromise = loadStudentRows(PUBLIC_STUDENT_COLUMNS).then(result => {
       const message = String(result.error?.message || "");
-      return /record_type|advisor_role|home_school|home_program|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(LEGACY_PUBLIC_STUDENT_COLUMNS) : result;
+      return /record_type|advisor_name|advisor_role|home_school|home_program|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(LEGACY_PUBLIC_STUDENT_COLUMNS) : result;
     });
     const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
       studentsPromise,
@@ -868,14 +914,19 @@
   const loadPublicResearchers = async () => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
+    const loadResearcherRows = columns => readPublicRows(supabase, {
+      view: "public_researchers",
+      table: "researchers",
+      columns,
+      order: { column: "name" },
+      base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+    });
+    const researchersPromise = loadResearcherRows(PUBLIC_RESEARCHER_COLUMNS).then(result => {
+      const message = String(result.error?.message || "");
+      return /host_faculty_name|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadResearcherRows(LEGACY_PUBLIC_RESEARCHER_COLUMNS) : result;
+    });
     const [{ data: researchers, error: researchersError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
-      readPublicRows(supabase, {
-        view: "public_researchers",
-        table: "researchers",
-        columns: PUBLIC_RESEARCHER_COLUMNS,
-        order: { column: "name" },
-        base: query => query.eq("review_status", "Verified").eq("public_ready", true)
-      }),
+      researchersPromise,
       readPublicRows(supabase, {
         view: "public_faculty_profiles",
         table: "faculty",

@@ -16,7 +16,7 @@ let activeType = "all";
 
 const facultyFor = id => faculty.find(profile => profile.id === id);
 const facilityFor = id => facilities.find(group => group.id === id);
-const hostName = id => facultyFor(id)?.name || "To be decided later";
+const hostName = researcher => facultyFor(researcher.hostFacultyId)?.name || researcher.hostFacultyName || "To be decided later";
 const groupName = researcher => facilityFor(researcher.researchGroupId)?.name || researcher.researchGroup || "To be decided later";
 const visibleResearcher = researcher => researcher.reviewStatus === "Verified" && researcher.publicReady === true;
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "";
@@ -34,6 +34,7 @@ const normalizeResearcher = researcher => ({
   email: researcher.email || "",
   status: researcher.status || "Active",
   hostFacultyId: researcher.hostFacultyId || "",
+  hostFacultyName: researcher.hostFacultyName || "",
   hostRole: researcher.hostRole || "Host faculty / PI",
   researchGroupId: researcher.researchGroupId || "",
   researchGroup: researcher.researchGroup || "",
@@ -93,7 +94,7 @@ function populateSelectFilters() {
   const hostFilter = document.querySelector("#researcher-host-public-filter");
   const groupFilter = document.querySelector("#researcher-group-public-filter");
   const statusFilter = document.querySelector("#researcher-status-public-filter");
-  const hosts = [...new Map(researchers.map(researcher => [researcher.hostFacultyId || "", hostName(researcher.hostFacultyId)]))].sort((a, b) => a[1].localeCompare(b[1]));
+  const hosts = [...new Map(researchers.map(researcher => [researcher.hostFacultyId || researcher.hostFacultyName || "", hostName(researcher)]))].sort((a, b) => a[1].localeCompare(b[1]));
   const groups = [...new Map(researchers.map(researcher => [researcher.researchGroupId || "", groupName(researcher)]))].sort((a, b) => a[1].localeCompare(b[1]));
   const statuses = [...new Set(researchers.map(researcher => researcher.status).filter(Boolean))].sort();
   hostFilter.innerHTML = `<option value="all">All hosts</option>${hosts.map(([id, name]) => `<option value="${clean(id)}">${clean(name)}</option>`).join("")}`;
@@ -119,7 +120,7 @@ function filteredResearchers() {
   const status = document.querySelector("#researcher-status-public-filter").value;
   return researchers.filter(researcher =>
     (activeType === "all" || researcher.type === activeType) &&
-    (host === "all" || (researcher.hostFacultyId || "") === host) &&
+    (host === "all" || (researcher.hostFacultyId || researcher.hostFacultyName || "") === host) &&
     (group === "all" || (researcher.researchGroupId || "") === group) &&
     (status === "all" || researcher.status === status)
   );
@@ -137,7 +138,7 @@ function researcherCard(researcher) {
       <p>${clean(researcher.shortBio || "Researcher bio coming soon.")}</p>
       <div class="faculty-tags">${tags.map(tag => `<span>${clean(tag)}</span>`).join("")}</div>
       <dl class="service-meta">
-        <div><dt>Host / PI</dt><dd>${clean(hostName(researcher.hostFacultyId))}</dd></div>
+        <div><dt>Host / PI</dt><dd>${clean(hostName(researcher))}</dd></div>
         <div><dt>Lab / group</dt><dd>${clean(groupName(researcher))}</dd></div>
         <div><dt>Project</dt><dd>${clean(researcher.projectTitle || "Project to be announced")}</dd></div>
         <div><dt>Funding</dt><dd>${clean(researcher.fundingSource || "Not listed")}</dd></div>
@@ -153,7 +154,7 @@ function researcherProfileMarkup(researcher) {
   const details = detailMarkup([
     ["Role type", researcher.type],
     ["Status", researcher.status],
-    ["Host / PI", hostName(researcher.hostFacultyId)],
+    ["Host / PI", hostName(researcher)],
     ["Host role", researcher.hostRole || "Host faculty / PI"],
     ["Lab / group", groupName(researcher)],
     ["Project", researcher.projectTitle || "Project to be announced"],

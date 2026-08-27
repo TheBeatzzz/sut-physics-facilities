@@ -23,7 +23,7 @@ const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program 
 const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start to be decided later";
 const facultyFor = id => faculty.find(profile => profile.id === id);
 const facilityFor = id => facilities.find(group => group.id === id);
-const advisorName = id => facultyFor(id)?.name || "To be decided later";
+const advisorName = student => facultyFor(student.advisorId)?.name || student.advisorName || "To be decided later";
 const groupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "To be decided later";
 const visibleStudent = student => student.verificationStatus === "Verified" && student.publicReady === true;
 const physicsStudent = student => (student.recordType || "physics") === "physics";
@@ -45,6 +45,7 @@ const normalizeStudent = student => ({
   publicReady: Boolean(student.publicReady),
   programId: student.programId || "",
   advisorId: student.advisorId || "",
+  advisorName: student.advisorName || "",
   advisorRole: student.advisorRole || "Primary advisor",
   coadvisor: student.coadvisor || "",
   researchGroupId: student.researchGroupId || "",
@@ -109,7 +110,7 @@ function populateSelectFilters() {
   programFilter.innerHTML = `<option value="all">All programs</option>${Object.entries(STUDY_PROGRAMS).map(([id, program]) => `<option value="${clean(id)}">${clean(program.label)}</option>`).join("")}`;
   const years = [...new Set(students.map(student => student.startYear).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   yearFilter.innerHTML = `<option value="all">All years</option>${years.map(year => `<option value="${clean(year)}">${clean(year)}</option>`).join("")}`;
-  const advisors = [...new Map(students.map(student => [student.advisorId || "", advisorName(student.advisorId)]))].sort((a, b) => a[1].localeCompare(b[1]));
+  const advisors = [...new Map(students.map(student => [student.advisorId || student.advisorName || "", advisorName(student)]))].sort((a, b) => a[1].localeCompare(b[1]));
   const groups = [...new Map(students.map(student => [student.researchGroupId || "", groupName(student)]))].sort((a, b) => a[1].localeCompare(b[1]));
   advisorFilter.innerHTML = `<option value="all">All advisors</option>${advisors.map(([id, name]) => `<option value="${clean(id)}">${clean(name)}</option>`).join("")}`;
   groupFilter.innerHTML = `<option value="all">All groups</option>${groups.map(([id, name]) => `<option value="${clean(id)}">${clean(name)}</option>`).join("")}`;
@@ -136,7 +137,7 @@ function filteredStudents() {
     (activeLevel === "all" || student.level === activeLevel) &&
     (program === "all" || student.programId === program) &&
     (year === "all" || String(student.startYear || "") === year) &&
-    (advisor === "all" || (student.advisorId || "") === advisor) &&
+    (advisor === "all" || (student.advisorId || student.advisorName || "") === advisor) &&
     (group === "all" || (student.researchGroupId || "") === group)
   );
 }
@@ -154,7 +155,7 @@ function studentCard(student) {
       <p>${clean(student.shortBio || "Short bio coming soon.")}</p>
       <div class="faculty-tags">${tags.map(tag => `<span>${clean(tag)}</span>`).join("")}</div>
       <dl class="service-meta">
-        <div><dt>Advisor</dt><dd>${clean(advisorName(student.advisorId))}</dd></div>
+        <div><dt>Advisor</dt><dd>${clean(advisorName(student))}</dd></div>
         <div><dt>Started</dt><dd>${clean(startLabel(student))}</dd></div>
         <div><dt>Lab / group</dt><dd>${clean(groupName(student))}</dd></div>
         <div><dt>Project</dt><dd>${clean(project)}</dd></div>
@@ -173,7 +174,7 @@ function studentProfileMarkup(student) {
   const details = detailMarkup([
     ["Program", programLabel(student.programId)],
     ["Level", student.level],
-    ["Advisor", advisorName(student.advisorId)],
+    ["Advisor", advisorName(student)],
     ["Advisor role", student.advisorRole || "Primary advisor"],
     ["Co-advisor", student.coadvisor],
     ["Started", startLabel(student)],

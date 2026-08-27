@@ -288,6 +288,7 @@ const normalizeStudent = student => ({
   publicReady: Boolean(student.publicReady),
   programId: student.programId || "",
   advisorId: student.advisorId || "",
+  advisorName: student.advisorName || "",
   advisorRole: student.advisorRole || "Primary advisor",
   coadvisor: student.coadvisor || "",
   researchGroupId: student.researchGroupId || "",
@@ -392,9 +393,9 @@ const linkedEquipment = profile => registry.equipment.filter(item => {
 const adviseesFor = profile => {
   const profileKeys = facultyIdentityKeys(profile);
   return registry.students.filter(student => {
-    const advisorKey = keyFor(student.advisorId);
+    const advisorKey = keyFor(student.advisorId || student.advisorName);
     if (!advisorKey || advisorKey === "tbd") return false;
-    return profileKeys.includes(advisorKey) || profileKeys.includes(canonicalFacultyName(student.advisorId));
+    return profileKeys.includes(advisorKey) || profileKeys.includes(canonicalFacultyName(student.advisorId || student.advisorName));
   });
 };
 
@@ -449,6 +450,7 @@ const categoriesFor = profile => {
 
 const linkLabels = {
   academic: "Personal website",
+  labWebsite: "Lab Website",
   scopus: "Scopus",
   researchGate: "ResearchGate",
   googleScholar: "Google Scholar",
@@ -457,13 +459,14 @@ const linkLabels = {
 
 const platformMarks = {
   academic: "AP",
+  labWebsite: "Lab",
   scopus: "S",
   researchGate: "RG",
   googleScholar: "G",
   orcid: "iD"
 };
 
-const profileLinkOrder = ["orcid", "scopus", "researchGate", "googleScholar", "academic"];
+const profileLinkOrder = ["orcid", "scopus", "researchGate", "googleScholar", "academic", "labWebsite"];
 const externalLinks = profile => profileLinkOrder
   .map(key => [key, profile.profileLinks?.[key]])
   .filter(([, url]) => /^https?:\/\//.test(String(url || "")))

@@ -87,6 +87,7 @@ create table if not exists public.students (
   level text not null default 'Bachelor' check (level in ('Bachelor', 'Master', 'PhD')),
   status text not null default 'Active' check (status in ('Active', 'Leave', 'Graduated', 'Withdrawn')),
   advisor_id text references public.faculty(id) on update cascade on delete set null,
+  advisor_name text,
   advisor_role text not null default 'Primary advisor' check (advisor_role in ('Primary advisor', 'Co-advisor', 'Committee member', 'Research supervisor')),
   coadvisor text,
   research_group_id text references public.facilities(id) on update cascade on delete set null,
@@ -128,6 +129,9 @@ add column if not exists profile_photo jsonb;
 
 alter table if exists public.students
 add column if not exists record_type text not null default 'physics';
+
+alter table if exists public.students
+add column if not exists advisor_name text;
 
 alter table if exists public.students
 add column if not exists advisor_role text not null default 'Primary advisor';
@@ -253,6 +257,7 @@ create table if not exists public.researchers (
   email text,
   status text not null default 'Active' check (status in ('Active', 'Completed', 'Visiting', 'Inactive')),
   host_faculty_id text references public.faculty(id) on update cascade on delete set null,
+  host_faculty_name text,
   host_role text not null default 'Host faculty / PI',
   research_group_id text references public.facilities(id) on update cascade on delete set null,
   research_group text,
@@ -304,6 +309,9 @@ add column if not exists owner_email text;
 
 alter table if exists public.researchers
 add column if not exists profile_photo jsonb;
+
+alter table if exists public.researchers
+add column if not exists host_faculty_name text;
 
 alter table public.researchers
   drop constraint if exists researchers_type_check;
@@ -585,6 +593,7 @@ select
   level,
   status,
   advisor_id,
+  advisor_name,
   advisor_role,
   coadvisor,
   research_group_id,
@@ -614,6 +623,7 @@ select
   email,
   status,
   host_faculty_id,
+  host_faculty_name,
   host_role,
   research_group_id,
   research_group,
@@ -959,7 +969,7 @@ $$;
 revoke all on function public.is_student_self(text, text) from public;
 grant execute on function public.is_student_self(text, text) to anon, authenticated;
 
-create or replace function public.is_student_owner(target_owner_email text, target_email text, target_advisor_id text)
+create or replace function public.is_student_owner(target_owner_email text, target_email text, target_advisor_id text, target_advisor_name text)
 returns boolean
 language sql
 security definer
@@ -994,6 +1004,22 @@ as $$
         or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
       )
       and btrim(coalesce(target_advisor_id, '')) = btrim(coalesce(faculty.id, ''))
+      and btrim(coalesce(target_advisor_id, '')) <> ''
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  )
+  or exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and lower(regexp_replace(btrim(coalesce(target_advisor_name, '')), '\s+', ' ', 'g')) = lower(regexp_replace(btrim(coalesce(faculty.name, '')), '\s+', ' ', 'g'))
+      and btrim(coalesce(target_advisor_name, '')) <> ''
       and (
         current_identity.email like '%@sut.ac.th'
         or current_identity.email like '%@g.sut.ac.th'
@@ -1001,10 +1027,10 @@ as $$
   );
 $$;
 
-revoke all on function public.is_student_owner(text, text, text) from public;
-grant execute on function public.is_student_owner(text, text, text) to anon, authenticated;
+revoke all on function public.is_student_owner(text, text, text, text) from public;
+grant execute on function public.is_student_owner(text, text, text, text) to anon, authenticated;
 
-create or replace function public.is_student_advisor(target_advisor_id text)
+create or replace function public.is_student_advisor(target_advisor_id text, target_advisor_name text)
 returns boolean
 language sql
 security definer
@@ -1024,6 +1050,22 @@ as $$
         or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
       )
       and btrim(coalesce(target_advisor_id, '')) = btrim(coalesce(faculty.id, ''))
+      and btrim(coalesce(target_advisor_id, '')) <> ''
+      and (
+        current_identity.email like '%@sut.ac.th'
+        or current_identity.email like '%@g.sut.ac.th'
+      )
+  )
+  or exists (
+    select 1
+    from public.faculty
+    cross join current_identity
+    where (
+        lower(btrim(coalesce(faculty.owner_email, ''))) = current_identity.email
+        or lower(btrim(coalesce(faculty.email, ''))) = current_identity.email
+      )
+      and lower(regexp_replace(btrim(coalesce(target_advisor_name, '')), '\s+', ' ', 'g')) = lower(regexp_replace(btrim(coalesce(faculty.name, '')), '\s+', ' ', 'g'))
+      and btrim(coalesce(target_advisor_name, '')) <> ''
       and (
         current_identity.email like '%@sut.ac.th'
         or current_identity.email like '%@g.sut.ac.th'
@@ -1031,8 +1073,8 @@ as $$
   );
 $$;
 
-revoke all on function public.is_student_advisor(text) from public;
-grant execute on function public.is_student_advisor(text) to anon, authenticated;
+revoke all on function public.is_student_advisor(text, text) from public;
+grant execute on function public.is_student_advisor(text, text) to anon, authenticated;
 
 create or replace function public.protect_student_verification_fields()
 returns trigger
@@ -1045,7 +1087,11 @@ declare
   faculty_editor boolean := public.is_registered_sut_faculty();
 begin
   if faculty_editor then
-    new.advisor_id := coalesce(nullif(new.advisor_id, ''), public.default_student_advisor_id());
+    new.advisor_id := case
+      when nullif(new.advisor_id, '') is not null then new.advisor_id
+      when nullif(new.advisor_name, '') is null then public.default_student_advisor_id()
+      else null
+    end;
     if new.verification_status = 'Verified' and (tg_op = 'INSERT' or old.verification_status is distinct from 'Verified') then
       new.verified_by_email := coalesce(nullif(new.verified_by_email, ''), current_email);
       new.verified_at := coalesce(new.verified_at, now());
@@ -1064,7 +1110,11 @@ begin
     new.verification_status := 'Pending';
     new.verified_by_email := null;
     new.verified_at := null;
-    new.advisor_id := coalesce(nullif(new.advisor_id, ''), public.default_student_advisor_id());
+    new.advisor_id := case
+      when nullif(new.advisor_id, '') is not null then new.advisor_id
+      when nullif(new.advisor_name, '') is null then public.default_student_advisor_id()
+      else null
+    end;
     return new;
   end if;
 
@@ -1161,7 +1211,7 @@ $$;
 revoke all on function public.is_service_owner(text, text, text, text) from public;
 grant execute on function public.is_service_owner(text, text, text, text) to anon, authenticated;
 
-create or replace function public.is_researcher_owner(target_owner_email text, target_email text, target_host_faculty_id text)
+create or replace function public.is_researcher_owner(target_owner_email text, target_email text, target_host_faculty_id text, target_host_faculty_name text)
 returns boolean
 language sql
 security definer
@@ -1186,7 +1236,14 @@ as $$
       and (
         lower(btrim(coalesce(target_owner_email, ''))) = current_identity.email
         or lower(btrim(coalesce(target_email, ''))) = current_identity.email
-        or btrim(coalesce(target_host_faculty_id, '')) = btrim(coalesce(faculty.id, ''))
+        or (
+          btrim(coalesce(target_host_faculty_id, '')) = btrim(coalesce(faculty.id, ''))
+          and btrim(coalesce(target_host_faculty_id, '')) <> ''
+        )
+        or (
+          lower(regexp_replace(btrim(coalesce(target_host_faculty_name, '')), '\s+', ' ', 'g')) = lower(regexp_replace(btrim(coalesce(faculty.name, '')), '\s+', ' ', 'g'))
+          and btrim(coalesce(target_host_faculty_name, '')) <> ''
+        )
       )
       and (
         current_identity.email like '%@sut.ac.th'
@@ -1195,8 +1252,8 @@ as $$
   );
 $$;
 
-revoke all on function public.is_researcher_owner(text, text, text) from public;
-grant execute on function public.is_researcher_owner(text, text, text) to anon, authenticated;
+revoke all on function public.is_researcher_owner(text, text, text, text) from public;
+grant execute on function public.is_researcher_owner(text, text, text, text) to anon, authenticated;
 
 create or replace function public.is_researcher_self(target_owner_email text, target_email text)
 returns boolean
@@ -1237,7 +1294,7 @@ set search_path = public
 as $$
 declare
   current_email text := public.current_sut_email();
-  faculty_editor boolean := public.is_sut_editor() or public.is_researcher_owner(new.owner_email, new.email, new.host_faculty_id);
+  faculty_editor boolean := public.is_sut_editor() or public.is_researcher_owner(new.owner_email, new.email, new.host_faculty_id, new.host_faculty_name);
 begin
   if faculty_editor then
     return new;
@@ -1467,28 +1524,29 @@ drop policy if exists "Owners and advisors can delete students" on public.studen
 
 update public.students
 set advisor_id = public.default_student_advisor_id()
-where advisor_id is null or btrim(advisor_id) = '';
+where (advisor_id is null or btrim(advisor_id) = '')
+  and (advisor_name is null or btrim(advisor_name) = '');
 
 drop policy if exists "Registered faculty can read all students" on public.students;
 drop policy if exists "Registered faculty can read own advisee students" on public.students;
 create policy "Registered faculty can read own advisee students"
 on public.students for select
 to authenticated
-using (public.is_student_advisor(advisor_id));
+using (public.is_student_advisor(advisor_id, advisor_name));
 
 drop policy if exists "Registered faculty can update students" on public.students;
 drop policy if exists "Registered faculty can update own advisee students" on public.students;
 create policy "Registered faculty can update own advisee students"
 on public.students for update
 to authenticated
-using (public.is_student_advisor(advisor_id))
-with check (public.is_student_advisor(advisor_id));
+using (public.is_student_advisor(advisor_id, advisor_name))
+with check (public.is_student_advisor(advisor_id, advisor_name));
 
 drop policy if exists "Registered faculty can create own advisee students" on public.students;
 create policy "Registered faculty can create own advisee students"
 on public.students for insert
 to authenticated
-with check (public.is_student_advisor(advisor_id));
+with check (public.is_student_advisor(advisor_id, advisor_name));
 
 drop policy if exists "Students can read own student record" on public.students;
 create policy "Students can read own student record"
@@ -1538,26 +1596,26 @@ drop policy if exists "Faculty can read owned researchers" on public.researchers
 create policy "Faculty can read owned researchers"
 on public.researchers for select
 to authenticated
-using (public.is_researcher_owner(owner_email, email, host_faculty_id));
+using (public.is_researcher_owner(owner_email, email, host_faculty_id, host_faculty_name));
 
 drop policy if exists "Faculty can insert owned researchers" on public.researchers;
 create policy "Faculty can insert owned researchers"
 on public.researchers for insert
 to authenticated
-with check (public.is_researcher_owner(owner_email, email, host_faculty_id));
+with check (public.is_researcher_owner(owner_email, email, host_faculty_id, host_faculty_name));
 
 drop policy if exists "Faculty can update owned researchers" on public.researchers;
 create policy "Faculty can update owned researchers"
 on public.researchers for update
 to authenticated
-using (public.is_researcher_owner(owner_email, email, host_faculty_id))
-with check (public.is_researcher_owner(owner_email, email, host_faculty_id));
+using (public.is_researcher_owner(owner_email, email, host_faculty_id, host_faculty_name))
+with check (public.is_researcher_owner(owner_email, email, host_faculty_id, host_faculty_name));
 
 drop policy if exists "Faculty can delete owned researchers" on public.researchers;
 create policy "Faculty can delete owned researchers"
 on public.researchers for delete
 to authenticated
-using (public.is_researcher_owner(owner_email, email, host_faculty_id));
+using (public.is_researcher_owner(owner_email, email, host_faculty_id, host_faculty_name));
 
 drop policy if exists "Researchers can read own researcher profile" on public.researchers;
 create policy "Researchers can read own researcher profile"

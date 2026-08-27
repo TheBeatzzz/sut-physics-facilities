@@ -13,7 +13,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
-    <script src="admin.js" defer></script>
+    <script src="admin.js?v=lab-website-20260827" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -421,12 +421,13 @@
             <label class="span-2">Activities<textarea name="activities" rows="3" placeholder="Teaching, outreach, supervision, collaborations, seminars"></textarea></label>
             <label class="span-2">Recognitions<textarea name="recognitions" rows="3" placeholder="Awards, appointments, grants, society roles"></textarea></label>
           </div></div>
-          <div class="form-section"><div class="form-section-title"><span>03</span><div><h3>Academic profile links</h3><p>Connect external scholarly profiles such as Scopus, ResearchGate, Google Scholar, ORCID, and a personal website.</p></div></div><div class="form-grid">
+          <div class="form-section"><div class="form-section-title"><span>03</span><div><h3>Academic profile links</h3><p>Connect external scholarly profiles such as Scopus, ResearchGate, Google Scholar, ORCID, and personal or lab websites.</p></div></div><div class="form-grid">
             <label>Scopus<input name="scopus" type="url" placeholder="https://www.scopus.com/..." /></label>
             <label>ResearchGate<input name="researchGate" type="url" placeholder="https://www.researchgate.net/profile/..." /></label>
             <label>ORCID<input name="orcid" type="url" placeholder="https://orcid.org/0000-0000-0000-0000" /></label>
             <label>Google Scholar<input name="googleScholar" type="url" placeholder="https://scholar.google.com/..." /></label>
             <label>Personal website<input name="academic" type="url" placeholder="https://..." /></label>
+            <label>Lab Website<input name="labWebsite" type="url" placeholder="https://..." /></label>
             <label>Fallback h-index<input name="manualHIndex" type="number" min="0" step="1" inputmode="numeric" placeholder="Optional" /></label>
             <label>Fallback citation count<input name="manualCitationCount" type="number" min="0" step="1" inputmode="numeric" placeholder="Optional" /></label>
           </div></div>

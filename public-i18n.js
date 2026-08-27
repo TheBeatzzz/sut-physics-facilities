@@ -447,6 +447,7 @@ const textTranslations = {
   "available metrics.": "ตัวชี้วัดที่มีอยู่",
   "These values are shown when refreshed Scopus data is not available.": "ค่าชุดนี้จะแสดงเมื่อยังไม่มีข้อมูล Scopus ที่อัปเดต",
   "Faculty-provided metrics": "ตัวชี้วัดจากคณาจารย์",
+  "Lab Website": "เว็บไซต์ห้องปฏิบัติการ",
   "Use these links to explore the faculty member's academic profiles and research activity.": "ใช้ลิงก์เหล่านี้เพื่อสำรวจโปรไฟล์วิชาการและกิจกรรมวิจัยของคณาจารย์",
   "No academic profile links have been added yet.": "ยังไม่ได้เพิ่มลิงก์โปรไฟล์วิชาการ",
   "No linked equipment yet": "ยังไม่มีเครื่องมือที่เชื่อมโยง",

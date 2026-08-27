@@ -12,6 +12,14 @@ let toastTimer;
 const $ = selector => document.querySelector(selector);
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const today = () => new Date().toISOString().slice(0, 10);
+const facultyNameValue = name => `name:${String(name || "").trim()}`;
+const facultyOptionValue = profile => profile.optionFallback ? facultyNameValue(profile.name) : String(profile.id || "");
+const facultyChoiceFromValue = value => {
+  const raw = String(value || "").trim();
+  if (raw.startsWith("name:")) return { id: "", name: raw.slice(5).trim() };
+  const profile = facultyProfiles.find(item => item.id === raw);
+  return { id: raw, name: profile?.name || "" };
+};
 const normalizeList = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
 const normalizeKeywords = value => normalizeList(value).slice(0, 5);
 const wordCount = value => String(value || "").trim().split(/\s+/).filter(Boolean).length;
@@ -246,7 +254,7 @@ function verificationText(record) {
 
 function populateAdvisorOptions(selected = "") {
   const target = $("#student-self-advisor");
-  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${facultyProfiles.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
+  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${facultyProfiles.map(profile => `<option value="${clean(facultyOptionValue(profile))}">${clean(profile.name)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === selected)) target.value = selected;
 }
 
@@ -263,6 +271,7 @@ function formToRecord(form) {
   const program = STUDY_PROGRAMS[data.programId];
   const group = researchGroups.find(item => item.id === data.researchGroupId);
   const recordType = data.recordType === "sut-external" ? "sut-external" : "physics";
+  const advisorChoice = facultyChoiceFromValue(data.advisorId);
   return {
     ...currentRecord,
     id: currentRecord?.id || `STU-${Date.now().toString(36).toUpperCase()}`,
@@ -273,7 +282,8 @@ function formToRecord(form) {
     recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
-    advisorId: data.advisorId || DEFAULT_STUDENT_ADVISOR_ID,
+    advisorId: advisorChoice.id || "",
+    advisorName: advisorChoice.name,
     advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,
@@ -337,7 +347,7 @@ function fillRecordForm(record = null) {
   fillProgressChecklist(defaults.studyProgress || {});
   syncProgressChecklist();
   syncRecordTypeFields();
-  populateAdvisorOptions(defaults.advisorId || DEFAULT_STUDENT_ADVISOR_ID);
+  populateAdvisorOptions(defaults.advisorId || (defaults.advisorName ? facultyNameValue(defaults.advisorName) : DEFAULT_STUDENT_ADVISOR_ID));
   populateResearchGroupOptions(defaults.researchGroupId || "");
   renderProfilePhotoPreview();
   const [title, note] = verificationText(record);

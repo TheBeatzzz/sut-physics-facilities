@@ -14,6 +14,14 @@ let toastTimer;
 const $ = selector => document.querySelector(selector);
 const clean = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const today = () => new Date().toISOString().slice(0, 10);
+const facultyNameValue = name => `name:${String(name || "").trim()}`;
+const facultyOptionValue = profile => profile.optionFallback ? facultyNameValue(profile.name) : String(profile.id || "");
+const facultyChoiceFromValue = value => {
+  const raw = String(value || "").trim();
+  if (raw.startsWith("name:")) return { id: "", name: raw.slice(5).trim() };
+  const profile = facultyProfiles.find(item => item.id === raw);
+  return { id: raw, name: profile?.name || "" };
+};
 const normalizeList = value => Array.isArray(value) ? value.filter(Boolean) : String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
 const normalizeKeywords = value => normalizeList(value).slice(0, 5);
 const wordCount = value => String(value || "").trim().split(/\s+/).filter(Boolean).length;
@@ -159,7 +167,7 @@ function validateProfileFields(form) {
 
 function populateHostOptions(selected = "") {
   const target = $("#researcher-self-host");
-  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${facultyProfiles.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
+  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${facultyProfiles.map(profile => `<option value="${clean(facultyOptionValue(profile))}">${clean(profile.name)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === selected)) target.value = selected;
 }
 
@@ -192,6 +200,7 @@ function formToRecord(form) {
   Object.keys(data).forEach(key => { data[key] = String(data[key] || "").trim(); });
   const email = String(currentSession?.user?.email || data.email || "").trim().toLowerCase();
   const group = researchGroups.find(item => item.id === data.researchGroupId);
+  const hostChoice = facultyChoiceFromValue(data.hostFacultyId);
   return {
     ...currentRecord,
     id: currentRecord?.id || `RES-${Date.now().toString(36).toUpperCase()}`,
@@ -199,7 +208,8 @@ function formToRecord(form) {
     type: normalizeType(data.type),
     email,
     status: data.status || "Active",
-    hostFacultyId: data.hostFacultyId,
+    hostFacultyId: hostChoice.id,
+    hostFacultyName: hostChoice.name,
     hostRole: data.hostRole || "Host faculty / PI",
     researchGroupId: data.researchGroupId,
     researchGroup: group?.name || data.researchGroup || currentRecord?.researchGroup || "",
@@ -249,7 +259,7 @@ function fillRecordForm(record = null) {
   form.elements.researchInterests.value = normalizeList(defaults.researchInterests).join("\n");
   form.elements.skills.value = normalizeList(defaults.skills).join("\n");
   form.elements.publicReady.checked = Boolean(defaults.publicReady);
-  populateHostOptions(defaults.hostFacultyId || "");
+  populateHostOptions(defaults.hostFacultyId || (defaults.hostFacultyName ? facultyNameValue(defaults.hostFacultyName) : ""));
   populateResearchGroupOptions(defaults.researchGroupId || "");
   renderProfilePhotoPreview();
   const [title, note] = reviewText(record);

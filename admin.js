@@ -88,6 +88,7 @@ const sampleFacultyProfile = (id, name, title, researchInterests, color, role = 
   recognitions: ["Recognition or appointment to update"],
   profileLinks: {
     academic: "",
+    labWebsite: "",
     scopus: "",
     researchGate: "",
     googleScholar: "",
@@ -194,6 +195,7 @@ const normalizeStudents = students => students.map(student => ({
   ...student,
   level: student.level === "Undergraduate" ? "Bachelor" : STUDY_LEVELS.includes(student.level) ? student.level : STUDY_PROGRAMS[student.programId]?.level || "Bachelor",
   status: student.status || "Active",
+  advisorName: student.advisorName || "",
   startTerm: ["1", "2", "3"].includes(String(student.startTerm || "")) ? String(student.startTerm) : "",
   researchInterests: normalizeKeywords(student.researchInterests),
   skills: normalizeList(student.skills),
@@ -212,6 +214,7 @@ const normalizeResearchers = researchers => researchers.map(researcher => ({
   type: RESEARCHER_TYPES.includes(researcher.type) ? researcher.type : "Postdoctoral Researcher",
   status: researcher.status || "Active",
   hostFacultyId: researcher.hostFacultyId || "",
+  hostFacultyName: researcher.hostFacultyName || "",
   researchGroupId: researcher.researchGroupId || "",
   researchInterests: normalizeKeywords(researcher.researchInterests),
   skills: normalizeList(researcher.skills),
@@ -327,7 +330,7 @@ const extractScopusAuthorId = value => {
 };
 const facilityFor = id => db.facilities.find(item => item.id === id);
 const facultyFor = id => db.faculty.find(item => item.id === id);
-const advisorName = id => facultyFor(id)?.name || TO_BE_DECIDED_LABEL;
+const advisorName = (id, fallbackName = "") => facultyFor(id)?.name || fallbackName || TO_BE_DECIDED_LABEL;
 const researchGroupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || TO_BE_DECIDED_LABEL;
 const serviceCategoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
 const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program to be decided later";
@@ -1153,7 +1156,7 @@ function filteredStudents() {
       student.startTerm ? `Term ${student.startTerm}` : "",
       student.startYear,
       normalizeList(student.researchInterests).join(" "),
-      advisorName(student.advisorId),
+      advisorName(student.advisorId, student.advisorName),
       student.coadvisor,
       researchGroupName(student),
       student.projectTitle,
@@ -1167,7 +1170,7 @@ function filteredStudents() {
       (startYear === "all" || String(student.startYear || "") === startYear) &&
       (status === "all" || student.status === status) &&
       (verification === "all" || student.verificationStatus === verification) &&
-      (advisor === "all" || student.advisorId === advisor) &&
+      (advisor === "all" || (student.advisorId || student.advisorName || "") === advisor) &&
       (group === "all" || (student.researchGroupId || "") === group);
   });
 }
@@ -1188,7 +1191,7 @@ function renderStudents() {
     return `<tr data-student-id="${clean(student.id)}">
       <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(student.name))}</span><div><strong>${clean(student.name)}</strong><small>${clean(student.studentCode || student.id)}${student.email ? ` · ${clean(student.email)}` : ""}</small></div></div></td>
       <td><div class="cell-stack"><strong>${clean(program)}</strong><small>${clean(typeLabel)} · ${studentStatusPill(student.status || "Active")} ${verificationPill(student.verificationStatus || "Pending")}</small></div></td>
-      <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId))}</strong><small>${clean(student.advisorRole || "Primary advisor")}${student.coadvisor ? ` · ${clean(student.coadvisor)}` : ""}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(advisorName(student.advisorId, student.advisorName))}</strong><small>${clean(student.advisorRole || "Primary advisor")}${student.coadvisor ? ` · ${clean(student.coadvisor)}` : ""}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(project)}</strong><small>${clean(researchGroupName(student))}</small></div></td>
       <td><div class="cell-stack student-progress-cell"><strong>${clean(years)}</strong><small>${clean(student.graduationYear ? "Graduated" : "In progress")}</small>${studentMilestoneMarkup(student)}</div></td>
       <td><div class="row-actions"><button type="button" data-edit-student="${clean(student.id)}" aria-label="Edit ${clean(student.name)}">✎</button><button type="button" data-delete-student="${clean(student.id)}" aria-label="Delete ${clean(student.name)}">×</button></div></td>
@@ -1214,14 +1217,14 @@ function filteredResearchers() {
       researcher.shortBio,
       normalizeList(researcher.researchInterests).join(" "),
       normalizeList(researcher.skills).join(" "),
-      advisorName(researcher.hostFacultyId),
+      advisorName(researcher.hostFacultyId, researcher.hostFacultyName),
       researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup })
     ].join(" ").toLowerCase();
     return (!query || haystack.includes(query)) &&
       (type === "all" || researcher.type === type) &&
       (status === "all" || researcher.status === status) &&
       (review === "all" || researcher.reviewStatus === review) &&
-      (host === "all" || (researcher.hostFacultyId || "") === host) &&
+      (host === "all" || (researcher.hostFacultyId || researcher.hostFacultyName || "") === host) &&
       (group === "all" || (researcher.researchGroupId || "") === group);
   });
 }
@@ -1238,7 +1241,7 @@ function renderResearchers() {
     return `<tr data-researcher-id="${clean(researcher.id)}">
       <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(researcher.name))}</span><div><strong>${clean(researcher.name)}</strong><small>${clean(researcher.email || researcher.id)}</small></div></div></td>
       <td><div class="cell-stack"><strong>${clean(researcher.type || "Researcher")}</strong><small>${clean(researcher.status || "Active")} · ${reviewPill(researcher.reviewStatus || "Draft")} ${researcher.publicReady ? verificationPill("Verified") : verificationPill("Pending")}</small></div></td>
-      <td><div class="cell-stack"><strong>${clean(advisorName(researcher.hostFacultyId))}</strong><small>${clean(researcher.hostRole || "Host faculty / PI")}</small></div></td>
+      <td><div class="cell-stack"><strong>${clean(advisorName(researcher.hostFacultyId, researcher.hostFacultyName))}</strong><small>${clean(researcher.hostRole || "Host faculty / PI")}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup }))}</strong><small>${clean(interests.join(" · ") || "Interests to add")}</small></div></td>
       <td><div class="cell-stack"><strong>${clean(researcher.projectTitle || "Project to add")}</strong><small>${clean(dates)}</small></div></td>
       <td><div class="row-actions"><button type="button" data-edit-researcher="${clean(researcher.id)}" aria-label="Edit ${clean(researcher.name)}">✎</button><button type="button" data-delete-researcher="${clean(researcher.id)}" aria-label="Delete ${clean(researcher.name)}">×</button></div></td>
@@ -1435,7 +1438,8 @@ function studentFromForm(form) {
     recordType,
     level: data.level || program?.level || "Bachelor",
     status: data.status || "Active",
-    advisorId: data.advisorId || DEFAULT_STUDENT_ADVISOR_ID,
+    advisorId: data.advisorId || (existing?.advisorName ? "" : DEFAULT_STUDENT_ADVISOR_ID),
+    advisorName: data.advisorId ? "" : existing?.advisorName || "",
     advisorRole: data.advisorRole || "Primary advisor",
     coadvisor: data.coadvisor,
     researchGroupId: data.researchGroupId,
@@ -1565,6 +1569,7 @@ function researcherFromForm(form) {
     reviewStatus: data.reviewStatus || "Draft",
     publicReady: form.elements.publicReady.checked,
     hostFacultyId: data.hostFacultyId,
+    hostFacultyName: data.hostFacultyId ? "" : existing?.hostFacultyName || "",
     hostRole: data.hostRole || "Host faculty / PI",
     researchGroupId: data.researchGroupId,
     researchGroup: group?.name || data.researchGroup || existing?.researchGroup || "",
@@ -1848,7 +1853,7 @@ function openFacultyDialog(id = null) {
       if (field) field.value = normalizeList(profile[key]).join("\n");
     });
     const links = profileLinks(profile);
-    ["academic", "scopus", "researchGate", "googleScholar", "orcid"].forEach(key => {
+    ["academic", "labWebsite", "scopus", "researchGate", "googleScholar", "orcid"].forEach(key => {
       const field = form.elements.namedItem(key);
       if (field) field.value = links[key] || "";
     });
@@ -1902,6 +1907,7 @@ function facultyFromForm(form) {
     } : null,
     profileLinks: {
       academic: data.academic,
+      labWebsite: data.labWebsite,
       scopus: data.scopus,
       researchGate: data.researchGate,
       googleScholar: data.googleScholar,
@@ -2143,7 +2149,7 @@ function exportStudentCsv() {
   const rows = db.students.map(student => ({
     ...student,
     program: programLabel(student.programId),
-    advisor: advisorName(student.advisorId),
+    advisor: advisorName(student.advisorId, student.advisorName),
     researchGroup: researchGroupName(student),
     researchInterests: normalizeList(student.researchInterests).join("; "),
     skills: normalizeList(student.skills).join("; ")
@@ -2158,7 +2164,7 @@ function exportResearcherCsv() {
   const quote = value => `"${String(value ?? "").replace(/"/g,'""')}"`;
   const rows = db.researchers.map(researcher => ({
     ...researcher,
-    hostFaculty: advisorName(researcher.hostFacultyId),
+    hostFaculty: advisorName(researcher.hostFacultyId, researcher.hostFacultyName),
     researchGroup: researchGroupName({ researchGroupId: researcher.researchGroupId, researchGroup: researcher.researchGroup }),
     researchInterests: normalizeList(researcher.researchInterests).join("; "),
     skills: normalizeList(researcher.skills).join("; ")
