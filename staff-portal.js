@@ -1,5 +1,6 @@
 const STAFF_STORAGE_KEY = "sut-physics-staff-draft-v1";
 const STAFF_POSITIONS = ["Administrative Staff", "Teaching Assistant", "Laboratory Technician", "Technical Staff", "Academic Support Staff", "Program Coordinator"];
+const TO_BE_DECIDED_LABEL = "To be decided later";
 
 const backend = window.SUTSupabase;
 const emailCooldown = window.SUTStudentEmailCooldown;
@@ -150,7 +151,7 @@ function validateProfileFields(form) {
 
 function populateResearchGroupOptions(selected = "") {
   const target = $("#staff-self-research-group");
-  target.innerHTML = `<option value="">TBD</option>${researchGroups.map(group => `<option value="${clean(group.id)}">${clean(group.name)}</option>`).join("")}`;
+  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${researchGroups.map(group => `<option value="${clean(group.id)}">${clean(group.name)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === selected)) target.value = selected;
 }
 

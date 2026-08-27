@@ -12,7 +12,7 @@ let facilities = [];
 let activePosition = "all";
 
 const facilityFor = id => facilities.find(group => group.id === id);
-const groupName = profile => facilityFor(profile.researchGroupId)?.name || profile.researchGroup || "TBD";
+const groupName = profile => facilityFor(profile.researchGroupId)?.name || profile.researchGroup || "To be decided later";
 const visibleStaff = profile => profile.reviewStatus === "Verified" && profile.publicReady === true;
 const detailMarkup = items => items
   .filter(([, value]) => String(value || "").trim())

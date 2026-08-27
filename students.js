@@ -19,12 +19,12 @@ let faculty = [];
 let facilities = [];
 let activeLevel = "all";
 
-const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
-const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
+const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program to be decided later";
+const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start to be decided later";
 const facultyFor = id => faculty.find(profile => profile.id === id);
 const facilityFor = id => facilities.find(group => group.id === id);
-const advisorName = id => facultyFor(id)?.name || "TBD";
-const groupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "TBD";
+const advisorName = id => facultyFor(id)?.name || "To be decided later";
+const groupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "To be decided later";
 const visibleStudent = student => student.verificationStatus === "Verified" && student.publicReady === true;
 const physicsStudent = student => (student.recordType || "physics") === "physics";
 const detailMarkup = items => items

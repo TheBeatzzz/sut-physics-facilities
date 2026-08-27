@@ -533,6 +533,18 @@ select
 from public.faculty
 where public_ready = true;
 
+create or replace view public.public_faculty_options as
+select
+  id,
+  name,
+  title,
+  color,
+  public_ready,
+  sample,
+  created_at,
+  updated_at
+from public.faculty;
+
 create or replace view public.public_equipment as
 select
   id,
@@ -671,6 +683,7 @@ where review_status = 'Verified' and public_ready = true;
 
 grant select on public.public_facilities to anon, authenticated;
 grant select on public.public_faculty_profiles to anon, authenticated;
+grant select on public.public_faculty_options to anon, authenticated;
 grant select on public.public_equipment to anon, authenticated;
 grant select on public.public_students to anon, authenticated;
 grant select on public.public_researchers to anon, authenticated;

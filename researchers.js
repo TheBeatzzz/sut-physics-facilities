@@ -16,8 +16,8 @@ let activeType = "all";
 
 const facultyFor = id => faculty.find(profile => profile.id === id);
 const facilityFor = id => facilities.find(group => group.id === id);
-const hostName = id => facultyFor(id)?.name || "TBD";
-const groupName = researcher => facilityFor(researcher.researchGroupId)?.name || researcher.researchGroup || "TBD";
+const hostName = id => facultyFor(id)?.name || "To be decided later";
+const groupName = researcher => facilityFor(researcher.researchGroupId)?.name || researcher.researchGroup || "To be decided later";
 const visibleResearcher = researcher => researcher.reviewStatus === "Verified" && researcher.publicReady === true;
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "";
 const periodLabel = researcher => [formatDate(researcher.startDate), formatDate(researcher.endDate)].filter(Boolean).join(" - ") || "Dates to be confirmed";

@@ -117,6 +117,7 @@
 
   const PUBLIC_FACILITY_COLUMNS = "id,name,building,room,lead,description,color";
   const PUBLIC_FACULTY_COLUMNS = "id,name,title,email,office,phone,bio,research_interests,highlights,activities,recognitions,profile_links,scopus_metrics,manual_metrics,facility_ids,profile_photo,color,public_ready,sample,created_at,updated_at";
+  const PUBLIC_FACULTY_OPTION_COLUMNS = "id,name,title,color,public_ready,sample,created_at,updated_at";
   const PUBLIC_EQUIPMENT_COLUMNS = "id,name,asset_code,manufacturer,model,category,description,facility_id,room,custodian,email,research_group,acquisition_year,status,access,last_maintenance,next_maintenance,safety,public_ready,review_status,feature_photo,gallery,sample,created_at,updated_at";
   const PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
   const LEGACY_PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
@@ -644,6 +645,19 @@
       equipment: (equipment || []).map(camelEquipment),
       services: servicesTableMissing ? [] : (services || []).map(camelService)
     };
+  };
+
+  const loadFacultyOptions = async () => {
+    const supabase = getClient();
+    if (!supabase) throw new Error("Supabase is not configured");
+    const { data, error } = await readPublicRows(supabase, {
+      view: "public_faculty_options",
+      table: "faculty",
+      columns: PUBLIC_FACULTY_OPTION_COLUMNS,
+      order: { column: "name" }
+    });
+    if (error) throw error;
+    return (data || []).map(camelFaculty);
   };
 
   const saveEquipment = async record => {
@@ -1175,6 +1189,7 @@
     signOut,
     updatePassword,
     loadRegistry,
+    loadFacultyOptions,
     saveEquipment,
     deleteEquipment,
     saveFacility,

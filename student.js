@@ -27,6 +27,7 @@ const STUDY_PROGRAMS = {
 const TERM_VALUES = ["1", "2", "3"];
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-001";
+const TO_BE_DECIDED_LABEL = "To be decided later";
 const PROGRESS_MILESTONES = [
   "coreCourses",
   "comprehensiveExam",
@@ -245,13 +246,13 @@ function verificationText(record) {
 
 function populateAdvisorOptions(selected = "") {
   const target = $("#student-self-advisor");
-  target.innerHTML = `<option value="">TBD</option>${facultyProfiles.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
+  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${facultyProfiles.map(profile => `<option value="${clean(profile.id)}">${clean(profile.name)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === selected)) target.value = selected;
 }
 
 function populateResearchGroupOptions(selected = "") {
   const target = $("#student-self-research-group");
-  target.innerHTML = `<option value="">TBD</option>${researchGroups.map(group => `<option value="${clean(group.id)}">${clean(group.name)}</option>`).join("")}`;
+  target.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${researchGroups.map(group => `<option value="${clean(group.id)}">${clean(group.name)}</option>`).join("")}`;
   if ([...target.options].some(option => option.value === selected)) target.value = selected;
 }
 
@@ -347,8 +348,11 @@ function fillRecordForm(record = null) {
 
 async function loadFacultyOptions() {
   try {
-    const registry = await backend.loadRegistry({ publicOnly: true });
-    facultyProfiles = Array.isArray(registry.faculty) ? registry.faculty : [];
+    const [registry, facultyOptions] = await Promise.all([
+      backend.loadRegistry({ publicOnly: true }),
+      backend.loadFacultyOptions ? backend.loadFacultyOptions().catch(() => null) : Promise.resolve(null)
+    ]);
+    facultyProfiles = Array.isArray(facultyOptions) && facultyOptions.length ? facultyOptions : Array.isArray(registry.faculty) ? registry.faculty : [];
     researchGroups = Array.isArray(registry.facilities) ? registry.facilities : [];
   } catch {
     facultyProfiles = [];

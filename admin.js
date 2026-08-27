@@ -26,6 +26,7 @@ const STUDENT_MILESTONES = [
 const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Postgraduate Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
 const STAFF_POSITIONS = ["Administrative Staff", "Teaching Assistant", "Laboratory Technician", "Technical Staff", "Academic Support Staff", "Program Coordinator"];
 const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-001";
+const TO_BE_DECIDED_LABEL = "To be decided later";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
   id,
@@ -326,10 +327,10 @@ const extractScopusAuthorId = value => {
 };
 const facilityFor = id => db.facilities.find(item => item.id === id);
 const facultyFor = id => db.faculty.find(item => item.id === id);
-const advisorName = id => facultyFor(id)?.name || "TBD";
-const researchGroupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || "TBD";
+const advisorName = id => facultyFor(id)?.name || TO_BE_DECIDED_LABEL;
+const researchGroupName = student => facilityFor(student.researchGroupId)?.name || student.researchGroup || TO_BE_DECIDED_LABEL;
 const serviceCategoryLabel = value => SERVICE_CATEGORIES[value] || value || "Service";
-const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
+const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program to be decided later";
 const formatDate = value => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not recorded";
 const milestoneLevelFor = student => student.level || STUDY_PROGRAMS[student.programId]?.level || "Bachelor";
 const milestonesForStudent = student => {
@@ -948,13 +949,13 @@ function populateStudentAdvisorOptions(selected = "") {
   const formTarget = $("#student-advisor");
   if (formTarget) {
     const previous = selected || formTarget.value;
-    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    formTarget.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#student-advisor-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
-    filterTarget.innerHTML = `<option value="all">All advisors</option><option value="">TBD</option>${options}`;
+    filterTarget.innerHTML = `<option value="all">All advisors</option><option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
   }
 }
@@ -964,13 +965,13 @@ function populateStudentResearchGroupOptions(selected = "") {
   const formTarget = $("#student-research-group");
   if (formTarget) {
     const previous = selected || formTarget.value;
-    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    formTarget.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#student-group-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
-    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
   }
 }
@@ -980,13 +981,13 @@ function populateResearcherHostOptions(selected = "") {
   const formTarget = $("#researcher-host");
   if (formTarget) {
     const previous = selected || formTarget.value;
-    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    formTarget.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#researcher-host-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
-    filterTarget.innerHTML = `<option value="all">All hosts</option><option value="">TBD</option>${options}`;
+    filterTarget.innerHTML = `<option value="all">All hosts</option><option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
   }
 }
@@ -996,13 +997,13 @@ function populateResearcherGroupOptions(selected = "") {
   const formTarget = $("#researcher-group");
   if (formTarget) {
     const previous = selected || formTarget.value;
-    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    formTarget.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#researcher-group-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
-    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
   }
 }
@@ -1012,13 +1013,13 @@ function populateStaffGroupOptions(selected = "") {
   const formTarget = $("#staff-group");
   if (formTarget) {
     const previous = selected || formTarget.value;
-    formTarget.innerHTML = `<option value="">TBD</option>${options}`;
+    formTarget.innerHTML = `<option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...formTarget.options].some(option => option.value === previous)) formTarget.value = previous;
   }
   const filterTarget = $("#staff-group-filter");
   if (filterTarget) {
     const previous = filterTarget.value;
-    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">TBD</option>${options}`;
+    filterTarget.innerHTML = `<option value="all">All groups</option><option value="">${TO_BE_DECIDED_LABEL}</option>${options}`;
     if ([...filterTarget.options].some(option => option.value === previous)) filterTarget.value = previous;
   }
 }
@@ -1178,8 +1179,8 @@ function renderStudents() {
   $("#student-result-count").textContent = students.length;
   $("#student-empty").hidden = students.length > 0;
   table.innerHTML = students.map(student => {
-    const started = student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
-    const years = [started, student.expectedGraduationYear || student.graduationYear].filter(Boolean).join(" - ") || "Timeline TBD";
+    const started = student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start to be decided later";
+    const years = [started, student.expectedGraduationYear || student.graduationYear].filter(Boolean).join(" - ") || "Timeline to be decided later";
     const project = student.projectTitle || student.thesisTitle || "Project title to add";
     const external = student.recordType === "sut-external";
     const program = external ? student.homeProgram || "SUT external program" : programLabel(student.programId);
@@ -1233,7 +1234,7 @@ function renderResearchers() {
   $("#researcher-empty").hidden = researchers.length > 0;
   table.innerHTML = researchers.map(researcher => {
     const interests = normalizeList(researcher.researchInterests).slice(0, 3);
-    const dates = [researcher.startDate ? formatDate(researcher.startDate) : "", researcher.endDate ? formatDate(researcher.endDate) : ""].filter(Boolean).join(" - ") || "Dates TBD";
+    const dates = [researcher.startDate ? formatDate(researcher.startDate) : "", researcher.endDate ? formatDate(researcher.endDate) : ""].filter(Boolean).join(" - ") || "Dates to be decided later";
     return `<tr data-researcher-id="${clean(researcher.id)}">
       <td><div class="equipment-name-cell"><span class="record-icon student-record-icon">${clean(initials(researcher.name))}</span><div><strong>${clean(researcher.name)}</strong><small>${clean(researcher.email || researcher.id)}</small></div></div></td>
       <td><div class="cell-stack"><strong>${clean(researcher.type || "Researcher")}</strong><small>${clean(researcher.status || "Active")} · ${reviewPill(researcher.reviewStatus || "Draft")} ${researcher.publicReady ? verificationPill("Verified") : verificationPill("Pending")}</small></div></td>
@@ -1333,8 +1334,8 @@ function renderServices() {
       <h2>${clean(service.title)}</h2>
       <p>${clean(service.summary || service.details || "Service details have not been added yet.")}</p>
       <div class="service-admin-foot">
-        <span><strong>${clean(service.duration || "TBD")}</strong> duration</span>
-        <span><strong>${clean(service.schedule || "TBD")}</strong> schedule</span>
+        <span><strong>${clean(service.duration || TO_BE_DECIDED_LABEL)}</strong> duration</span>
+        <span><strong>${clean(service.schedule || TO_BE_DECIDED_LABEL)}</strong> schedule</span>
         <span><strong>${clean(serviceOwner(service))}</strong> owner</span>
         <span><strong>${service.publicReady ? "Yes" : "No"}</strong> public</span>
         <button class="text-button" type="button" data-edit-service="${clean(service.id)}" aria-label="Edit ${clean(service.title)}">Edit <span>→</span></button>

@@ -74,8 +74,8 @@ const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(Str
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 const keyFor = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 const numberText = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "";
-const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program TBD";
-const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start TBD";
+const programLabel = value => STUDY_PROGRAMS[value]?.label || value || "Program to be decided later";
+const startLabel = student => student.startYear ? `${student.startTerm ? `Term ${student.startTerm}, ` : ""}${student.startYear}` : "Start to be decided later";
 const profileKey = profile => keyFor(profile.id || profile.name);
 const extractScopusAuthorId = value => {
   const text = String(value || "").trim();

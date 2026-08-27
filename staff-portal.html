@@ -20,16 +20,15 @@
     <section id="staff-auth" class="auth-gate" aria-labelledby="staff-auth-title">
       <div class="auth-card researcher-auth-card">
         <p class="eyebrow">Staff portal</p>
-        <h1 id="staff-auth-title">Create or manage your staff profile.</h1>
+        <h1 id="staff-auth-title">Open your Physics staff record.</h1>
         <p>Your profile uses your SUT email. It appears publicly only after registry manager verification.</p>
-
-        <div class="researcher-auth-layout">
-          <form id="staff-signin-form" class="auth-form">
-            <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
-            <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
-            <button class="button button-primary" type="submit">Sign in</button>
-          </form>
-
+        <form id="staff-signin-form" class="auth-form">
+          <label>SUT email<input name="email" type="email" autocomplete="email" placeholder="name@sut.ac.th" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="button button-primary" type="submit">Sign in</button>
+        </form>
+        <details class="portal-create-panel">
+          <summary class="auth-create-summary">Create account</summary>
           <form id="staff-signup-form" class="auth-form compact-auth-form">
             <label>Full name<input name="name" autocomplete="name" required /></label>
             <label>Position<select name="position" required><option>Administrative Staff</option><option>Teaching Assistant</option><option>Laboratory Technician</option><option>Technical Staff</option><option>Academic Support Staff</option><option>Program Coordinator</option></select></label>
@@ -38,7 +37,7 @@
             <label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
             <button class="button button-secondary" type="submit">Create account</button>
           </form>
-        </div>
+        </details>
 
         <p class="auth-cooldown" id="staff-email-cooldown" role="status" aria-live="polite"></p>
         <form id="staff-recovery-form" class="auth-form compact-auth-form">
@@ -103,7 +102,7 @@
             <div class="form-section-title"><span>02</span><div><h3>Unit and contact</h3><p>Connect your work to the school, office, and any linked lab or group.</p></div></div>
             <div class="form-grid">
               <label>Unit<input name="unit" placeholder="School of Physics office, teaching labs, or program office" /></label>
-              <label>Research lab / group<select id="staff-self-research-group" name="researchGroupId"><option value="">TBD</option></select></label>
+              <label>Research lab / group<select id="staff-self-research-group" name="researchGroupId"><option value="">To be decided later</option></select></label>
               <label>Group name<input name="researchGroup" placeholder="Optional group name if not in database" /></label>
               <label>Office / location<input name="office" placeholder="Building and room" /></label>
               <label>Phone<input name="phone" placeholder="Optional contact number" /></label>
