@@ -411,7 +411,7 @@ const adviseeCard = student => {
   const portrait = photoSrc(student.profilePhoto);
   return `
     <article>
-      ${portrait ? `<img class="profile-advisee-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
+      ${portrait ? `<img class="profile-advisee-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" loading="lazy" decoding="async" />` : ""}
       <span>${clean(adviseeProgramLabel(student))}</span>
       <h3>${clean(student.preferredName || student.name)}</h3>
       <p>${clean(student.shortBio || adviseeHeadline(student))}</p>
@@ -513,7 +513,7 @@ const renderProfileCard = (profile, index) => {
   return `
     <article class="faculty-card" data-categories="${clean([...categoriesFor(profile)].join(" "))}" style="--faculty-color:${color}">
       <div class="faculty-card-head">
-        <span class="faculty-avatar">${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}</span>
+        <span class="faculty-avatar">${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}</span>
         <span class="faculty-state">${profile.sample ? "Faculty contact" : "Faculty profile"}</span>
       </div>
       <h3>${clean(profile.name)}</h3>
@@ -628,7 +628,7 @@ const renderProfilePage = profile => {
         </div>
       </div>
       <div class="profile-orbit${portrait ? " has-photo" : ""}">
-        ${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}
+        ${portrait ? `<img src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${clean(initialsFor(profile.name))}</span>`}
         <i></i><i></i><i></i>
       </div>
     </section>

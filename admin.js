@@ -25,7 +25,7 @@ const STUDENT_MILESTONES = [
 ];
 const RESEARCHER_TYPES = ["Postdoctoral Researcher", "Postgraduate Researcher", "Research Fellow", "Visiting Researcher", "Research Assistant", "Project Researcher"];
 const STAFF_POSITIONS = ["Administrative Staff", "Teaching Assistant", "Laboratory Technician", "Technical Staff", "Academic Support Staff", "Program Coordinator"];
-const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-001";
 
 const sampleRecord = (id, name, category, facilityId, researchGroup, reviewStatus = "Verified", publicReady = true) => ({
   id,

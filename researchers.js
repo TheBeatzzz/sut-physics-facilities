@@ -131,7 +131,7 @@ function researcherCard(researcher) {
   const tags = [researcher.type, researcher.status, ...interests].filter(Boolean);
   return `
     <article class="service-card student-public-card public-profile-trigger" role="button" tabindex="0" data-researcher-profile="${clean(researcher.id)}" aria-label="Open full profile for ${clean(researcher.name)}">
-      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${researcher.name} profile picture`)}" />` : ""}
+      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${researcher.name} profile picture`)}" loading="lazy" decoding="async" />` : ""}
       <div class="service-card-top"><span>${clean(researcher.type)}</span><span>${clean(researcher.id)}</span></div>
       <h3>${clean(researcher.name)}</h3>
       <p>${clean(researcher.shortBio || "Researcher bio coming soon.")}</p>
@@ -168,7 +168,7 @@ function researcherProfileMarkup(researcher) {
       </header>
       <div class="person-profile-body">
         <div class="person-profile-intro">
-          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${researcher.name} profile picture`)}" />` : `<span class="person-profile-initials">${clean(researcher.name.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "RS")}</span>`}
+          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${researcher.name} profile picture`)}" loading="lazy" decoding="async" />` : `<span class="person-profile-initials">${clean(researcher.name.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "RS")}</span>`}
           <div>
             <p class="section-index">Researcher profile</p>
             <h2 id="researcher-profile-title">${clean(researcher.name)}</h2>

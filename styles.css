@@ -793,6 +793,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .profile-advisee-meta { grid-template-columns: 1fr; }
   .public-facility-grid { grid-template-columns: 1fr; margin-top: 42px; }
   .public-facility-card { min-height: 390px; }
+  .public-facility-card p,
+  .equipment-card > p,
+  .service-card > p:not(.service-detail) {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+  }
   .filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }.filter { flex: 0 0 auto; }
   .equipment-grid { display: grid; grid-template-columns: 100%; grid-auto-rows: auto; }.equipment-card { width: 100%; height: fit-content; margin-bottom: 0; }
   .access-steps { margin-top: 18px; }

@@ -264,6 +264,9 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 .progress-checkitem > input[type="date"] {
   min-height: 36px; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); font-size: 8px;
 }
+.progress-checkitem > input[type="date"]:disabled {
+  color: var(--muted); background: #ece9e1; opacity: .72;
+}
 .student-progress-cell { min-width: 260px; }
 .student-milestones { margin-top: 8px; display: grid; gap: 7px; }
 .student-milestones-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
@@ -284,7 +287,7 @@ table { width: 100%; border-collapse: collapse; }th { padding: 12px 10px; color:
 #description-counter.is-near-limit { color: #8b5e08; }
 #description-counter.is-at-limit { color: var(--red); }
 .confirm-dialog { width: min(390px, calc(100vw - 30px)); padding: 0; border: 0; text-align: center; background: var(--surface); }.confirm-dialog form { padding: 30px; }.confirm-icon { width: 46px; height: 46px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%; color: var(--red); background: #f8e7e2; font: 500 18px var(--mono); }.confirm-dialog h2 { margin: 18px 0 8px; font: 400 27px var(--serif); }.confirm-dialog p { margin: 0 auto 25px; max-width: 300px; color: var(--muted); font-size: 9px; line-height: 1.6; }.confirm-dialog form > div { display: flex; justify-content: center; gap: 7px; }
-.toast { position: fixed; z-index: 100; right: 25px; bottom: 25px; min-width: 270px; padding: 14px 17px; display: flex; align-items: center; gap: 11px; color: white; background: var(--green); box-shadow: 0 10px 35px rgba(0,0,0,.2); transform: translateY(150%); opacity: 0; transition: .25s ease; }.toast.is-visible { transform: none; opacity: 1; }.toast > span { width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); background: var(--lime); font-size: 10px; }.toast p { margin: 0; font-size: 9px; }
+.toast { position: fixed; z-index: 100; right: 25px; bottom: 25px; min-width: 270px; padding: 14px 17px; display: flex; align-items: center; gap: 11px; color: white; background: var(--green); box-shadow: 0 10px 35px rgba(0,0,0,.2); transform: translateY(150%); opacity: 0; transition: .25s ease; }.toast.is-visible { transform: none; opacity: 1; }.toast.is-error { background: var(--red); }.toast > span { width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); background: var(--lime); font-size: 10px; }.toast.is-error > span { color: white; background: rgba(255,255,255,.2); }.toast p { margin: 0; font-size: 9px; }
 
 @keyframes enter { from { opacity: 0; transform: translateY(6px); } }
 

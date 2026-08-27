@@ -118,7 +118,7 @@ function staffCard(profile) {
   const tags = [profile.position, profile.status, ...profile.serviceAreas.slice(0, 4)].filter(Boolean);
   return `
     <article class="service-card student-public-card public-profile-trigger" role="button" tabindex="0" data-staff-profile="${clean(profile.id)}" aria-label="Open full profile for ${clean(profile.name)}">
-      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : ""}
+      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" loading="lazy" decoding="async" />` : ""}
       <div class="service-card-top"><span>${clean(profile.position)}</span><span>${clean(profile.id)}</span></div>
       <h3>${clean(profile.name)}</h3>
       <p>${clean(profile.shortBio || "Staff bio coming soon.")}</p>
@@ -154,7 +154,7 @@ function staffProfileMarkup(profile) {
       </header>
       <div class="person-profile-body">
         <div class="person-profile-intro">
-          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" />` : `<span class="person-profile-initials">${clean(profile.name.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "ST")}</span>`}
+          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${profile.name} profile picture`)}" loading="lazy" decoding="async" />` : `<span class="person-profile-initials">${clean(profile.name.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "ST")}</span>`}
           <div>
             <p class="section-index">Staff profile</p>
             <h2 id="staff-profile-title">${clean(profile.name)}</h2>

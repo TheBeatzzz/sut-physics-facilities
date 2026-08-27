@@ -1,6 +1,6 @@
 const STUDENT_STORAGE_KEY = "sut-physics-student-draft-v1";
 const TERM_VALUES = ["1", "2", "3"];
-const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-001";
 
 const backend = window.SUTSupabase;
 const emailCooldown = window.SUTStudentEmailCooldown;

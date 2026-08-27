@@ -137,7 +137,7 @@ const serviceCard = service => {
   const imageAlt = service.featurePhoto?.alt || `${service.title} service photo`;
   return `
     <article class="service-card">
-      ${imageSrc ? `<img class="service-card-photo" src="${clean(imageSrc)}" alt="${clean(imageAlt)}" />` : ""}
+      ${imageSrc ? `<img class="service-card-photo" src="${clean(imageSrc)}" alt="${clean(imageAlt)}" loading="lazy" decoding="async" />` : ""}
       <div class="service-card-top"><span>${clean(categoryLabel(service.category))}</span><span>${clean(service.id)}</span></div>
       <h3>${clean(service.title)}</h3>
       <p>${clean(service.summary || service.details || "Contact the School of Physics to discuss the scope, timing, and expected outcome for this service.")}</p>

@@ -26,7 +26,7 @@ const STUDY_PROGRAMS = {
 };
 const TERM_VALUES = ["1", "2", "3"];
 const normalizeTerm = value => TERM_VALUES.includes(String(value || "").trim()) ? String(value).trim() : "";
-const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-011";
+const DEFAULT_STUDENT_ADVISOR_ID = "FACULTY-001";
 const PROGRESS_MILESTONES = [
   "coreCourses",
   "comprehensiveExam",
@@ -37,11 +37,15 @@ const PROGRESS_MILESTONES = [
   "publicationRequirement"
 ];
 
-function showToast(message) {
+function showToast(message, type = "success") {
   clearTimeout(toastTimer);
-  $("#toast p").textContent = message;
-  $("#toast").classList.add("is-visible");
-  toastTimer = setTimeout(() => $("#toast").classList.remove("is-visible"), 2800);
+  const toast = $("#toast");
+  toast.querySelector("span").textContent = type === "error" ? "!" : "✓";
+  toast.querySelector("p").textContent = message;
+  toast.classList.toggle("is-error", type === "error");
+  toast.classList.toggle("is-success", type !== "error");
+  toast.classList.add("is-visible");
+  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2800);
 }
 
 function setAuthMessage(message, type = "") {
@@ -198,6 +202,38 @@ function syncProgressChecklist() {
     const levels = String(item.dataset.progressLevels || "").split(/\s+/).filter(Boolean);
     item.hidden = !levels.includes(level);
   });
+  syncProgressDates();
+}
+
+function syncProgressDates() {
+  const form = $("#student-record-form");
+  PROGRESS_MILESTONES.forEach(id => {
+    const checkbox = form.elements.namedItem(`progress_${id}`);
+    const date = form.elements.namedItem(`progress_${id}_date`);
+    if (date) date.disabled = !checkbox?.checked;
+  });
+}
+
+function sessionStudentDefaults() {
+  const metadata = currentSession?.user?.user_metadata || {};
+  return {
+    name: metadata.full_name || metadata.name || "",
+    studentCode: metadata.student_code || metadata.studentCode || "",
+    startTerm: normalizeTerm(metadata.start_term || metadata.startTerm),
+    startYear: metadata.start_year || metadata.startYear || ""
+  };
+}
+
+function syncRecordTypeFields() {
+  const form = $("#student-record-form");
+  const isExternal = form.elements.recordType.value === "sut-external";
+  ["homeSchool", "homeProgram"].forEach(name => {
+    const field = form.elements.namedItem(name);
+    if (!field) return;
+    field.closest("label").hidden = !isExternal;
+    field.disabled = !isExternal;
+    if (!isExternal) field.value = "";
+  });
 }
 
 function verificationText(record) {
@@ -285,6 +321,7 @@ function fillRecordForm(record = null) {
     status: "Active",
     deadlineAlertsEnabled: true,
     publicReady: false,
+    ...sessionStudentDefaults(),
     ...(record || {})
   };
   pendingProfilePhoto = defaults.profilePhoto ? clone(defaults.profilePhoto) : null;
@@ -298,7 +335,8 @@ function fillRecordForm(record = null) {
   form.elements.publicReady.checked = Boolean(defaults.publicReady);
   fillProgressChecklist(defaults.studyProgress || {});
   syncProgressChecklist();
-  populateAdvisorOptions(defaults.advisorId || "");
+  syncRecordTypeFields();
+  populateAdvisorOptions(defaults.advisorId || DEFAULT_STUDENT_ADVISOR_ID);
   populateResearchGroupOptions(defaults.researchGroupId || "");
   renderProfilePhotoPreview();
   const [title, note] = verificationText(record);
@@ -413,11 +451,14 @@ $("#student-record-form").addEventListener("submit", async event => {
     setRecordMessage("Study record saved.", "success");
     showToast(currentRecord.verificationStatus === "Verified" ? "Study record saved" : "Study record saved for faculty verification");
   } catch (error) {
-    const message = /students|schema cache|PGRST|42P01/i.test(String(error.message || ""))
+    const rawError = String(error.message || "");
+    const message = /23503|foreign key|advisor_id|faculty/i.test(rawError)
+      ? "The selected advisor is not available in the faculty registry. Choose an advisor from the list, then save again."
+      : /students|schema cache|PGRST|42P01/i.test(rawError)
       ? "Supabase needs the latest student schema before this record can be saved."
       : error.message || "Could not save study record.";
     setRecordMessage(message, "error");
-    showToast(message);
+    showToast(message, "error");
   } finally {
     setBusy($("#student-record-submit"), false);
   }
@@ -432,12 +473,14 @@ $("#student-record-form").elements.namedItem("programId").addEventListener("chan
 });
 
 $("#student-record-form").elements.namedItem("level").addEventListener("change", syncProgressChecklist);
+$("#student-record-form").elements.namedItem("recordType").addEventListener("change", syncRecordTypeFields);
 
 document.querySelector(".progress-checklist").addEventListener("change", event => {
   if (event.target.type !== "checkbox" || !event.target.name.startsWith("progress_")) return;
   const date = $("#student-record-form").elements.namedItem(`${event.target.name}_date`);
   if (!date) return;
-  date.value = event.target.checked ? date.value || today() : "";
+  if (event.target.checked && !date.value) date.value = today();
+  syncProgressDates();
 });
 
 $("#student-profile-photo-input").addEventListener("change", async event => {
@@ -449,7 +492,7 @@ $("#student-profile-photo-input").addEventListener("change", async event => {
     renderProfilePhotoPreview();
   } catch {
     setRecordMessage("The profile picture could not be processed.", "error");
-    showToast("The profile picture could not be processed");
+    showToast("The profile picture could not be processed", "error");
   }
   event.target.value = "";
 });

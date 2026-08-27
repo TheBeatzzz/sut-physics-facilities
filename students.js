@@ -148,7 +148,7 @@ function studentCard(student) {
   const portrait = photoSrc(student.profilePhoto);
   return `
     <article class="service-card student-public-card public-profile-trigger" role="button" tabindex="0" data-student-profile="${clean(student.id)}" aria-label="Open full profile for ${clean(student.preferredName || student.name)}">
-      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" />` : ""}
+      ${portrait ? `<img class="student-public-photo" src="${clean(portrait)}" alt="${clean(`${student.preferredName || student.name} profile picture`)}" loading="lazy" decoding="async" />` : ""}
       <div class="service-card-top"><span>${clean(programLabel(student.programId))}</span><span>${clean(student.studentCode || student.id)}</span></div>
       <h3>${clean(student.preferredName || student.name)}</h3>
       <p>${clean(student.shortBio || "Short bio coming soon.")}</p>
@@ -190,7 +190,7 @@ function studentProfileMarkup(student) {
       </header>
       <div class="person-profile-body">
         <div class="person-profile-intro">
-          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${displayName} profile picture`)}" />` : `<span class="person-profile-initials">${clean(displayName.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "ST")}</span>`}
+          ${portrait ? `<img class="person-profile-photo" src="${clean(portrait)}" alt="${clean(`${displayName} profile picture`)}" loading="lazy" decoding="async" />` : `<span class="person-profile-initials">${clean(displayName.split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "ST")}</span>`}
           <div>
             <p class="section-index">Student profile</p>
             <h2 id="student-profile-title">${clean(displayName)}</h2>

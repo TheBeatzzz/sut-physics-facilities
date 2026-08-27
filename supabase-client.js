@@ -112,6 +112,26 @@
   });
 
   const asArray = value => Array.isArray(value) ? value : [];
+  const missingRelationCodes = new Set(["42P01", "PGRST205"]);
+  const isMissingRelation = error => missingRelationCodes.has(error?.code) || /schema cache|does not exist/i.test(String(error?.message || ""));
+
+  const PUBLIC_FACILITY_COLUMNS = "id,name,building,room,lead,description,color";
+  const PUBLIC_FACULTY_COLUMNS = "id,name,title,email,office,phone,bio,research_interests,highlights,activities,recognitions,profile_links,scopus_metrics,manual_metrics,facility_ids,profile_photo,color,public_ready,sample,created_at,updated_at";
+  const PUBLIC_EQUIPMENT_COLUMNS = "id,name,asset_code,manufacturer,model,category,description,facility_id,room,custodian,email,research_group,acquisition_year,status,access,last_maintenance,next_maintenance,safety,public_ready,review_status,feature_photo,gallery,sample,created_at,updated_at";
+  const PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
+  const LEGACY_PUBLIC_STUDENT_COLUMNS = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
+  const PUBLIC_RESEARCHER_COLUMNS = "id,name,type,email,status,host_faculty_id,host_role,research_group_id,research_group,office,profile_photo,project_title,funding_source,start_date,end_date,short_bio,research_interests,skills,public_ready,review_status,sample,created_at,updated_at";
+  const PUBLIC_STAFF_COLUMNS = "id,name,position,email,status,unit,research_group_id,research_group,office,profile_photo,short_bio,responsibilities,service_areas,public_ready,review_status,sample,created_at,updated_at";
+  const PUBLIC_SERVICE_COLUMNS = "id,title,category,summary,details,audience,duration,schedule,fee,location,contact_name,contact_email,faculty_id,feature_photo,public_ready,review_status,sample,created_at,updated_at";
+
+  const applyOrder = (query, order) => order ? query.order(order.column, { ascending: order.ascending !== false }) : query;
+
+  const readPublicRows = async (supabase, { view, table, columns, order, base }) => {
+    const viewResult = await applyOrder(supabase.from(view).select(columns), order);
+    if (!isMissingRelation(viewResult.error)) return viewResult;
+    const baseQuery = base ? base(supabase.from(table).select(columns)) : supabase.from(table).select(columns);
+    return applyOrder(baseQuery, order);
+  };
 
   const camelFaculty = row => ({
     id: row.id,
@@ -504,20 +524,85 @@
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
 
+    if (publicOnly) {
+      const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, { data: researchers, error: researchersError }, { data: staff, error: staffError }] = await Promise.all([
+        readPublicRows(supabase, {
+          view: "public_facilities",
+          table: "facilities",
+          columns: PUBLIC_FACILITY_COLUMNS,
+          order: { column: "id" }
+        }),
+        readPublicRows(supabase, {
+          view: "public_faculty_profiles",
+          table: "faculty",
+          columns: PUBLIC_FACULTY_COLUMNS,
+          order: { column: "name" },
+          base: query => query.eq("public_ready", true)
+        }),
+        readPublicRows(supabase, {
+          view: "public_equipment",
+          table: "equipment",
+          columns: PUBLIC_EQUIPMENT_COLUMNS,
+          order: { column: "updated_at", ascending: false },
+          base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+        }),
+        readPublicRows(supabase, {
+          view: "public_services",
+          table: "services",
+          columns: PUBLIC_SERVICE_COLUMNS,
+          order: { column: "updated_at", ascending: false },
+          base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+        }),
+        readPublicRows(supabase, {
+          view: "public_researchers",
+          table: "researchers",
+          columns: PUBLIC_RESEARCHER_COLUMNS,
+          order: { column: "updated_at", ascending: false },
+          base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+        }),
+        readPublicRows(supabase, {
+          view: "public_staff",
+          table: "staff",
+          columns: PUBLIC_STAFF_COLUMNS,
+          order: { column: "updated_at", ascending: false },
+          base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+        })
+      ]);
+      const servicesTableMissing = servicesError && isMissingRelation(servicesError);
+      const researchersTableMissing = researchersError && isMissingRelation(researchersError);
+      const staffTableMissing = staffError && isMissingRelation(staffError);
+      if (facilityError) throw facilityError;
+      if (facultyError) throw facultyError;
+      if (equipmentError) throw equipmentError;
+      if (servicesError && !servicesTableMissing) throw servicesError;
+      if (researchersError && !researchersTableMissing) throw researchersError;
+      if (staffError && !staffTableMissing) throw staffError;
+
+      return {
+        meta: {
+          version: 6,
+          institution: "Suranaree University of Technology",
+          program: "Physics Program",
+          backend: "supabase",
+          loadedAt: new Date().toISOString()
+        },
+        facilities: (facilities || []).map(camelFacility),
+        faculty: (faculty || []).map(camelFaculty),
+        students: [],
+        researchers: researchersTableMissing ? [] : (researchers || []).map(camelResearcher),
+        staff: staffTableMissing ? [] : (staff || []).map(camelStaff),
+        equipment: (equipment || []).map(camelEquipment),
+        services: servicesTableMissing ? [] : (services || []).map(camelService)
+      };
+    }
+
     const facilitiesQuery = supabase.from("facilities").select("*").order("id", { ascending: true });
     let facultyQuery = supabase.from("faculty").select("*").order("name", { ascending: true });
     let equipmentQuery = supabase.from("equipment").select("*").order("updated_at", { ascending: false });
     let servicesQuery = supabase.from("services").select("*").order("updated_at", { ascending: false });
     let researchersQuery = supabase.from("researchers").select("*").order("updated_at", { ascending: false });
     let staffQuery = supabase.from("staff").select("*").order("updated_at", { ascending: false });
-    let studentsQuery = publicOnly ? null : supabase.from("students").select("*").order("updated_at", { ascending: false });
-    if (publicOnly) {
-      facultyQuery = facultyQuery.eq("public_ready", true);
-      equipmentQuery = equipmentQuery.eq("review_status", "Verified").eq("public_ready", true);
-      servicesQuery = servicesQuery.eq("review_status", "Verified").eq("public_ready", true);
-      researchersQuery = researchersQuery.eq("review_status", "Verified").eq("public_ready", true);
-      staffQuery = staffQuery.eq("review_status", "Verified").eq("public_ready", true);
-    }
+    let studentsQuery = supabase.from("students").select("*").order("updated_at", { ascending: false });
 
     const [{ data: facilities, error: facilityError }, { data: faculty, error: facultyError }, { data: equipment, error: equipmentError }, { data: services, error: servicesError }, { data: researchers, error: researchersError }, { data: staff, error: staffError }, studentsResult] = await Promise.all([
       facilitiesQuery,
@@ -673,22 +758,32 @@
   const loadPublicStudents = async () => {
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
-    const publicStudentColumns = "id,student_code,name,preferred_name,record_type,level,status,advisor_id,advisor_role,coadvisor,research_group_id,research_group,home_school,home_program,project_title,thesis_title,start_term,start_year,profile_photo,short_bio,research_interests,program_id,skills,public_ready,verification_status,updated_at";
-    const legacyPublicStudentColumns = "id,student_code,name,preferred_name,level,status,advisor_id,coadvisor,research_group_id,research_group,project_title,thesis_title,start_term,start_year,short_bio,program_id,skills,public_ready,verification_status,updated_at";
-    const loadStudentRows = columns => supabase
-      .from("students")
-      .select(columns)
-      .eq("verification_status", "Verified")
-      .eq("public_ready", true)
-      .order("name", { ascending: true });
-    const studentsPromise = loadStudentRows(publicStudentColumns).then(result => {
+    const loadStudentRows = columns => readPublicRows(supabase, {
+      view: "public_students",
+      table: "students",
+      columns,
+      order: { column: "name" },
+      base: query => query.eq("verification_status", "Verified").eq("public_ready", true)
+    });
+    const studentsPromise = loadStudentRows(PUBLIC_STUDENT_COLUMNS).then(result => {
       const message = String(result.error?.message || "");
-      return /record_type|advisor_role|home_school|home_program|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(legacyPublicStudentColumns) : result;
+      return /record_type|advisor_role|home_school|home_program|profile_photo|research_interests|schema cache|PGRST|42703/i.test(message) ? loadStudentRows(LEGACY_PUBLIC_STUDENT_COLUMNS) : result;
     });
     const [{ data: students, error: studentsError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
       studentsPromise,
-      supabase.from("faculty").select("*").eq("public_ready", true).order("name", { ascending: true }),
-      supabase.from("facilities").select("*").order("id", { ascending: true })
+      readPublicRows(supabase, {
+        view: "public_faculty_profiles",
+        table: "faculty",
+        columns: PUBLIC_FACULTY_COLUMNS,
+        order: { column: "name" },
+        base: query => query.eq("public_ready", true)
+      }),
+      readPublicRows(supabase, {
+        view: "public_facilities",
+        table: "facilities",
+        columns: PUBLIC_FACILITY_COLUMNS,
+        order: { column: "id" }
+      })
     ]);
     if (studentsError) throw studentsError;
     if (facultyError) throw facultyError;
@@ -760,14 +855,26 @@
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
     const [{ data: researchers, error: researchersError }, { data: faculty, error: facultyError }, { data: facilities, error: facilityError }] = await Promise.all([
-      supabase
-        .from("researchers")
-        .select("*")
-        .eq("review_status", "Verified")
-        .eq("public_ready", true)
-        .order("name", { ascending: true }),
-      supabase.from("faculty").select("*").eq("public_ready", true).order("name", { ascending: true }),
-      supabase.from("facilities").select("*").order("id", { ascending: true })
+      readPublicRows(supabase, {
+        view: "public_researchers",
+        table: "researchers",
+        columns: PUBLIC_RESEARCHER_COLUMNS,
+        order: { column: "name" },
+        base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+      }),
+      readPublicRows(supabase, {
+        view: "public_faculty_profiles",
+        table: "faculty",
+        columns: PUBLIC_FACULTY_COLUMNS,
+        order: { column: "name" },
+        base: query => query.eq("public_ready", true)
+      }),
+      readPublicRows(supabase, {
+        view: "public_facilities",
+        table: "facilities",
+        columns: PUBLIC_FACILITY_COLUMNS,
+        order: { column: "id" }
+      })
     ]);
     if (researchersError) throw researchersError;
     if (facultyError) throw facultyError;
@@ -839,13 +946,19 @@
     const supabase = getClient();
     if (!supabase) throw new Error("Supabase is not configured");
     const [{ data: staff, error: staffError }, { data: facilities, error: facilityError }] = await Promise.all([
-      supabase
-        .from("staff")
-        .select("*")
-        .eq("review_status", "Verified")
-        .eq("public_ready", true)
-        .order("name", { ascending: true }),
-      supabase.from("facilities").select("*").order("id", { ascending: true })
+      readPublicRows(supabase, {
+        view: "public_staff",
+        table: "staff",
+        columns: PUBLIC_STAFF_COLUMNS,
+        order: { column: "name" },
+        base: query => query.eq("review_status", "Verified").eq("public_ready", true)
+      }),
+      readPublicRows(supabase, {
+        view: "public_facilities",
+        table: "facilities",
+        columns: PUBLIC_FACILITY_COLUMNS,
+        order: { column: "id" }
+      })
     ]);
     if (staffError) throw staffError;
     if (facilityError) throw facilityError;

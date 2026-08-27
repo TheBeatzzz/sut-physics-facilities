@@ -496,6 +496,195 @@ create index if not exists services_owner_email_idx
 create index if not exists services_faculty_idx
   on public.services (faculty_id);
 
+create or replace view public.public_facilities as
+select
+  id,
+  name,
+  building,
+  room,
+  lead,
+  description,
+  color
+from public.facilities;
+
+create or replace view public.public_faculty_profiles as
+select
+  id,
+  name,
+  title,
+  email,
+  office,
+  phone,
+  bio,
+  research_interests,
+  highlights,
+  activities,
+  recognitions,
+  profile_links,
+  scopus_metrics,
+  manual_metrics,
+  facility_ids,
+  profile_photo,
+  color,
+  public_ready,
+  sample,
+  created_at,
+  updated_at
+from public.faculty
+where public_ready = true;
+
+create or replace view public.public_equipment as
+select
+  id,
+  name,
+  asset_code,
+  manufacturer,
+  model,
+  category,
+  description,
+  facility_id,
+  room,
+  custodian,
+  email,
+  research_group,
+  acquisition_year,
+  status,
+  access,
+  last_maintenance,
+  next_maintenance,
+  safety,
+  public_ready,
+  review_status,
+  feature_photo,
+  gallery,
+  sample,
+  created_at,
+  updated_at
+from public.equipment
+where review_status = 'Verified' and public_ready = true;
+
+create or replace view public.public_students as
+select
+  id,
+  student_code,
+  name,
+  preferred_name,
+  record_type,
+  level,
+  status,
+  advisor_id,
+  advisor_role,
+  coadvisor,
+  research_group_id,
+  research_group,
+  home_school,
+  home_program,
+  project_title,
+  thesis_title,
+  start_term,
+  start_year,
+  profile_photo,
+  short_bio,
+  research_interests,
+  program_id,
+  skills,
+  public_ready,
+  verification_status,
+  updated_at
+from public.students
+where verification_status = 'Verified' and public_ready = true;
+
+create or replace view public.public_researchers as
+select
+  id,
+  name,
+  type,
+  email,
+  status,
+  host_faculty_id,
+  host_role,
+  research_group_id,
+  research_group,
+  office,
+  profile_photo,
+  project_title,
+  funding_source,
+  start_date,
+  end_date,
+  short_bio,
+  research_interests,
+  skills,
+  public_ready,
+  review_status,
+  sample,
+  created_at,
+  updated_at
+from public.researchers
+where review_status = 'Verified' and public_ready = true;
+
+create or replace view public.public_staff as
+select
+  id,
+  name,
+  position,
+  email,
+  status,
+  unit,
+  research_group_id,
+  research_group,
+  office,
+  profile_photo,
+  short_bio,
+  responsibilities,
+  service_areas,
+  public_ready,
+  review_status,
+  sample,
+  created_at,
+  updated_at
+from public.staff
+where review_status = 'Verified' and public_ready = true;
+
+create or replace view public.public_services as
+select
+  id,
+  title,
+  category,
+  summary,
+  details,
+  audience,
+  duration,
+  schedule,
+  fee,
+  location,
+  contact_name,
+  contact_email,
+  faculty_id,
+  feature_photo,
+  public_ready,
+  review_status,
+  sample,
+  created_at,
+  updated_at
+from public.services
+where review_status = 'Verified' and public_ready = true;
+
+grant select on public.public_facilities to anon, authenticated;
+grant select on public.public_faculty_profiles to anon, authenticated;
+grant select on public.public_equipment to anon, authenticated;
+grant select on public.public_students to anon, authenticated;
+grant select on public.public_researchers to anon, authenticated;
+grant select on public.public_staff to anon, authenticated;
+grant select on public.public_services to anon, authenticated;
+
+revoke select on public.facilities from anon;
+revoke select on public.faculty from anon;
+revoke select on public.equipment from anon;
+revoke select on public.students from anon;
+revoke select on public.researchers from anon;
+revoke select on public.staff from anon;
+revoke select on public.services from anon;
+
 create table if not exists public.visitor_events (
   id uuid primary key default gen_random_uuid(),
   event_name text not null default 'page_view' check (event_name in ('page_view')),
@@ -724,7 +913,7 @@ returns text
 language sql
 stable
 as $$
-  select 'FACULTY-011'::text;
+  select 'FACULTY-001'::text;
 $$;
 
 revoke all on function public.default_student_advisor_id() from public;
@@ -1166,7 +1355,7 @@ with check (public.is_sut_editor());
 drop policy if exists "Public can read facilities" on public.facilities;
 create policy "Public can read facilities"
 on public.facilities for select
-to anon, authenticated
+to anon
 using (true);
 
 drop policy if exists "SUT editors can read all facilities" on public.facilities;
@@ -1204,7 +1393,7 @@ using (public.is_facility_owner(owner_email, lead));
 drop policy if exists "Public can read public faculty profiles" on public.faculty;
 create policy "Public can read public faculty profiles"
 on public.faculty for select
-to anon, authenticated
+to anon
 using (public_ready = true);
 
 drop policy if exists "SUT editors can read all faculty profiles" on public.faculty;
@@ -1255,7 +1444,7 @@ with check (public.is_sut_editor());
 drop policy if exists "Public can read verified public students" on public.students;
 create policy "Public can read verified public students"
 on public.students for select
-to anon, authenticated
+to anon
 using (verification_status = 'Verified' and public_ready = true);
 
 drop policy if exists "Owners and advisors can read students" on public.students;
@@ -1316,7 +1505,7 @@ using (public.is_student_self(owner_email, email) and verification_status <> 'Ve
 drop policy if exists "Public can read verified public researchers" on public.researchers;
 create policy "Public can read verified public researchers"
 on public.researchers for select
-to anon, authenticated
+to anon
 using (review_status = 'Verified' and public_ready = true);
 
 drop policy if exists "SUT editors can read all researchers" on public.researchers;
@@ -1385,7 +1574,7 @@ using (public.is_researcher_self(owner_email, email) and review_status <> 'Verif
 drop policy if exists "Public can read verified public staff" on public.staff;
 create policy "Public can read verified public staff"
 on public.staff for select
-to anon, authenticated
+to anon
 using (review_status = 'Verified' and public_ready = true);
 
 drop policy if exists "SUT editors can read all staff" on public.staff;
@@ -1429,7 +1618,7 @@ using (public.is_staff_self(owner_email, email) and review_status <> 'Verified')
 drop policy if exists "Public can read approved equipment" on public.equipment;
 create policy "Public can read approved equipment"
 on public.equipment for select
-to anon, authenticated
+to anon
 using (review_status = 'Verified' and public_ready = true);
 
 drop policy if exists "SUT editors can read all equipment" on public.equipment;
@@ -1485,7 +1674,7 @@ using (public.is_equipment_owner(owner_email, email, submitter_email, custodian)
 drop policy if exists "Public can read approved services" on public.services;
 create policy "Public can read approved services"
 on public.services for select
-to anon, authenticated
+to anon
 using (review_status = 'Verified' and public_ready = true);
 
 drop policy if exists "SUT editors can read all services" on public.services;

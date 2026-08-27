@@ -327,7 +327,7 @@ const safeColor = (value, fallback = palette[0]) => /^#[0-9a-f]{3,8}$/i.test(Str
 const visualMarkup = item => {
   const feature = validImage(item.featurePhoto);
   if (!feature) return `<span class="equipment-icon">${iconFor(item.name)}</span>${visualFor(item.visual, item.color)}`;
-  return `<img class="equipment-feature-photo" src="${imageSource(feature)}" alt="${clean(feature.alt || `${item.name} equipment`)}" /><span class="equipment-icon">${iconFor(item.name)}</span>`;
+  return `<img class="equipment-feature-photo" src="${imageSource(feature)}" alt="${clean(feature.alt || `${item.name} equipment`)}" loading="lazy" decoding="async" /><span class="equipment-icon">${iconFor(item.name)}</span>`;
 };
 
 const galleryMarkup = item => {
@@ -336,7 +336,7 @@ const galleryMarkup = item => {
   return `<div class="public-gallery" aria-label="Example use-case gallery">${gallery.map((photo, index) => {
     const src = imageSource(photo);
     const alt = photo.alt || `${item.name} gallery image ${index + 1}`;
-    return `<button type="button" data-gallery-src="${clean(src)}" data-gallery-alt="${clean(alt)}" data-gallery-title="${clean(item.name)}" aria-label="Open ${clean(alt)} full size"><img src="${clean(src)}" alt="${clean(alt)}" /></button>`;
+    return `<button type="button" data-gallery-src="${clean(src)}" data-gallery-alt="${clean(alt)}" data-gallery-title="${clean(item.name)}" aria-label="Open ${clean(alt)} full size"><img src="${clean(src)}" alt="${clean(alt)}" loading="lazy" decoding="async" /></button>`;
   }).join("")}</div>`;
 };
 
