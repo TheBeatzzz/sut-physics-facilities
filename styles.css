@@ -328,6 +328,86 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   border: 1px solid var(--line); border-radius: 50%; object-fit: cover; background: #edf0e8;
 }
 .student-public-card .faculty-tags { margin-bottom: 24px; }
+.curricular-map {
+  position: relative; justify-self: end; width: min(43vw, 590px); aspect-ratio: 1;
+  border: 1px solid var(--line); border-radius: 50%;
+  background:
+    linear-gradient(90deg, transparent 49.85%, rgba(21,38,31,.2) 50%, transparent 50.15%),
+    linear-gradient(0deg, transparent 49.85%, rgba(21,38,31,.2) 50%, transparent 50.15%),
+    radial-gradient(circle at 70% 24%, rgba(143,195,255,.35), transparent 27%),
+    radial-gradient(circle at 24% 78%, rgba(255,139,91,.24), transparent 30%),
+    radial-gradient(circle at 50% 50%, rgba(215,255,63,.42) 0 18%, transparent 18.5%);
+}
+.curricular-map::before,
+.curricular-map::after {
+  content: ""; position: absolute; border: 1px dashed var(--line); border-radius: 50%;
+}
+.curricular-map::before { inset: 14%; animation: slow-spin 34s linear infinite; }
+.curricular-map::after { inset: 31%; border-style: solid; }
+.curricular-map-core {
+  position: absolute; inset: 35%; z-index: 2; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; border-radius: 50%; color: var(--paper); background: var(--ink);
+}
+.curricular-map-core span { font: 400 clamp(42px, 5vw, 76px)/.85 var(--serif); }
+.curricular-map-core small {
+  margin-top: 12px; text-align: center; font: 8px/1.45 var(--mono);
+  text-transform: uppercase; letter-spacing: .1em;
+}
+.map-stage {
+  position: absolute; z-index: 3; padding: 7px 9px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 82%, white); font: 10px var(--mono); text-transform: uppercase;
+}
+.stage-foundation { left: 7%; top: 26%; }
+.stage-method { right: 5%; top: 18%; }
+.stage-research { right: 8%; bottom: 24%; }
+.stage-defense { left: 12%; bottom: 15%; }
+.map-node {
+  position: absolute; z-index: 4; width: 17px; height: 17px; border: 3px solid var(--paper);
+  border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 1px var(--ink);
+}
+.node-foundation { left: 28%; top: 31%; background: var(--aqua); }
+.node-method { right: 27%; top: 25%; background: var(--sky); }
+.node-research { right: 23%; bottom: 30%; background: var(--acid); }
+.node-defense { left: 27%; bottom: 22%; background: var(--orange); }
+.curricular-programs { border-top: 1px solid var(--line); }
+.curricular-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 34px;
+}
+.curricular-card {
+  min-width: 0; min-height: 430px; padding: 25px; display: flex; flex-direction: column;
+  border: 1px solid var(--line); background: var(--paper); overflow: hidden;
+}
+.curricular-card[hidden] { display: none; }
+.curricular-card:nth-child(1) { background: color-mix(in srgb, var(--aqua) 16%, var(--paper)); }
+.curricular-card:nth-child(2),
+.curricular-card:nth-child(3) { background: color-mix(in srgb, var(--sky) 16%, var(--paper)); }
+.curricular-card:nth-child(4),
+.curricular-card:nth-child(5) { background: color-mix(in srgb, var(--orange) 12%, var(--paper)); }
+.curricular-card h3 {
+  margin: 46px 0 13px; font: 400 34px/1.02 var(--serif);
+  letter-spacing: -.025em; overflow-wrap: anywhere;
+}
+.curricular-card p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.curricular-learning {
+  max-width: none; background: var(--paper-deep);
+  padding-left: max(22px, calc((100vw - var(--max)) / 2 + clamp(22px, 5vw, 72px)));
+  padding-right: max(22px, calc((100vw - var(--max)) / 2 + clamp(22px, 5vw, 72px)));
+}
+.learning-ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 64px; border-top: 1px solid var(--ink); }
+.learning-ladder article { min-height: 340px; padding: 23px; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.learning-ladder article:first-child { border-left: 1px solid var(--line); }
+.learning-ladder span { font: 10px var(--mono); }
+.learning-ladder h3 { margin: auto 0 12px; font: 400 31px/1.04 var(--serif); letter-spacing: -.02em; }
+.learning-ladder p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+.curricular-milestones { border-top: 1px solid var(--line); }
+.curricular-timeline { list-style: none; margin: 62px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.curricular-timeline li {
+  display: grid; grid-template-columns: minmax(150px, .32fr) 1fr; gap: 28px;
+  padding: 24px 0; border-bottom: 1px solid var(--line);
+}
+.curricular-timeline li > span { color: var(--ink-soft); font: 10px/1.5 var(--mono); text-transform: uppercase; }
+.curricular-timeline h3 { margin: 0 0 8px; font: 400 30px/1.05 var(--serif); letter-spacing: -.02em; }
+.curricular-timeline p { max-width: 760px; margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.7; }
 .services-coming-soon {
   grid-column: 1 / -1; min-height: 520px; padding: clamp(34px, 6vw, 76px); position: relative;
   display: grid; align-content: center; overflow: hidden; border: 1px solid var(--line); background: var(--ink); color: var(--paper);
@@ -700,10 +780,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .faculty-constellation { justify-self: center; width: min(88vw, 570px); }
   .services-hero { min-height: auto; grid-template-columns: 1fr; gap: 70px; padding-top: 75px; }
   .services-orbit { justify-self: center; width: min(88vw, 570px); }
+  .curricular-map { justify-self: center; width: min(88vw, 570px); }
   .services-strip .signal-grid { grid-template-columns: repeat(2, 1fr); }
   .researchers-page .services-strip .signal-grid { grid-template-columns: repeat(2, 1fr); }
   .services-strip .signal-grid > p { grid-column: 1 / -1; }
   .services-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .curricular-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .learning-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .learning-ladder article:nth-child(odd) { border-left: 1px solid var(--line); }
+  .learning-ladder article { border-bottom: 1px solid var(--line); }
   .survey-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .coming-soon-animation { opacity: .45; right: -180px; }
   .faculty-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -763,6 +848,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .services-hero .button { min-width: 0; }
   .services-grid { grid-template-columns: 1fr; }
   .service-card { min-height: 430px; }
+  .curricular-grid { grid-template-columns: 1fr; }
+  .curricular-card { min-height: 390px; }
+  .curricular-map { width: min(88vw, 470px); }
+  .map-stage { font-size: 9px; }
+  .learning-ladder { grid-template-columns: 1fr; }
+  .learning-ladder article { min-height: 280px; border-left: 1px solid var(--line); }
+  .curricular-timeline li { grid-template-columns: 1fr; gap: 10px; }
   .student-select-filters { grid-template-columns: 1fr; }
   .service-meta { grid-template-columns: 1fr; }
   .person-profile-head { padding: 18px; }
