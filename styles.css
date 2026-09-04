@@ -388,6 +388,80 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   letter-spacing: -.025em; overflow-wrap: anywhere;
 }
 .curricular-card p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.curricular-bachelor-snapshot {
+  margin-top: 28px; padding: clamp(26px, 4vw, 46px); border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper-deep) 72%, white); overflow: hidden;
+}
+.snapshot-heading {
+  display: grid; grid-template-columns: .32fr 1fr; gap: 28px; align-items: start;
+  padding-bottom: 32px; border-bottom: 1px solid var(--line);
+}
+.snapshot-heading h3 {
+  margin: 0; font: 400 clamp(40px, 5vw, 70px)/.94 var(--serif);
+  letter-spacing: -.035em;
+}
+.snapshot-heading h3 em { color: var(--ink-soft); font-weight: 400; }
+.snapshot-heading p:not(.section-index) {
+  max-width: 780px; margin: 24px 0 0; color: var(--ink-soft); font-size: 15px; line-height: 1.75;
+}
+.snapshot-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 26px;
+}
+.snapshot-grid article {
+  min-width: 0; min-height: 190px; padding: 18px; display: flex; flex-direction: column;
+  border: 1px solid var(--line); background: var(--paper);
+}
+.snapshot-grid span {
+  color: var(--ink-soft); font: 9px/1.4 var(--mono); text-transform: uppercase;
+}
+.snapshot-grid strong {
+  margin: auto 0 12px; font: 400 clamp(28px, 3.2vw, 46px)/.92 var(--serif);
+  overflow-wrap: anywhere;
+}
+.snapshot-grid p {
+  margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.6;
+}
+.curriculum-breakdown {
+  display: grid; grid-template-columns: .36fr 1fr; gap: 26px; margin-top: 26px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.curriculum-breakdown h4,
+.curricular-pathways h4 {
+  margin: 0 0 10px; font: 400 30px/1.05 var(--serif); letter-spacing: -.02em;
+}
+.curriculum-breakdown p {
+  max-width: 300px; margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7;
+}
+.breakdown-list {
+  margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.breakdown-list div {
+  min-width: 0; padding: 14px; border: 1px solid var(--line); background: var(--paper);
+}
+.breakdown-list dt {
+  color: var(--ink-soft); font: 9px/1.45 var(--mono); text-transform: uppercase;
+}
+.breakdown-list dd {
+  margin: 12px 0 0; font: 400 28px/1 var(--serif);
+}
+.curricular-pathways {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 28px;
+}
+.curricular-pathways article {
+  min-width: 0; padding: 22px; border: 1px solid var(--line); background: var(--paper);
+}
+.curricular-pathways ul {
+  margin: 18px 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 13px; line-height: 1.65;
+}
+.curricular-pathways li + li { margin-top: 9px; }
+.curricular-note-row {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px;
+}
+.curricular-note-row p {
+  margin: 0; padding: 18px; border: 1px solid var(--line);
+  color: var(--ink-soft); background: color-mix(in srgb, var(--acid) 12%, var(--paper)); font-size: 13px; line-height: 1.7;
+}
+.curricular-note-row strong { display: block; margin-bottom: 4px; color: var(--ink); font: 10px/1.4 var(--mono); text-transform: uppercase; }
 .curricular-learning {
   max-width: none; background: var(--paper-deep);
   padding-left: max(22px, calc((100vw - var(--max)) / 2 + clamp(22px, 5vw, 72px)));
@@ -786,6 +860,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .services-strip .signal-grid > p { grid-column: 1 / -1; }
   .services-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .curricular-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .snapshot-heading,
+  .curriculum-breakdown { grid-template-columns: 1fr; }
+  .snapshot-grid,
+  .curricular-pathways { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .breakdown-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .learning-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .learning-ladder article:nth-child(odd) { border-left: 1px solid var(--line); }
   .learning-ladder article { border-bottom: 1px solid var(--line); }
@@ -850,6 +929,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .service-card { min-height: 430px; }
   .curricular-grid { grid-template-columns: 1fr; }
   .curricular-card { min-height: 390px; }
+  .snapshot-grid,
+  .breakdown-list,
+  .curricular-pathways,
+  .curricular-note-row { grid-template-columns: 1fr; }
+  .snapshot-grid article { min-height: 170px; }
+  .breakdown-list dd { font-size: 25px; }
   .curricular-map { width: min(88vw, 470px); }
   .map-stage { font-size: 9px; }
   .learning-ladder { grid-template-columns: 1fr; }
