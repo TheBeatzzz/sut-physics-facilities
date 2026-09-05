@@ -388,9 +388,47 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   letter-spacing: -.025em; overflow-wrap: anywhere;
 }
 .curricular-card p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.curricular-card-action {
+  cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.curricular-card-action:hover {
+  transform: translateY(-4px); border-color: var(--ink); box-shadow: 0 18px 38px rgba(21,38,31,.08);
+}
+.curricular-card-action:focus-visible {
+  outline: 3px solid #0b62d6; outline-offset: 4px; border-color: var(--ink);
+}
+.card-action-cue {
+  margin-top: auto; padding-top: 24px; color: var(--ink);
+  font: 700 11px/1.4 var(--sans); text-transform: uppercase;
+}
+body.has-curricular-modal { overflow: hidden; }
+.curricular-modal[hidden] { display: none; }
+.curricular-modal {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+  padding: clamp(14px, 3vw, 36px);
+}
+.curricular-modal-backdrop {
+  position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0;
+  background: rgba(14, 28, 22, .72); cursor: zoom-out;
+}
+.curricular-modal-panel {
+  position: relative; z-index: 1; width: min(1180px, 100%); max-height: min(86vh, 900px);
+  overflow: auto; background: var(--paper-deep); border: 1px solid rgba(255,255,255,.28);
+  box-shadow: 0 30px 80px rgba(0,0,0,.28);
+}
+.curricular-modal-panel:focus-visible { outline: 3px solid #d7ff3f; outline-offset: 4px; }
+.curricular-modal-close {
+  position: sticky; top: 14px; z-index: 3; float: right; width: 44px; height: 44px; margin: 14px 14px 0 0;
+  display: grid; place-items: center; border: 1px solid var(--line); color: var(--paper);
+  background: var(--ink); cursor: pointer;
+}
+.curricular-modal-close span { font-size: 26px; line-height: 1; transform: translateY(-1px); }
 .curricular-bachelor-snapshot {
   margin-top: 28px; padding: clamp(26px, 4vw, 46px); border: 1px solid var(--line);
   background: color-mix(in srgb, var(--paper-deep) 72%, white); overflow: hidden;
+}
+.curricular-modal .curricular-bachelor-snapshot {
+  margin-top: 0; padding-top: clamp(44px, 5vw, 62px); border: 0; background: var(--paper-deep);
 }
 .snapshot-heading {
   display: grid; grid-template-columns: .32fr 1fr; gap: 28px; align-items: start;
@@ -935,6 +973,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid #0b62d6; outline-offs
   .curricular-note-row { grid-template-columns: 1fr; }
   .snapshot-grid article { min-height: 170px; }
   .breakdown-list dd { font-size: 25px; }
+  .curricular-modal { padding: 0; align-items: stretch; }
+  .curricular-modal-panel { max-height: 100vh; width: 100%; border: 0; }
+  .curricular-modal .curricular-bachelor-snapshot { padding: 62px 18px 24px; }
+  .curricular-modal-close { top: 10px; width: 40px; height: 40px; margin: 10px 10px 0 0; }
   .curricular-map { width: min(88vw, 470px); }
   .map-stage { font-size: 9px; }
   .learning-ladder { grid-template-columns: 1fr; }
